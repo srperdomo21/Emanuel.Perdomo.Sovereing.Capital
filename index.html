@@ -9,7 +9,6 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
-  // ============ CONFIGURACIÓN SUPABASE ============
   const SUPABASE_URL = 'https://vzzfslsosmbgmlyvzyis.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_2CFYvUocRvSErAAmRfDSMw_NbI_Gejt';
   const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -54,26 +53,55 @@
     nav button span { font-size: 1.3rem; }
 
     .container { padding: 15px; max-width: 1200px; margin: auto; margin-top: 10px; margin-bottom: 30px; }
-    .card { background: var(--card); border-radius: 8px; padding: 18px; margin-bottom: 15px; border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .card { background: var(--card); border-radius: 14px; padding: 20px; margin-bottom: 16px; border: 1px solid var(--border); box-shadow: 0 4px 14px rgba(0,0,0,0.04); }
     .card h3 { font-size: 1.05rem; color: var(--primary); margin-bottom: 12px; }
 
     .filter-zone-bar { margin-bottom: 10px; }
-    .filter-zone-bar select { width: 100%; padding: 10px; border: 2px solid var(--primary); border-radius: 6px; font-weight: 700; font-size: 0.9rem; background: #eff6ff; color: var(--primary-dark); outline: none; }
+    .filter-zone-bar select {
+      width: 100%; padding: 12px 14px; border: 2px solid var(--primary); border-radius: 10px;
+      font-weight: 700; font-size: 0.9rem; background: #eff6ff; color: var(--primary-dark); outline: none;
+      box-shadow: 0 2px 6px rgba(30,58,138,0.08); cursor: pointer;
+    }
 
     .search-filter-bar { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; }
-    .search-box { flex: 1; display: flex; align-items: center; background: white; border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; }
-    .search-box input { border: none; outline: none; width: 100%; font-size: 0.9rem; margin-left: 6px; color: var(--text-main); }
+    .search-box {
+      flex: 1; display: flex; align-items: center; background: white;
+      border: 1.5px solid var(--border); border-radius: 10px; padding: 10px 14px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04); transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .search-box:focus-within {
+      border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.15);
+    }
+    .search-box input { border: none; outline: none; width: 100%; font-size: 0.95rem; margin-left: 8px; color: var(--text-main); background: transparent; }
 
     .metrics-summary-bar { background: white; border: 1px solid var(--border); border-radius: 8px; padding: 15px; margin-bottom: 15px; font-size: 0.9rem; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
     .metric-item { background: #f8fafc; padding: 10px; border-radius: 6px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 4px; }
 
     .client-subtabs { display: flex; gap: 6px; margin-bottom: 12px; overflow-x: auto; padding-bottom: 4px; }
-    .client-subtab-btn { flex: 1; padding: 8px 10px; font-size: 0.75rem; font-weight: 700; border: 1px solid var(--border); background: white; color: #475569; border-radius: 6px; cursor: pointer; text-align: center; white-space: nowrap; }
-    .client-subtab-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+    .client-subtab-btn {
+      flex: 1; padding: 10px 12px; font-size: 0.78rem; font-weight: 700;
+      border: 1.5px solid var(--border); background: white; color: #475569;
+      border-radius: 10px; cursor: pointer; text-align: center; white-space: nowrap;
+      transition: all 0.15s ease;
+    }
+    .client-subtab-btn:hover { border-color: var(--primary); color: var(--primary); }
+    .client-subtab-btn.active { background: var(--primary); color: white; border-color: var(--primary); box-shadow: 0 4px 12px rgba(30,58,138,0.25); }
 
     .form-group { margin-bottom: 12px; }
     .form-group label { display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 4px; color: var(--text-main); }
-    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.9rem; color: var(--text-main); background: #fff; }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%; padding: 11px 14px; border: 1.5px solid var(--border); border-radius: 10px;
+      font-size: 0.9rem; color: var(--text-main); background: #fff;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+      outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
+    }
+    .form-group select {
+      cursor: pointer; appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%231e3a8a' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px;
+    }
     .form-row { display: flex; gap: 12px; }
     .form-row .form-group { flex: 1; }
 
@@ -85,8 +113,16 @@
     .btn-warning { background: var(--warning); color: white; }
     .btn-whatsapp { background: #25d366; color: white; }
 
-    .client-card { border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 10px; background: white; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.03); display: flex; gap: 12px; align-items: center; }
-    .client-card:hover { border-color: var(--primary); }
+    .client-card {
+      border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 10px;
+      background: white; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+      display: flex; gap: 14px; align-items: center;
+      transition: all 0.2s ease;
+    }
+    .client-card:hover {
+      border-color: var(--primary); box-shadow: 0 6px 20px rgba(30,58,138,0.12);
+      transform: translateY(-1px);
+    }
     .client-avatar { width: 45px; height: 45px; border-radius: 50%; object-fit: cover; border: 1px solid var(--border); background: #e2e8f0; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; flex-shrink: 0; }
     .client-info { flex: 1; }
     .client-header { font-weight: 700; color: var(--text-main); font-size: 0.95rem; margin-bottom: 2px; }
@@ -117,8 +153,25 @@
     .signature-pad-container { border: 1px solid var(--border); border-radius: 6px; background: #fff; margin-top: 5px; touch-action: none; position: relative; }
     canvas { width: 100%; height: 140px; display: block; border-radius: 6px; }
 
-    #loginScreen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--primary); z-index: 9999; display: flex; justify-content: center; align-items: center; padding: 20px; }
-    .login-card { background: white; padding: 30px; border-radius: 10px; width: 100%; max-width: 400px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); text-align: center; }
+    #loginScreen {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: #0a1628 url('login-bg.png') center/cover no-repeat;
+      background-color: #0a1628;
+      z-index: 9999; display: flex; justify-content: center; align-items: center; padding: 20px;
+    }
+    #loginScreen::before {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(160deg, rgba(10,22,40,0.92) 0%, rgba(30,58,138,0.88) 50%, rgba(10,22,40,0.95) 100%);
+      z-index: 0;
+    }
+    .login-card {
+      position: relative; z-index: 1;
+      background: rgba(255,255,255,0.98);
+      padding: 32px 28px; border-radius: 16px; width: 100%; max-width: 420px;
+      box-shadow: 0 25px 50px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.1);
+      text-align: center;
+      backdrop-filter: blur(8px);
+    }
     .login-logo { width: 70px; height: 70px; object-fit: contain; margin: 0 auto 10px auto; display: block; }
     .login-card h2 { color: var(--primary); margin-bottom: 8px; font-size: 1.3rem; }
     .login-subtitle { font-size: 0.8rem; color: #475569; margin-bottom: 20px; }
@@ -1537,7 +1590,6 @@
   </div>
 
   <script>
-    <script>
 // ============ VARIABLES GLOBALES ============
 let empresaActual = localStorage.getItem('psc_empresa_activa') || 'Perdomo Sovereign Capital S.A.';
 let empresaIdActual = null;
@@ -1557,12 +1609,6 @@ let cobradoresDB = [];
 let inversionistasDB = [];
 let controlDiaDB = { abierto: false, fondoInicial: 0, fecha: '', empleado: '', zona: '' };
 let empresasGlobalesDB = [];
-
-// ============ CARGAR TODO DESDE SUPABASE ============
-async function sincronizarConNube() {
-  // ... la función completa que te di
-}
-
 
 // ============ CARGAR TODO DESDE SUPABASE ============
 async function sincronizarConNube() {
@@ -1657,7 +1703,12 @@ async function sincronizarConNube() {
     }
 
     var empresaActual = localStorage.getItem('psc_empresa_activa') || 'Perdomo Sovereign Capital S.A.';
-    var empresasGlobalesDB = JSON.parse(localStorage.getItem('psc_empresas_globales') || '[{"id":1,"nombre":"Perdomo Sovereign Capital S.A.","usuarioAdmin":"admin","passwordAdmin":"Admin21","fechaPago":"2026-11-30","estado":"activa"},{"id":2,"nombre":"Financiera Norestana","usuarioAdmin":"norestana","passwordAdmin":"1234","fechaPago":"2026-11-15","estado":"activa"}]');
+    // empresasGlobalesDB already declared with let — load defaults only if empty
+    if (!empresasGlobalesDB || empresasGlobalesDB.length === 0) {
+      try {
+        empresasGlobalesDB = JSON.parse(localStorage.getItem('psc_empresas_globales') || '[{"id":1,"nombre":"Perdomo Sovereign Capital S.A.","usuarioAdmin":"admin","passwordAdmin":"Admin21","fechaPago":"2026-11-30","estado":"activa","requierePago":false},{"id":2,"nombre":"Financiera Norestana","usuarioAdmin":"norestana","passwordAdmin":"1234","fechaPago":"2026-11-15","estado":"activa"}]');
+      } catch(e) { empresasGlobalesDB = []; }
+    }
 
     var zonasDB = JSON.parse(localStorage.getItem('psc_zonas') || '[{"id":1,"numero":"1","nombre":"Cenovi los sabados","dia":"Sabado"}]');
     var clientesDB = JSON.parse(localStorage.getItem('psc_clientes') || '[]');
@@ -1685,25 +1736,45 @@ async function sincronizarConNube() {
     var canvasFirma, ctxFirma, firmando = false;
     var logoEmpresaTemporal = "";
     var logoEmpresaEditTemporal = "";
-     window.addEventListener('DOMContentLoaded', function() {
-  iniciarGeolocalizacionSatelital();
-  corregirRegistrosExistentes();
-  verificarEstadoSuscripcionEmpresa();
-  
-  if(localStorage.getItem('psc_sesion_activa') === 'true') {
-    document.getElementById('loginScreen').style.display = 'none';
-    actualizarInterfazPorRol();
-    aplicarTemaEmpresa();
-  }
-  
-  iniciarPadFirma();
-  sincronizarConNube();
+window.addEventListener('DOMContentLoaded', function() {
+  if (typeof iniciarGeolocalizacionSatelital === 'function') iniciarGeolocalizacionSatelital();
+  if (typeof corregirRegistrosExistentes === 'function') corregirRegistrosExistentes();
+  if (typeof verificarEstadoSuscripcionEmpresa === 'function') verificarEstadoSuscripcionEmpresa();
 
+  // Cargar empresas locales por defecto si Supabase falla
+  if (!empresasGlobalesDB || empresasGlobalesDB.length === 0) {
+    try {
+      empresasGlobalesDB = JSON.parse(localStorage.getItem('psc_empresas_globales') || '[{"id":1,"nombre":"Perdomo Sovereign Capital S.A.","usuarioAdmin":"admin","passwordAdmin":"Admin21","fechaPago":"2026-11-30","estado":"activa","requierePago":false},{"id":2,"nombre":"Financiera Norestana","usuarioAdmin":"norestana","passwordAdmin":"1234","fechaPago":"2026-11-15","estado":"activa"}]');
+    } catch(e) { empresasGlobalesDB = []; }
+  }
+
+  if (localStorage.getItem('psc_sesion_activa') === 'true') {
+    document.getElementById('loginScreen').style.display = 'none';
+    if (typeof actualizarInterfazPorRol === 'function') actualizarInterfazPorRol();
+    if (typeof aplicarTemaEmpresa === 'function') aplicarTemaEmpresa();
+  }
+
+  if (typeof iniciarPadFirma === 'function') iniciarPadFirma();
+  sincronizarConNube().catch(function(err){ console.warn('Sync:', err); });
+
+  var fechaInput = document.getElementById('pFechaInicio');
+  if (fechaInput) try { fechaInput.valueAsDate = new Date(); } catch(e){}
+  if (typeof calcularCuotaPreview === 'function') calcularCuotaPreview();
+  if (typeof renderEmpresasAisladasList === 'function') renderEmpresasAisladasList();
+  if (typeof actualizarSelectsLoginEmpresa === 'function') actualizarSelectsLoginEmpresa();
+});
 
 // ============ GUARDAR DATOS EN SUPABASE ============
 async function guardarDatosEnNube() {
   if (!empresaIdActual) {
     console.warn('No hay empresa activa para guardar');
+    // Fallback localStorage
+    try {
+      localStorage.setItem('psc_clientes', JSON.stringify(clientesDB || []));
+      localStorage.setItem('psc_prestamos', JSON.stringify(prestamosDB || []));
+      localStorage.setItem('psc_cobros', JSON.stringify(cobrosDB || []));
+      localStorage.setItem('psc_empresas_globales', JSON.stringify(empresasGlobalesDB || []));
+    } catch(e){}
     return;
   }
 
@@ -1720,22 +1791,11 @@ async function guardarDatosEnNube() {
         })
         .eq('id', controlDiaDB.id);
     }
-
     console.log('✅ Datos guardados (parcial)');
   } catch (error) {
     console.error('Error guardando:', error);
   }
 }
-
-
-
-   document.getElementById('pFechaInicio').valueAsDate = new Date();
-  calcularCuotaPreview();
-
-  // MÓDULO MULTI-EMPRESA AISLADA
-  renderEmpresasAisladasList();
-  actualizarSelectsLoginEmpresa();
-});
 
 
     function previewLogoEmpresa(input, previewId, isEdit) {
@@ -2195,8 +2255,8 @@ async function guardarDatosEnNube() {
       return Math.min(montoAtraso, p.balancePendiente);
     }
 
-    function sincronizarConNube() {
-      if(db) {
+    function sincronizarConFirebase() {
+      if(typeof db !== 'undefined' && db) {
         var dbPath = 'psc_datos_' + empresaActual.replace(/[^a-zA-Z0-9]/g, '_');
         db.ref(dbPath).on('value', function(snapshot) {
           var data = snapshot.val();
@@ -2461,6 +2521,20 @@ actualizarSelectsLoginEmpresa();
       var rol = document.getElementById('loginRolSelect').value;
       var p = document.getElementById('loginPassword').value.trim();
 
+      if (!rol) {
+        alert('Por favor selecciona un Tipo de Usuario (Rol).');
+        return;
+      }
+
+      // Asegurar empresas locales si Supabase no cargó
+      if (!empresasGlobalesDB || empresasGlobalesDB.length === 0) {
+        try {
+          empresasGlobalesDB = JSON.parse(localStorage.getItem('psc_empresas_globales') || '[{"id":1,"nombre":"Perdomo Sovereign Capital S.A.","usuarioAdmin":"admin","passwordAdmin":"Admin21","fechaPago":"2026-11-30","estado":"activa","requierePago":false}]');
+        } catch(err) {
+          empresasGlobalesDB = [{"id":1,"nombre":"Perdomo Sovereign Capital S.A.","usuarioAdmin":"admin","passwordAdmin":"Admin21","fechaPago":"2026-11-30","estado":"activa","requierePago":false}];
+        }
+      }
+
       if (rol === "SuperAdmin" && (p === "SuperAdmin21" || p === "Admin21")) {
         rolUsuarioActual = "SuperAdmin";
         nombreUsuarioActual = "Super Administrador (Tú)";
@@ -2513,8 +2587,14 @@ actualizarSelectsLoginEmpresa();
       localStorage.setItem('psc_zona_usuario', zonaUsuarioActual);
       localStorage.setItem('psc_empresa_activa', empresaActual);
       document.getElementById('loginScreen').style.display = 'none';
-      sincronizarConNube();
-      actualizarInterfazPorRol();
+      try {
+        if (typeof sincronizarConNube === 'function') {
+          var r = sincronizarConNube();
+          if (r && typeof r.catch === 'function') r.catch(function(){});
+        }
+      } catch(err) { console.warn(err); }
+      if (typeof actualizarInterfazPorRol === 'function') actualizarInterfazPorRol();
+      if (typeof aplicarTemaEmpresa === 'function') aplicarTemaEmpresa();
     }
 
     function actualizarInterfazPorRol() {
