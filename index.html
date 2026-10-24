@@ -1810,10 +1810,14 @@ async function sincronizarConNube() {
       try {
         var val = localStorage.getItem(key);
         if (val !== null) return JSON.parse(val);
-        // Fallback a clave antigua (migración suave solo para la empresa master)
+        // Fallback + migración automática a clave nueva (solo empresa master)
+        // Así SuperAdmin y Admin de Sovereign Capital siempre ven los mismos datos
         if (empresaActual === 'Perdomo Sovereign Capital S.A.') {
           var old = localStorage.getItem('psc_' + base);
-          if (old) return JSON.parse(old);
+          if (old) {
+            try { localStorage.setItem(key, old); } catch(eMig) {}
+            return JSON.parse(old);
+          }
         }
       } catch(e) {}
       return defVal;
@@ -2439,6 +2443,8 @@ actualizarSelectsLoginEmpresa();
     }
 
     function getKeyEmpresa(base) {
+      // La clave SOLO depende de la empresa. El rol (SuperAdmin / Admin / Empleado / Cobrador)
+      // NUNCA genera un almacén distinto. Misma empresa = mismos datos para todos.
       var safe = (empresaActual || 'default').replace(/[^a-zA-Z0-9]/g, '_');
       return 'psc_' + safe + '_' + base;
     }
@@ -2446,7 +2452,7 @@ actualizarSelectsLoginEmpresa();
     function guardarEnLocalStorageLocal() {
       localStorage.setItem('psc_empresa_activa', empresaActual);
       localStorage.setItem('psc_empresas_globales', JSON.stringify(empresasGlobalesDB));
-      // Datos aislados por empresa (nunca se mezclan)
+      // Datos aislados ÚNICAMENTE por empresa (nunca por rol)
       localStorage.setItem(getKeyEmpresa('clientes'), JSON.stringify(clientesDB || []));
       localStorage.setItem(getKeyEmpresa('prestamos'), JSON.stringify(prestamosDB || []));
       localStorage.setItem(getKeyEmpresa('cobros'), JSON.stringify(cobrosDB || []));
@@ -2727,9 +2733,16 @@ actualizarSelectsLoginEmpresa();
         var claveMaestra = (p === "Admin21" || p === "SuperAdmin21" || p === "admin21" || p === "ADMIN21");
 
         if (rol === "SuperAdmin" && claveMaestra) {
+          // SuperAdmin NO es otra empresa. Comparte EXACTAMENTE los mismos datos
+          // de la empresa seleccionada (normalmente Perdomo Sovereign Capital S.A.).
+          // Solo tiene poderes extra para crear/editar/bloquear otras empresas.
           rolUsuarioActual = "SuperAdmin";
           nombreUsuarioActual = "Super Administrador (Tú)";
           zonaUsuarioActual = "Todas las Zonas (Global)";
+          // empresaActual ya viene del select; se mantiene para compartir datos
+          if (!empresaActual || empresaActual.trim() === '') {
+            empresaActual = 'Perdomo Sovereign Capital S.A.';
+          }
           guardarSesionLocal();
           return;
         }
@@ -5315,13 +5328,25 @@ actualizarSelectsLoginEmpresa();
     }
 
     function cargarDatosLocalEmpresaActual() {
-      // Recarga los arrays desde localStorage con aislamiento por empresa
+      // Recarga los arrays desde localStorage con aislamiento SOLO por EMPRESA.
+      // SuperAdmin, Admin, Empleado y Cobrador de la MISMA empresa ven exactamente los mismos datos.
+      // El aislamiento se activa únicamente cuando empresaActual es diferente.
       function _load(base, defVal) {
         var safe = (empresaActual || 'default').replace(/[^a-zA-Z0-9]/g, '_');
         var key = 'psc_' + safe + '_' + base;
         try {
           var val = localStorage.getItem(key);
           if (val !== null) return JSON.parse(val);
+          // Migración suave: si es la empresa master y existen las claves antiguas sin prefijo, las usa
+          if (empresaActual === 'Perdomo Sovereign Capital S.A.') {
+            var old = localStorage.getItem('psc_' + base);
+            if (old) {
+              var parsed = JSON.parse(old);
+              // Migra automáticamente a la clave nueva para que no se pierda
+              try { localStorage.setItem(key, old); } catch(eMig) {}
+              return parsed;
+            }
+          }
         } catch(e) {}
         return defVal;
       }
