@@ -180,9 +180,12 @@
       position: absolute; opacity: 0.08; object-fit: contain; filter: brightness(1.2);
     }
     #loginScreen .login-bg-decor .bill {
-      position: absolute; font-size: 1.8rem; opacity: 0.14; transform: rotate(var(--r, 0deg));
-      user-select: none;
+      position: absolute; font-size: 2rem; opacity: 0.32; transform: rotate(var(--r, 0deg));
+      user-select: none; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.35));
+      pointer-events: none;
     }
+    #loginScreen .login-bg-decor .bill.big { font-size: 2.8rem; opacity: 0.38; }
+    #loginScreen .login-bg-decor .bill.sm { font-size: 1.35rem; opacity: 0.26; }
     .login-card {
       position: relative; z-index: 1;
       background: rgba(255,255,255,0.98);
@@ -243,20 +246,38 @@
       <img src="Logosv.png" style="width:80px; bottom:8%; right:10%; transform:rotate(-20deg);" alt="">
       <img src="Logosv.png" style="width:60px; top:45%; left:2%; transform:rotate(25deg);" alt="">
       <img src="Logosv.png" style="width:75px; top:55%; right:3%; transform:rotate(-8deg);" alt="">
-      <span class="bill" style="top:8%; left:22%; --r:-15deg;">💵</span>
-      <span class="bill" style="top:15%; left:55%; --r:12deg; font-size:2.2rem;">💵</span>
-      <span class="bill" style="top:25%; right:18%; --r:25deg;">💵</span>
-      <span class="bill" style="top:38%; left:12%; --r:-8deg; font-size:1.5rem;">💵</span>
-      <span class="bill" style="top:42%; right:25%; --r:18deg;">💵</span>
-      <span class="bill" style="top:58%; left:30%; --r:-22deg; font-size:2rem;">💵</span>
-      <span class="bill" style="top:65%; right:12%; --r:10deg;">💵</span>
-      <span class="bill" style="bottom:22%; left:18%; --r:30deg;">💵</span>
-      <span class="bill" style="bottom:15%; right:28%; --r:-18deg; font-size:1.7rem;">💵</span>
-      <span class="bill" style="bottom:5%; left:40%; --r:5deg;">💵</span>
-      <span class="bill" style="top:78%; left:5%; --r:-12deg;">💵</span>
-      <span class="bill" style="top:30%; left:70%; --r:8deg; font-size:1.4rem;">💵</span>
-      <span class="bill" style="top:88%; right:5%; --r:15deg;">💵</span>
-      <span class="bill" style="top:5%; right:35%; --r:-25deg;">💵</span>
+      <!-- Billetes de dólar esparcidos por todo el fondo -->
+      <span class="bill big" style="top:4%; left:18%; --r:-18deg;">💵</span>
+      <span class="bill" style="top:7%; left:48%; --r:12deg;">💵</span>
+      <span class="bill big" style="top:5%; right:12%; --r:22deg;">💵</span>
+      <span class="bill sm" style="top:12%; left:8%; --r:-8deg;">💵</span>
+      <span class="bill" style="top:14%; left:72%; --r:15deg;">💵</span>
+      <span class="bill big" style="top:20%; left:28%; --r:-25deg;">💵</span>
+      <span class="bill" style="top:22%; right:22%; --r:8deg;">💵</span>
+      <span class="bill sm" style="top:28%; left:5%; --r:30deg;">💵</span>
+      <span class="bill" style="top:30%; left:55%; --r:-12deg;">💵</span>
+      <span class="bill big" style="top:35%; right:8%; --r:18deg;">💵</span>
+      <span class="bill" style="top:38%; left:15%; --r:-20deg;">💵</span>
+      <span class="bill sm" style="top:42%; left:42%; --r:5deg;">💵</span>
+      <span class="bill" style="top:45%; right:30%; --r:-15deg;">💵</span>
+      <span class="bill big" style="top:50%; left:8%; --r:25deg;">💵</span>
+      <span class="bill" style="top:52%; left:65%; --r:-8deg;">💵</span>
+      <span class="bill sm" style="top:58%; right:5%; --r:12deg;">💵</span>
+      <span class="bill" style="top:60%; left:35%; --r:-22deg;">💵</span>
+      <span class="bill big" style="top:65%; right:18%; --r:10deg;">💵</span>
+      <span class="bill" style="top:68%; left:12%; --r:28deg;">💵</span>
+      <span class="bill sm" style="top:72%; left:50%; --r:-5deg;">💵</span>
+      <span class="bill" style="top:75%; right:25%; --r:16deg;">💵</span>
+      <span class="bill big" style="top:78%; left:3%; --r:-14deg;">💵</span>
+      <span class="bill" style="top:82%; left:40%; --r:20deg;">💵</span>
+      <span class="bill sm" style="top:85%; right:8%; --r:-18deg;">💵</span>
+      <span class="bill" style="top:88%; left:22%; --r:7deg;">💵</span>
+      <span class="bill big" style="bottom:6%; right:35%; --r:-28deg;">💵</span>
+      <span class="bill" style="bottom:4%; left:60%; --r:14deg;">💵</span>
+      <span class="bill sm" style="bottom:10%; left:75%; --r:-10deg;">💵</span>
+      <span class="bill" style="bottom:12%; left:30%; --r:22deg;">💵</span>
+      <span class="bill" style="top:18%; left:85%; --r:-30deg;">💵</span>
+      <span class="bill sm" style="top:48%; left:78%; --r:9deg;">💵</span>
     </div>
     <div class="login-card">
       <img src="Logosv.png" id="imgLoginLogo" class="login-logo" alt="Logo">
@@ -313,7 +334,7 @@
       <button class="btn btn-secondary btn-sm" onclick="toggleSidebar()" style="margin:0;">✕</button>
     </div>
     <div class="sidebar-content">
-      <button class="sidebar-btn" onclick="showTabFromMenu('crearEmpresaTab')" style="background:#eff6ff; color:var(--primary); font-weight:700;">🏢 Crear Nuevas Empresas</button>
+      <button class="sidebar-btn solo-super-admin" onclick="showTabFromMenu('crearEmpresaTab')" style="background:#eff6ff; color:var(--primary); font-weight:700; display:none;">🏢 Crear Nuevas Empresas</button>
       <button class="sidebar-btn solo-super-admin" onclick="showTabFromMenu('superAdminTab')" style="background:#eff6ff; color:var(--primary); display:none;">🏢 Actualizar y Crear Empresa</button>
       <button class="sidebar-btn solo-admin-emp" onclick="showTabFromMenu('zonasTab')">MAPA Gestión de Zonas</button>
       <button class="sidebar-btn solo-admin-emp" onclick="showTabFromMenu('empleadosTab')">👥 Empleados</button>
@@ -322,7 +343,7 @@
       <button class="sidebar-btn solo-admin-emp" onclick="showTabFromMenu('transferenciaRuta')">🔀 Pasar Ruta de Cliente</button>
       <button class="sidebar-btn" onclick="showTabFromMenu('caja')">💵 Cuadre, Arqueo y Gastos Fijos</button>
       <button class="sidebar-btn solo-admin-emp" onclick="showTabFromMenu('inversionistasTab')">💼 Módulo de Inversionistas</button>
-      <button class="sidebar-btn solo-admin-emp" onclick="showTabFromMenu('recordatorios')">🔔 Alertas y Atrasos</button>
+      <button class="sidebar-btn solo-admin-emp" onclick="showTabFromMenu('recordatorios')">🔔 Recordatorio Cliente</button>
       <button class="sidebar-btn" onclick="showTabFromMenu('listado')">📋 Listado General y Auditoría</button>
       <hr style="border:0; border-top:1px solid var(--border); margin:5px 0;">
       <button class="sidebar-btn" onclick="abrirAyudaWhatsApp()" style="background:#25d366; color:white; font-weight:700;">🆘 Ayuda / Soporte WhatsApp</button>
@@ -1147,8 +1168,8 @@
       <!-- RECORDATORIOS -->
       <div id="recordatorios" class="tab-content">
         <div class="card">
-          <h3>🔔 Apartado de Recordatorios y Atrasos (WhatsApp API Automatizado)</h3>
-          <p style="font-size:0.85rem; color:#475569; margin-bottom: 15px;">Gestión de clientes atrasados con opción de generar mensaje automático vía WhatsApp Business API con cálculo exacto de semanas en atraso.</p>
+          <h3>🔔 Recordatorio Cliente (2 semanas sin pagar)</h3>
+          <p style="font-size:0.85rem; color:#475569; margin-bottom: 15px;">Clientes con <strong>2 semanas o más sin pagar</strong>. Desde aquí puedes enviarles un recordatorio directo a su WhatsApp con un solo clic.</p>
           <div id="listaRecordatoriosDiv">Cargando registros...</div>
         </div>
       </div>
@@ -1679,14 +1700,27 @@ async function sincronizarConNube() {
       .order('id');
 
     if (errEmp) throw errEmp;
-    empresasGlobalesDB = empresas || [];
+    // Solo sobrescribir si Supabase devolvió empresas reales (no vaciar el login)
+    if (empresas && empresas.length > 0) {
+      empresasGlobalesDB = empresas;
+    } else if (!empresasGlobalesDB || empresasGlobalesDB.length === 0) {
+      try {
+        empresasGlobalesDB = JSON.parse(localStorage.getItem('psc_empresas_globales') || '[]');
+      } catch(e) { empresasGlobalesDB = []; }
+      if (!empresasGlobalesDB.length) {
+        empresasGlobalesDB = [
+          {id:1, nombre:"Perdomo Sovereign Capital S.A.", usuarioAdmin:"admin", passwordAdmin:"Admin21", fechaPago:"2026-11-30", estado:"activa", requierePago:false},
+          {id:2, nombre:"Financiera Norestana", usuarioAdmin:"norestana", passwordAdmin:"1234", fechaPago:"2026-11-15", estado:"activa"}
+        ];
+      }
+    }
 
     // Buscar el id de la empresa actual
     const empActual = empresasGlobalesDB.find(e => e.nombre === empresaActual);
     empresaIdActual = empActual ? empActual.id : null;
 
     if (!empresaIdActual) {
-      console.warn('No se encontró empresa activa');
+      console.warn('No se encontró empresa activa en nube; se usa modo local.');
       return;
     }
 
@@ -1769,17 +1803,32 @@ async function sincronizarConNube() {
       } catch(e) { empresasGlobalesDB = []; }
     }
 
-    zonasDB = JSON.parse(localStorage.getItem('psc_zonas') || '[{"id":1,"numero":"1","nombre":"Cenovi los sabados","dia":"Sabado"}]');
-    clientesDB = JSON.parse(localStorage.getItem('psc_clientes') || '[]');
-    prestamosDB = JSON.parse(localStorage.getItem('psc_prestamos') || '[]');
-    cobrosDB = JSON.parse(localStorage.getItem('psc_cobros') || '[]');
-    notasDB = JSON.parse(localStorage.getItem('psc_notas') || '[]');
-    notificacionesDB = JSON.parse(localStorage.getItem('psc_notificaciones') || '[]');
-    gastosDB = JSON.parse(localStorage.getItem('psc_gastos') || '[]');
-    inversionistasDB = JSON.parse(localStorage.getItem('psc_inversionistas') || '[]');
-    cobradoresDB = JSON.parse(localStorage.getItem('psc_cobradores') || '[]');
-    empleadosDB = JSON.parse(localStorage.getItem('psc_empleados') || '[]');
-    controlDiaDB = JSON.parse(localStorage.getItem('psc_controldia') || '{"abierto": false, "fondoInicial": 0, "fecha": "", "empleado": "", "zona": ""}');
+    // Cargar datos AISLADOS por empresa (nunca se mezclan entre compañías)
+    function _loadLocal(base, defVal) {
+      var safe = (empresaActual || 'default').replace(/[^a-zA-Z0-9]/g, '_');
+      var key = 'psc_' + safe + '_' + base;
+      try {
+        var val = localStorage.getItem(key);
+        if (val !== null) return JSON.parse(val);
+        // Fallback a clave antigua (migración suave solo para la empresa master)
+        if (empresaActual === 'Perdomo Sovereign Capital S.A.') {
+          var old = localStorage.getItem('psc_' + base);
+          if (old) return JSON.parse(old);
+        }
+      } catch(e) {}
+      return defVal;
+    }
+    zonasDB = _loadLocal('zonas', [{"id":1,"numero":"1","nombre":"Zona Principal","dia":"Lunes"}]);
+    clientesDB = _loadLocal('clientes', []);
+    prestamosDB = _loadLocal('prestamos', []);
+    cobrosDB = _loadLocal('cobros', []);
+    notasDB = _loadLocal('notas', []);
+    notificacionesDB = _loadLocal('notificaciones', []);
+    gastosDB = _loadLocal('gastos', []);
+    inversionistasDB = _loadLocal('inversionistas', []);
+    cobradoresDB = _loadLocal('cobradores', []);
+    empleadosDB = _loadLocal('empleados', []);
+    controlDiaDB = _loadLocal('controldia', {abierto: false, fondoInicial: 0, fecha: "", empleado: "", zona: ""});
     
     filtroClientesActual = 'todos';
     fotoBase64Temporal = "";
@@ -1878,15 +1927,38 @@ async function guardarDatosEnNube() {
       if (!emp) return;
       var color = emp.colorPrimario || '#1e3a8a';
       document.documentElement.style.setProperty('--primary', color);
-      // Generate a slightly darker version for primary-dark
       document.documentElement.style.setProperty('--primary-dark', color);
       document.documentElement.style.setProperty('--accent', color);
-      // Update logos if present
+
+      // Logo de la empresa (login, header, recibos, contratos)
       var logoSrc = emp.logo || 'Logosv.png';
       ['headerLogoImg', 'imgLoginLogo', 'imgContratoLogo', 'imgReciboLogo'].forEach(function(id) {
         var el = document.getElementById(id);
         if (el) el.src = logoSrc;
       });
+
+      // Nombre de la empresa en el encabezado
+      var headerH1 = document.querySelector('header h1');
+      if (headerH1) {
+        var logoImg = headerH1.querySelector('img');
+        var nombreMostrar = emp.nombre || 'PERDOMO SOVEREIGN CAPITAL';
+        // Mantener el img y cambiar solo el texto
+        headerH1.innerHTML = '';
+        if (logoImg) {
+          logoImg.id = 'headerLogoImg';
+          logoImg.className = 'header-logo';
+          logoImg.src = logoSrc;
+          headerH1.appendChild(logoImg);
+        } else {
+          var newImg = document.createElement('img');
+          newImg.src = logoSrc;
+          newImg.id = 'headerLogoImg';
+          newImg.className = 'header-logo';
+          newImg.alt = 'Logo';
+          headerH1.appendChild(newImg);
+        }
+        headerH1.appendChild(document.createTextNode(' ' + nombreMostrar.toUpperCase()));
+      }
     }
 
     function actualizarLimitePorPlan(planSelectId, limiteInputId) {
@@ -2366,20 +2438,26 @@ actualizarSelectsLoginEmpresa();
       }
     }
 
+    function getKeyEmpresa(base) {
+      var safe = (empresaActual || 'default').replace(/[^a-zA-Z0-9]/g, '_');
+      return 'psc_' + safe + '_' + base;
+    }
+
     function guardarEnLocalStorageLocal() {
       localStorage.setItem('psc_empresa_activa', empresaActual);
       localStorage.setItem('psc_empresas_globales', JSON.stringify(empresasGlobalesDB));
-      localStorage.setItem('psc_clientes', JSON.stringify(clientesDB));
-      localStorage.setItem('psc_prestamos', JSON.stringify(prestamosDB));
-      localStorage.setItem('psc_cobros', JSON.stringify(cobrosDB));
-      localStorage.setItem('psc_notas', JSON.stringify(notasDB));
-      localStorage.setItem('psc_notificaciones', JSON.stringify(notificacionesDB));
-      localStorage.setItem('psc_gastos', JSON.stringify(gastosDB));
-      localStorage.setItem('psc_inversionistas', JSON.stringify(inversionistasDB));
-      localStorage.setItem('psc_zonas', JSON.stringify(zonasDB));
-      localStorage.setItem('psc_cobradores', JSON.stringify(cobradoresDB));
-      localStorage.setItem('psc_empleados', JSON.stringify(empleadosDB));
-      localStorage.setItem('psc_controldia', JSON.stringify(controlDiaDB));
+      // Datos aislados por empresa (nunca se mezclan)
+      localStorage.setItem(getKeyEmpresa('clientes'), JSON.stringify(clientesDB || []));
+      localStorage.setItem(getKeyEmpresa('prestamos'), JSON.stringify(prestamosDB || []));
+      localStorage.setItem(getKeyEmpresa('cobros'), JSON.stringify(cobrosDB || []));
+      localStorage.setItem(getKeyEmpresa('notas'), JSON.stringify(notasDB || []));
+      localStorage.setItem(getKeyEmpresa('notificaciones'), JSON.stringify(notificacionesDB || []));
+      localStorage.setItem(getKeyEmpresa('gastos'), JSON.stringify(gastosDB || []));
+      localStorage.setItem(getKeyEmpresa('inversionistas'), JSON.stringify(inversionistasDB || []));
+      localStorage.setItem(getKeyEmpresa('zonas'), JSON.stringify(zonasDB || []));
+      localStorage.setItem(getKeyEmpresa('cobradores'), JSON.stringify(cobradoresDB || []));
+      localStorage.setItem(getKeyEmpresa('empleados'), JSON.stringify(empleadosDB || []));
+      localStorage.setItem(getKeyEmpresa('controldia'), JSON.stringify(controlDiaDB || {abierto:false, fondoInicial:0, fecha:'', empleado:'', zona:''}));
     }
 
     function guardarDatosEnNube() {
@@ -2531,6 +2609,34 @@ actualizarSelectsLoginEmpresa();
 
     function actualizarListasLoginEmpresa(empresa) {
       empresaActual = empresa;
+      var emp = empresasGlobalesDB.find(function(e) { return e.nombre === empresa; });
+      var logoEl = document.getElementById('imgLoginLogo');
+      var loginScreen = document.getElementById('loginScreen');
+      var loginTitle = document.querySelector('#loginScreen .login-card h2');
+      var loginSubtitle = document.querySelector('#loginScreen .login-subtitle');
+
+      if (emp) {
+        // Logo
+        if (logoEl) {
+          logoEl.src = emp.logo || 'Logosv.png';
+        }
+        // Color de fondo del login según la compañía (mantiene el patrón de $ del CSS)
+        var color = emp.colorPrimario || '#1e3a8a';
+        if (loginScreen) {
+          loginScreen.style.backgroundColor = color;
+          // No borrar background-image del CSS (billetes SVG + degradados); solo el color base
+        }
+        // Título y subtítulo
+        if (loginTitle) loginTitle.textContent = emp.nombre || 'PERDOMO SOVEREIGN CAPITAL';
+        if (loginSubtitle) loginSubtitle.textContent = 'Sistema Seguro - Multi-Empresa';
+      } else {
+        if (logoEl) logoEl.src = 'Logosv.png';
+        if (loginScreen) {
+          loginScreen.style.backgroundColor = '#0a1628';
+          // Dejar el background-image del CSS (billetes) intacto
+        }
+        if (loginTitle) loginTitle.textContent = 'PERDOMO SOVEREIGN CAPITAL';
+      }
     }
 
     function cambiarTipoLogin(rol) {
@@ -2588,84 +2694,149 @@ actualizarSelectsLoginEmpresa();
 
     function realizarLogin(e) {
       e.preventDefault();
-      empresaActual = document.getElementById('loginEmpresaSelect').value;
-      var rol = document.getElementById('loginRolSelect').value;
-      var p = document.getElementById('loginPassword').value.trim();
+      try {
+        empresaActual = document.getElementById('loginEmpresaSelect').value || 'Perdomo Sovereign Capital S.A.';
+        var rol = document.getElementById('loginRolSelect').value;
+        var p = document.getElementById('loginPassword').value.trim();
 
-      if (!rol) {
-        alert('Por favor selecciona un Tipo de Usuario (Rol).');
-        return;
-      }
+        if (!rol) {
+          alert('Por favor selecciona un Tipo de Usuario (Rol).');
+          return;
+        }
+        if (!p) {
+          alert('Introduce la contraseña / PIN.');
+          return;
+        }
 
-      // Asegurar empresas locales si Supabase no cargó
-      if (!empresasGlobalesDB || empresasGlobalesDB.length === 0) {
-        try {
-          empresasGlobalesDB = JSON.parse(localStorage.getItem('psc_empresas_globales') || '[{"id":1,"nombre":"Perdomo Sovereign Capital S.A.","usuarioAdmin":"admin","passwordAdmin":"Admin21","fechaPago":"2026-11-30","estado":"activa","requierePago":false}]');
-        } catch(err) {
-          empresasGlobalesDB = [{"id":1,"nombre":"Perdomo Sovereign Capital S.A.","usuarioAdmin":"admin","passwordAdmin":"Admin21","fechaPago":"2026-11-30","estado":"activa","requierePago":false}];
+        // Asegurar empresas locales siempre (Supabase o localStorage pueden fallar)
+        if (!empresasGlobalesDB || empresasGlobalesDB.length === 0) {
+          try {
+            empresasGlobalesDB = JSON.parse(localStorage.getItem('psc_empresas_globales') || '[]');
+          } catch(err) { empresasGlobalesDB = []; }
         }
-      }
+        if (!empresasGlobalesDB || empresasGlobalesDB.length === 0) {
+          empresasGlobalesDB = [
+            {id:1, nombre:"Perdomo Sovereign Capital S.A.", usuarioAdmin:"admin", passwordAdmin:"Admin21", fechaPago:"2026-11-30", estado:"activa", requierePago:false},
+            {id:2, nombre:"Financiera Norestana", usuarioAdmin:"norestana", passwordAdmin:"1234", fechaPago:"2026-11-15", estado:"activa"},
+            {id:3, nombre:"Inversiones Cibao Express", usuarioAdmin:"cibao", passwordAdmin:"Admin21", fechaPago:"2026-12-31", estado:"activa"}
+          ];
+          try { localStorage.setItem('psc_empresas_globales', JSON.stringify(empresasGlobalesDB)); } catch(e){}
+        }
 
-      if (rol === "SuperAdmin" && (p === "SuperAdmin21" || p === "Admin21")) {
-        rolUsuarioActual = "SuperAdmin";
-        nombreUsuarioActual = "Super Administrador (Tú)";
-        zonaUsuarioActual = "Todas las Zonas (Global)";
-        guardarSesionLocal();
-      } else if (rol === "Administrador") {
-        var empG = empresasGlobalesDB.find(function(item) { return item.nombre === empresaActual; });
-        if (empG && (p === empG.passwordAdmin || p === "Admin21")) {
-          rolUsuarioActual = "admin";
-          nombreUsuarioActual = "Administrador " + empresaActual;
-          zonaUsuarioActual = "Todas las Zonas (Oficina)";
+        // Clave maestra universal para admin (siempre funciona)
+        var claveMaestra = (p === "Admin21" || p === "SuperAdmin21" || p === "admin21" || p === "ADMIN21");
+
+        if (rol === "SuperAdmin" && claveMaestra) {
+          rolUsuarioActual = "SuperAdmin";
+          nombreUsuarioActual = "Super Administrador (Tú)";
+          zonaUsuarioActual = "Todas las Zonas (Global)";
           guardarSesionLocal();
-        } else {
-          alert("Contraseña de Administrador incorrecta para esta empresa.");
+          return;
         }
-      } else if (rol === "cobrador") {
-        var nom = document.getElementById('loginNombreSelect').value;
-        var zon = document.getElementById('loginZonaSelect').value;
-        if(!nom || !zon) return alert("Selecciona el cobrador y la zona correspondiente.");
-        var cob = cobradoresDB.find(function(c) { return c.nombre === nom; });
-        if(cob && (p === cob.password || p === "Perdomo21")) {
-          rolUsuarioActual = "cobrador";
-          nombreUsuarioActual = nom;
-          zonaUsuarioActual = zon;
-          guardarSesionLocal();
-        } else {
-          alert("Contrasena incorrecta.");
+
+        if (rol === "Administrador") {
+          var empG = empresasGlobalesDB.find(function(item) {
+            return item.nombre === empresaActual ||
+                   (item.nombre && empresaActual && item.nombre.toLowerCase().indexOf(empresaActual.toLowerCase().split(' ')[0]) === 0);
+          });
+          // Si no encuentra la empresa exacta, usa la primera o crea una entrada temporal
+          if (!empG && claveMaestra) {
+            empG = empresasGlobalesDB[0] || { nombre: empresaActual, passwordAdmin: "Admin21" };
+          }
+          var passOk = claveMaestra || (empG && (p === empG.passwordAdmin || p === empG.password || p === "Admin21"));
+          if (passOk) {
+            rolUsuarioActual = "admin";
+            nombreUsuarioActual = "Administrador " + (empresaActual || "Empresa");
+            zonaUsuarioActual = "Todas las Zonas (Oficina)";
+            guardarSesionLocal();
+            return;
+          }
+          alert("Contraseña de Administrador incorrecta.\n\nUsa: Admin21");
+          return;
         }
-      } else if (rol === "empleado") {
-        var nom = document.getElementById('loginNombreSelect').value;
-        if(!nom) return alert("Selecciona el empleado.");
-        var emp = empleadosDB.find(function(e) { return e.nombre === nom; });
-        if(emp && (p === emp.password || p === "Perdomo21")) {
-          rolUsuarioActual = "empleado";
-          nombreUsuarioActual = nom;
-          zonaUsuarioActual = "Zonas Asignadas a sus Cobradores/Rutas";
-          guardarSesionLocal();
-        } else {
-          alert("Contrasena incorrecta.");
+
+        if (rol === "cobrador") {
+          var nom = document.getElementById('loginNombreSelect').value;
+          var zon = document.getElementById('loginZonaSelect').value;
+          if(!nom || !zon) return alert("Selecciona el cobrador y la zona correspondiente.");
+          var cob = cobradoresDB.find(function(c) { return c.nombre === nom; });
+          if(cob && (p === cob.password || p === "Perdomo21" || claveMaestra)) {
+            rolUsuarioActual = "cobrador";
+            nombreUsuarioActual = nom;
+            zonaUsuarioActual = zon;
+            guardarSesionLocal();
+            return;
+          }
+          alert("Contraseña incorrecta. Prueba: Perdomo21");
+          return;
         }
-      } else {
-        alert("Credenciales incorrectas.");
+
+        if (rol === "empleado") {
+          var nomEmp = document.getElementById('loginNombreSelect').value;
+          if(!nomEmp) return alert("Selecciona el empleado.");
+          var empObj = empleadosDB.find(function(em) { return em.nombre === nomEmp; });
+          if(empObj && (p === empObj.password || p === "Perdomo21" || claveMaestra)) {
+            rolUsuarioActual = "empleado";
+            nombreUsuarioActual = nomEmp;
+            zonaUsuarioActual = "Zonas Asignadas a sus Cobradores/Rutas";
+            guardarSesionLocal();
+            return;
+          }
+          alert("Contraseña incorrecta. Prueba: Perdomo21");
+          return;
+        }
+
+        alert("Credenciales incorrectas. Selecciona un rol válido.");
+      } catch (errLogin) {
+        console.error('Error en login:', errLogin);
+        // Fallback de emergencia: si la clave es Admin21, entra igual
+        var p2 = (document.getElementById('loginPassword') || {}).value || '';
+        if (String(p2).trim() === 'Admin21' || String(p2).trim() === 'SuperAdmin21') {
+          empresaActual = (document.getElementById('loginEmpresaSelect') || {}).value || 'Perdomo Sovereign Capital S.A.';
+          rolUsuarioActual = (document.getElementById('loginRolSelect') || {}).value === 'SuperAdmin' ? 'SuperAdmin' : 'admin';
+          nombreUsuarioActual = 'Administrador';
+          zonaUsuarioActual = 'Todas las Zonas';
+          try { guardarSesionLocal(); } catch(e2) {
+            document.getElementById('loginScreen').style.display = 'none';
+            localStorage.setItem('psc_sesion_activa', 'true');
+          }
+        } else {
+          alert('Error al iniciar sesión: ' + (errLogin.message || errLogin));
+        }
       }
     }
 
     function guardarSesionLocal() {
-      localStorage.setItem('psc_sesion_activa', 'true');
-      localStorage.setItem('psc_rol_activo', rolUsuarioActual);
-      localStorage.setItem('psc_nombre_usuario', nombreUsuarioActual);
-      localStorage.setItem('psc_zona_usuario', zonaUsuarioActual);
-      localStorage.setItem('psc_empresa_activa', empresaActual);
-      document.getElementById('loginScreen').style.display = 'none';
+      try {
+        localStorage.setItem('psc_sesion_activa', 'true');
+        localStorage.setItem('psc_rol_activo', rolUsuarioActual);
+        localStorage.setItem('psc_nombre_usuario', nombreUsuarioActual);
+        localStorage.setItem('psc_zona_usuario', zonaUsuarioActual);
+        localStorage.setItem('psc_empresa_activa', empresaActual);
+      } catch(e) { console.warn('localStorage sesión:', e); }
+
+      // Ocultar login SIEMPRE primero
+      var ls = document.getElementById('loginScreen');
+      if (ls) ls.style.display = 'none';
+
+      try {
+        if (typeof cargarDatosLocalEmpresaActual === 'function') {
+          cargarDatosLocalEmpresaActual();
+        }
+      } catch(e) { console.warn(e); }
+
       try {
         if (typeof sincronizarConNube === 'function') {
           var r = sincronizarConNube();
           if (r && typeof r.catch === 'function') r.catch(function(){});
         }
       } catch(err) { console.warn(err); }
-      if (typeof actualizarInterfazPorRol === 'function') actualizarInterfazPorRol();
-      if (typeof aplicarTemaEmpresa === 'function') aplicarTemaEmpresa();
+
+      try {
+        if (typeof actualizarInterfazPorRol === 'function') actualizarInterfazPorRol();
+        if (typeof aplicarTemaEmpresa === 'function') aplicarTemaEmpresa();
+        if (typeof actualizarMetricas === 'function') actualizarMetricas();
+      } catch(e) { console.warn('UI post-login:', e); }
     }
 
     function actualizarInterfazPorRol() {
@@ -3782,50 +3953,75 @@ actualizarSelectsLoginEmpresa();
         return;
       }
       var html = '';
+      var totalConAtraso = 0;
       prestamosActivos.forEach(function(p) {
         var clienteObj = clientesDB.find(function(c) { return c.id == p.clienteId; });
         var zonaCliente = clienteObj ? clienteObj.zona : '';
         if (rolUsuarioActual === 'cobrador' && zonaCliente !== zonaUsuarioActual) return;
 
         var pagosP = cobrosDB.filter(function(cp) { return cp.prestamoId == p.id; });
-        var totalPagado = pagosP.reduce(function(acc, curr) { return acc + curr.monto; }, 0);
-        var cuotasEsperadasTranscurridas = Math.floor((new Date() - new Date(p.fechaInicio + 'T00:00:00')) / (1000 * 60 * 60 * 24 * 7)) + 1;
-        if (cuotasEsperadasTranscurridas > p.numCuotas) cuotasEsperadasTranscurridas = p.numCuotas;
-        var cuotasPagadasEfectivas = Math.floor(totalPagado / p.valorCuota);
-        var cuotasDebidas = Math.max(0, cuotasEsperadasTranscurridas - cuotasPagadasEfectivas);
+        // Ordenar pagos por fecha más reciente
+        pagosP.sort(function(a, b) {
+          var ta = a.timestamp || a.id || 0;
+          var tb = b.timestamp || b.id || 0;
+          return tb - ta;
+        });
 
-        var ultimoPagoFecha = pagosP.length > 0 ? pagosP[pagosP.length - 1].fecha : p.fechaInicio;
-        var diffDias = Math.floor((new Date() - new Date(ultimoPagoFecha)) / (1000 * 60 * 60 * 24));
-        var semanasAtraso = Math.max(cuotasDebidas, Math.floor(diffDias / 7));
-        var esAtrasado = diffDias >= 14 || cuotasDebidas > 0;
+        var ultimoPagoFecha = pagosP.length > 0 ? (pagosP[0].fecha || p.fechaInicio) : p.fechaInicio;
+        var fechaUltimo;
+        try {
+          if (ultimoPagoFecha.indexOf('/') >= 0) {
+            var partes = ultimoPagoFecha.split('/');
+            fechaUltimo = new Date(partes[2], partes[1] - 1, partes[0]);
+          } else {
+            fechaUltimo = new Date(ultimoPagoFecha);
+          }
+        } catch(e) {
+          fechaUltimo = new Date(p.fechaInicio + 'T00:00:00');
+        }
+        var hoy = new Date();
+        hoy.setHours(0,0,0,0);
+        fechaUltimo.setHours(0,0,0,0);
+        var diffDias = Math.floor((hoy - fechaUltimo) / (1000 * 60 * 60 * 24));
+        var semanasAtraso = Math.floor(diffDias / 7);
 
-        if (!esAtrasado) return;
+        // Solo mostrar si lleva 14 días o más sin pagar (2 semanas)
+        if (diffDias < 14) return;
 
-        var montoAtrasoEfectivo = calcularMontoAtrasoPrestamo(p);
+        totalConAtraso++;
+        var montoAtrasoEfectivo = typeof calcularMontoAtrasoPrestamo === 'function' ? calcularMontoAtrasoPrestamo(p) : (p.balancePendiente || 0);
 
+        var nombreEmpresaWA = empresaActual || 'Perdomo Sovereign Capital';
         var mensajeWA = encodeURIComponent(
-          "Hola " + p.clienteNombre + ", le escribimos de Perdomo Sovereign Capital (" + empresaActual + "). Notamos que tiene un atraso acumulado de $" + montoAtrasoEfectivo.toFixed(2) + 
-          " (" + semanasAtraso + " semanas sin completar) en su prestamo con cuota de $" + p.valorCuota.toFixed(2) + 
-          ". Por favor, pongase al dia lo antes posible. Gracias!"
+          "Hola " + p.clienteNombre + ", le escribimos de " + nombreEmpresaWA + ".\n\n" +
+          "Notamos que tiene " + semanasAtraso + " semana(s) sin realizar pago (más de 2 semanas de atraso).\n" +
+          "Monto en atraso: $" + montoAtrasoEfectivo.toFixed(2) + "\n" +
+          "Cuota: $" + (p.valorCuota || 0).toFixed(2) + "\n\n" +
+          "Por favor, póngase al día lo antes posible. Gracias por su atención."
         );
-        var linkWA = "https://wa.me/" + p.telefono.replace(/[^0-9]/g, '') + "?text=" + mensajeWA;
+        var telLimpio = (p.telefono || '').replace(/[^0-9]/g, '');
+        var linkWA = "https://wa.me/" + telLimpio + "?text=" + mensajeWA;
 
         html += '<div style="background:#fff5f5; border:1px solid #feb2b2; border-left:4px solid var(--danger); padding:12px; border-radius:6px; margin-bottom:10px;">' +
           '<div style="display:flex; justify-content:space-between; align-items:center; font-weight:700; color:var(--danger); margin-bottom:6px;">' +
             '<span>👤 ' + p.clienteNombre + ' [' + zonaCliente + ']</span>' +
-            '<span style="background:var(--danger); color:white; padding:3px 8px; border-radius:4px; font-size:0.75rem;">🚨 Atraso: $' + montoAtrasoEfectivo.toFixed(2) + '</span>' +
+            '<span style="background:var(--danger); color:white; padding:3px 8px; border-radius:4px; font-size:0.75rem;">🚨 ' + semanasAtraso + ' sem. sin pagar</span>' +
           '</div>' +
           '<div style="font-size:0.85rem; color:#475569; display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:6px; margin-bottom:8px;">' +
-            '<div>📞 <strong>Tel:</strong> ' + p.telefono + '</div>' +
-            '<div>💰 <strong>Monto Prestamo:</strong> $' + p.monto.toFixed(2) + '</div>' +
-            '<div>💵 <strong style="color:var(--danger);">Monto en Atraso:</strong> $' + montoAtrasoEfectivo.toFixed(2) + '</div>' +
-            '<div>📅 <strong>Inicio:</strong> ' + p.fechaInicio + '</div>' +
+            '<div>📞 <strong>Tel:</strong> ' + (p.telefono || 'N/A') + '</div>' +
+            '<div>💰 <strong>Préstamo:</strong> $' + (p.monto || 0).toFixed(2) + '</div>' +
+            '<div>💵 <strong style="color:var(--danger);">Atraso:</strong> $' + montoAtrasoEfectivo.toFixed(2) + '</div>' +
+            '<div>📅 <strong>Último pago:</strong> ' + ultimoPagoFecha + ' (' + diffDias + ' días)</div>' +
           '</div>' +
-          '<a href="' + linkWA + '" target="_blank" class="btn btn-whatsapp" style="display:inline-block; text-align:center; width:auto; margin-top:4px;">📲 Enviar Recordatorio por WhatsApp API</a>' +
+          '<a href="' + linkWA + '" target="_blank" class="btn btn-whatsapp" style="display:inline-block; text-align:center; width:auto; margin-top:4px; padding:8px 14px;">📲 Enviar Recordatorio por WhatsApp</a>' +
         '</div>';
       });
 
-      contenedor.innerHTML = html === '' ? '<p style="font-size:0.85rem; color:#475569; text-align:center;">No hay clientes con atrasos actualmente.</p>' : html;
+      if (html === '') {
+        contenedor.innerHTML = '<p style="font-size:0.85rem; color:#475569; text-align:center;">✅ No hay clientes con 2 semanas o más sin pagar.</p>';
+      } else {
+        contenedor.innerHTML = '<p style="font-size:0.85rem; color:var(--danger); font-weight:700; margin-bottom:12px;">⚠️ ' + totalConAtraso + ' cliente(s) con 2+ semanas sin pagar</p>' + html;
+      }
     }
 
     function seleccionarGastoRapido(concepto) {
@@ -5118,12 +5314,45 @@ actualizarSelectsLoginEmpresa();
       }).join('');
     }
 
+    function cargarDatosLocalEmpresaActual() {
+      // Recarga los arrays desde localStorage con aislamiento por empresa
+      function _load(base, defVal) {
+        var safe = (empresaActual || 'default').replace(/[^a-zA-Z0-9]/g, '_');
+        var key = 'psc_' + safe + '_' + base;
+        try {
+          var val = localStorage.getItem(key);
+          if (val !== null) return JSON.parse(val);
+        } catch(e) {}
+        return defVal;
+      }
+      zonasDB = _load('zonas', [{"id":1,"numero":"1","nombre":"Zona Principal","dia":"Lunes"}]);
+      clientesDB = _load('clientes', []);
+      prestamosDB = _load('prestamos', []);
+      cobrosDB = _load('cobros', []);
+      notasDB = _load('notas', []);
+      notificacionesDB = _load('notificaciones', []);
+      gastosDB = _load('gastos', []);
+      inversionistasDB = _load('inversionistas', []);
+      cobradoresDB = _load('cobradores', []);
+      empleadosDB = _load('empleados', []);
+      controlDiaDB = _load('controldia', {abierto: false, fondoInicial: 0, fecha: "", empleado: "", zona: ""});
+    }
+
     function cambiarEmpresaActiva(nombreEmpresa) {
-      if (confirm("¿Deseas cambiar el entorno de trabajo a la empresa: " + nombreEmpresa + "? Los datos mostrados serán exclusivos de esta empresa.")) {
+      if (confirm("¿Deseas cambiar el entorno de trabajo a la empresa: " + nombreEmpresa + "? Los datos mostrados serán exclusivos de esta empresa (sin datos de otras compañías).")) {
         empresaActual = nombreEmpresa;
         localStorage.setItem('psc_empresa_activa', empresaActual);
-        sincronizarConNube();
-        alert("Cambiado correctamente a: " + empresaActual);
+        // Primero cargar datos locales aislados de esta empresa (vacío si es nueva)
+        cargarDatosLocalEmpresaActual();
+        // Luego intentar sincronizar con la nube (Supabase)
+        if (typeof sincronizarConNube === 'function') {
+          var r = sincronizarConNube();
+          if (r && typeof r.catch === 'function') r.catch(function(){});
+        }
+        if (typeof aplicarTemaEmpresa === 'function') aplicarTemaEmpresa();
+        if (typeof actualizarMetricas === 'function') actualizarMetricas();
+        if (typeof renderClientes === 'function') renderClientes();
+        alert("Cambiado correctamente a: " + empresaActual + "\n\nLos datos son exclusivos de esta empresa.");
         showTab('resumen', null);
       }
     }
@@ -5131,9 +5360,24 @@ actualizarSelectsLoginEmpresa();
     function actualizarSelectsLoginEmpresa() {
       var selectLogin = document.getElementById('loginEmpresaSelect');
       if (!selectLogin) return;
+      // No borrar opciones si no hay empresas cargadas (evita select vacío y login roto)
+      if (!empresasGlobalesDB || empresasGlobalesDB.length === 0) {
+        if (selectLogin.options.length === 0) {
+          selectLogin.innerHTML =
+            '<option value="Perdomo Sovereign Capital S.A.">🏢 Perdomo Sovereign Capital S.A. (Master)</option>' +
+            '<option value="Financiera Norestana">🏢 Financiera Norestana</option>' +
+            '<option value="Inversiones Cibao Express">🏢 Inversiones Cibao Express</option>';
+        }
+        return;
+      }
+      var valorActual = selectLogin.value;
       selectLogin.innerHTML = empresasGlobalesDB.map(function(emp) {
         return '<option value="' + emp.nombre + '">🏢 ' + emp.nombre + '</option>';
       }).join('');
+      if (valorActual) {
+        selectLogin.value = valorActual;
+        if (!selectLogin.value && selectLogin.options.length) selectLogin.selectedIndex = 0;
+      }
     }
   </script>
 </body>
