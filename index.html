@@ -2,7 +2,14 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#1e3a8a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Perdomo Capital">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="description" content="Sistema Maestro Empresarial de microfinanzas - Multi-tenant, cobros GPS, IA predictiva de atraso">
+  <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiUGVyZG9tbyBTb3ZlcmVpZ24gQ2FwaXRhbCIsInNob3J0X25hbWUiOiJQZXJkb21vIENhcGl0YWwiLCJzdGFydF91cmwiOiIuLyIsImRpc3BsYXkiOiJzdGFuZGFsb25lIiwicmFja2dyb3VuZF9jb2xvciI6IiMxZTNhOGEiLCJ0aGVtZV9jb2xvciI6IiMxZTNhOGEiLCJvcmllbnRhdGlvbiI6InBvcnRyYWl0IiwiY2F0ZWdvcmllcyI6WyJmaW5hbmNlIiwiYnVzaW5lc3MiXX0=">
   <title>Perdomo Sovereign Capital - Sistema Maestro Empresarial v2 Secure</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <!-- BCRYPT para hash seguro de contraseñas -->
@@ -468,6 +475,7 @@
       <button class="sidebar-btn" onclick="abrirAyudaWhatsApp()" style="background:#25d366; color:white; font-weight:700;">🆘 Ayuda / Soporte WhatsApp</button>
       <button class="sidebar-btn solo-admin-emp" onclick="abrirModalCambiarTelefonoSoporte()" style="background:#0f172a; color:white;">📱 Cambiar Número de Soporte</button>
       <button class="sidebar-btn btn-warning" onclick="abrirModalImpresoraBluetooth()" style="color:#000;">🖨️ Configurar Impresora Bluetooth</button>
+      <button id="btnInstalarPWA" class="sidebar-btn" onclick="instalarPWA()" style="display:none; background:linear-gradient(135deg,#6366f1,#4f46e5); color:white; font-weight:700;">📲 Instalar App (PWA)</button>
       <button class="sidebar-btn solo-admin-emp btn-danger" onclick="pedirClaveBorrarTodo()" style="color:white;">🔄 Borrar Base de Datos</button>
     </div>
   </div>
@@ -6122,6 +6130,170 @@ actualizarSelectsLoginEmpresa();
         if (!selectLogin.value && selectLogin.options.length) selectLogin.selectedIndex = 0;
       }
     }
+
+    // ========== PWA: REGISTRO Y SOPORTE DE INSTALACIÓN ==========
+    var deferredInstallPrompt = null;
+
+    window.addEventListener('beforeinstallprompt', function(e) {
+      e.preventDefault();
+      deferredInstallPrompt = e;
+      // Mostrar botón de instalar si existe
+      var btnInstall = document.getElementById('btnInstalarPWA');
+      if (btnInstall) btnInstall.style.display = 'block';
+    });
+
+    function instalarPWA() {
+      if (!deferredInstallPrompt) {
+        alert('La instalación no está disponible en este momento.\n\nEn Chrome/Android: menú ⋮ → "Agregar a la pantalla de inicio".\nEn iPhone: botón Compartir → "Agregar a pantalla de inicio".');
+        return;
+      }
+      deferredInstallPrompt.prompt();
+      deferredInstallPrompt.userChoice.then(function(choice) {
+        if (choice.outcome === 'accepted') {
+          console.log('PWA instalada');
+        }
+        deferredInstallPrompt = null;
+        var btn = document.getElementById('btnInstalarPWA');
+        if (btn) btn.style.display = 'none';
+      });
+    }
+
+    // Service Worker básico (offline cache de la app)
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        // Registramos un SW inline simple mediante blob
+        var swCode = `
+          const CACHE = 'perdomo-v2-cache-1';
+          self.addEventListener('install', e => {
+            self.skipWaiting();
+            e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./'])));
+          });
+          self.addEventListener('activate', e => {
+            e.waitUntil(self.clients.claim());
+          });
+          self.addEventListener('fetch', e => {
+            e.respondWith(
+              caches.match(e.request).then(r => r || fetch(e.request).catch(() => caches.match('./')))
+            );
+          });
+        `;
+        var blob = new Blob([swCode], { type: 'application/javascript' });
+        var swUrl = URL.createObjectURL(blob);
+        navigator.serviceWorker.register(swUrl).then(function(reg) {
+          console.log('Service Worker registrado (PWA offline)');
+        }).catch(function(err) {
+          console.warn('SW no se pudo registrar:', err);
+        });
+      });
+    }
+
+    // ========== AUTOMATIZACIÓN INTELIGENTE DE RECORDATORIOS ==========
+    function generarMensajeRecordatorioInteligente(cliente, riesgo, prestamo) {
+      var nombreEmpresa = empresaActual || 'Perdomo Sovereign Capital';
+      var nombreCli = cliente.nombre || prestamo.clienteNombre || 'Cliente';
+      var cuota = (prestamo.valorCuota || 0).toFixed(2);
+      var atraso = (typeof calcularMontoAtrasoPrestamo === 'function' ? calcularMontoAtrasoPrestamo(prestamo) : prestamo.balancePendiente || 0).toFixed(2);
+
+      var tono = '';
+      if (riesgo.nivel === 'alto') {
+        tono = '⚠️ *URGENTE* - ';
+      } else if (riesgo.nivel === 'medio') {
+        tono = '📅 Recordatorio importante - ';
+      } else {
+        tono = '👋 Hola, ';
+      }
+
+      var mensaje = tono + nombreCli + '\n\n';
+      mensaje += 'Le escribe *' + nombreEmpresa + '*.\n\n';
+
+      if (riesgo.nivel === 'alto') {
+        mensaje += 'Detectamos que lleva *' + (riesgo.diasSinPagar || 'varios') + ' días* sin realizar pagos y tiene un saldo en atraso de *$' + atraso + '*.\n\n';
+        mensaje += 'Es muy importante que se ponga al día lo antes posible para evitar cargos adicionales o acciones de cobro.\n\n';
+      } else if (riesgo.nivel === 'medio') {
+        mensaje += 'Notamos que tiene pagos pendientes. Su cuota actual es de *$' + cuota + '* y el monto en atraso es *$' + atraso + '*.\n\n';
+        mensaje += 'Le invitamos a ponerse al día esta semana.\n\n';
+      } else {
+        mensaje += 'Le recordamos su cuota de *$' + cuota + '*. ¡Gracias por su puntualidad!\n\n';
+      }
+
+      mensaje += 'Cualquier duda, estamos a su disposición.\n';
+      mensaje += '—' + nombreEmpresa;
+
+      return mensaje;
+    }
+
+    // Sobrescribir / mejorar la función de recordatorios para usar IA
+    var _renderRecordatoriosOriginal = typeof renderRecordatorios === 'function' ? renderRecordatorios : null;
+
+    function renderRecordatoriosInteligente() {
+      var contenedor = document.getElementById('listaRecordatoriosDiv');
+      if (!contenedor) return;
+
+      var prestamosActivos = prestamosDB.filter(function(p) { return p.balancePendiente > 0; });
+      if (prestamosActivos.length === 0) {
+        contenedor.innerHTML = '<p style="font-size:0.85rem; color:var(--text-muted); text-align:center;">No hay préstamos activos para evaluar.</p>';
+        return;
+      }
+
+      var html = '';
+      var totalConAtraso = 0;
+
+      prestamosActivos.forEach(function(p) {
+        var clienteObj = clientesDB.find(function(c) { return c.id == p.clienteId; });
+        if (!clienteObj) return;
+        var zonaCliente = clienteObj.zona || '';
+        if (rolUsuarioActual === 'cobrador' && zonaCliente !== zonaUsuarioActual) return;
+
+        var riesgo = calcularRiesgoCliente(clienteObj.id);
+        // Solo mostrar si tiene al menos riesgo medio o 14+ días
+        if (riesgo.nivel === 'bajo' && (riesgo.diasSinPagar || 0) < 14) return;
+
+        totalConAtraso++;
+        var mensajeWA = encodeURIComponent(generarMensajeRecordatorioInteligente(clienteObj, riesgo, p));
+        var telLimpio = (clienteObj.telefono || p.telefono || '').replace(/[^0-9]/g, '');
+        var linkWA = 'https://wa.me/' + telLimpio + '?text=' + mensajeWA;
+
+        var borderColor = riesgo.color || 'var(--danger)';
+
+        html += '<div style="background:var(--bg); border:1px solid var(--border); border-left:4px solid ' + borderColor + '; padding:12px; border-radius:10px; margin-bottom:10px;">' +
+          '<div style="display:flex; justify-content:space-between; align-items:center; font-weight:700; margin-bottom:6px;">' +
+            '<span>👤 ' + clienteObj.nombre + ' [' + zonaCliente + ']</span>' +
+            '<span style="background:' + borderColor + '; color:white; padding:3px 8px; border-radius:4px; font-size:0.75rem;">' + riesgo.emoji + ' ' + riesgo.etiqueta + '</span>' +
+          '</div>' +
+          '<div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:8px;">' +
+            '📞 ' + (clienteObj.telefono || 'N/A') + ' · Score: <strong style="color:' + borderColor + ';">' + riesgo.score + '/100</strong><br>' +
+            '<small>' + riesgo.detalle + '</small>' +
+          '</div>' +
+          '<a href="' + linkWA + '" target="_blank" class="btn btn-whatsapp" style="display:inline-block; text-align:center; width:auto; margin-top:4px; padding:8px 14px;">📲 Enviar Recordatorio Inteligente</a>' +
+        '</div>';
+      });
+
+      if (html === '') {
+        contenedor.innerHTML = '<p style="font-size:0.85rem; color:var(--text-muted); text-align:center;">✅ No hay clientes que requieran recordatorio en este momento.</p>';
+      } else {
+        contenedor.innerHTML = '<p style="font-size:0.85rem; color:var(--danger); font-weight:700; margin-bottom:12px;">⚠️ ' + totalConAtraso + ' cliente(s) requieren atención</p>' + html;
+      }
+    }
+
+    // Reemplazar la función original si existe
+    if (typeof renderRecordatorios === 'function') {
+      renderRecordatorios = renderRecordatoriosInteligente;
+    } else {
+      window.renderRecordatorios = renderRecordatoriosInteligente;
+    }
+
+    // ========== NOTA DE MULTI-TENANT / BACKEND ==========
+    /*
+      PARA PRODUCCIÓN REAL (Backend + RLS):
+      1. Crear tablas en Supabase: empresas, usuarios, clientes, prestamos, cobros, etc.
+      2. Agregar columna empresa_id en TODAS las tablas.
+      3. Activar Row Level Security (RLS) con políticas:
+         - Los usuarios solo ven filas donde empresa_id = su empresa.
+         - SuperAdmin puede ver todas.
+      4. Mover la lógica de hash de contraseñas y autenticación a Edge Functions.
+      5. Usar JWT de Supabase Auth en lugar de localStorage puro.
+      6. El aislamiento actual por prefijo de localStorage + empresaActual es una capa temporal.
+    */
   </script>
 </body>
 </html>
