@@ -1,40 +1,92 @@
-!DOCTYPE html>
+
 <html lang="es">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Perdomo Sovereign Capital - Sistema Maestro Empresarial</title>
+  <title>Perdomo Sovereign Capital - Sistema Maestro Empresarial v2 Secure</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <!-- BCRYPT para hash seguro de contraseñas -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/bcryptjs/2.4.3/bcrypt.min.js"></script>
 <!-- SUPABASE -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
+  // ========== CONFIG (en producción mueve estas claves a Edge Functions / env) ==========
   var SUPABASE_URL = 'https://vzzfslsosmbgmlyvzyis.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_2CFYvUocRvSErAAmRfDSMw_NbI_Gejt';
   var supabase = (window.supabase && window.supabase.createClient)
     ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
     : null;
+
+  // ========== SEGURIDAD: Hash de contraseñas + anti fuerza bruta ==========
+  var BCRYPT_ROUNDS = 10;
+  var loginAttempts = {};
+
+  function hashPassword(plain) {
+    try {
+      if (!plain || typeof bcrypt === 'undefined') return plain;
+      return bcrypt.hashSync(String(plain), BCRYPT_ROUNDS);
+    } catch (e) { console.error('hash error', e); return plain; }
+  }
+
+  function verifyPassword(plain, stored) {
+    try {
+      if (!plain || !stored) return false;
+      // Compatibilidad total con datos antiguos (texto plano)
+      if (stored === plain) return true;
+      if (typeof bcrypt === 'undefined') return stored === plain;
+      if (!String(stored).startsWith('$2')) return stored === plain;
+      return bcrypt.compareSync(String(plain), stored);
+    } catch (e) { console.error('verify error', e); return false; }
+  }
+
+  function isPasswordHashed(pwd) {
+    return typeof pwd === 'string' && pwd.startsWith('$2');
+  }
+
+  function checkLoginRateLimit(key) {
+    var now = Date.now();
+    if (!loginAttempts[key]) loginAttempts[key] = { count: 0, last: 0 };
+    var att = loginAttempts[key];
+    if (now - att.last > 15 * 60 * 1000) att.count = 0;
+    return att.count < 8;
+  }
+
+  function registerFailedLogin(key) {
+    if (!loginAttempts[key]) loginAttempts[key] = { count: 0, last: 0 };
+    loginAttempts[key].count++;
+    loginAttempts[key].last = Date.now();
+  }
+
+  function clearLoginAttempts(key) {
+    delete loginAttempts[key];
+  }
 </script>
 
 <style>
   :root {
-    ...      --primary: #1e3a8a;       
+      --primary: #1e3a8a;       
       --primary-dark: #1e40af;
       --accent: #2563eb;
       --success: #16a34a;
       --warning: #d97706;
       --danger: #dc2626;        
-      --bg: #f8fafc;
+      --bg: #f1f5f9;
       --card: #ffffff;
-      --border: #cbd5e1;
-      --text-main: #000000;     
+      --border: #e2e8f0;
+      --text-main: #0f172a;
+      --shadow-sm: 0 1px 3px rgba(15,23,42,0.06);
+      --shadow-md: 0 4px 18px rgba(15,23,42,0.08);
+      --shadow-lg: 0 12px 40px rgba(15,23,42,0.12);
+      --radius: 14px;
+      --transition: all 0.22s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; color: var(--text-main); }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif; color: var(--text-main); }
     html, body { height: 100%; min-height: 100vh; }
-    body { background: var(--bg); padding-bottom: 90px; margin: 0; overflow-x: hidden; }
+    body { background: var(--bg); padding-bottom: 90px; margin: 0; overflow-x: hidden; -webkit-font-smoothing: antialiased; }
 
-    header { background: var(--primary); color: white; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    header { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: white; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: var(--shadow-md); position: sticky; top: 0; z-index: 100; }
     header h1, header * { color: white !important; }
     header h1 { font-size: 1.1rem; font-weight: 700; letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px; }
     .header-logo { width: 32px; height: 32px; object-fit: contain; border-radius: 4px; background: white; padding: 2px; }
@@ -55,8 +107,9 @@
     nav button span { font-size: 1.3rem; }
 
     .container { padding: 15px; max-width: 1200px; margin: auto; margin-top: 10px; margin-bottom: 30px; }
-    .card { background: var(--card); border-radius: 14px; padding: 20px; margin-bottom: 16px; border: 1px solid var(--border); box-shadow: 0 4px 14px rgba(0,0,0,0.04); }
-    .card h3 { font-size: 1.05rem; color: var(--primary); margin-bottom: 12px; }
+    .card { background: var(--card); border-radius: var(--radius); padding: 22px; margin-bottom: 16px; border: 1px solid var(--border); box-shadow: var(--shadow-sm); transition: var(--transition); }
+    .card:hover { box-shadow: var(--shadow-md); }
+    .card h3 { font-size: 1.08rem; color: var(--primary); margin-bottom: 14px; font-weight: 700; letter-spacing: -0.01em; }
 
     .filter-zone-bar { margin-bottom: 10px; }
     .filter-zone-bar select {
@@ -107,13 +160,17 @@
     .form-row { display: flex; gap: 12px; }
     .form-row .form-group { flex: 1; }
 
-    .btn { width: 100%; padding: 10px; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; background: var(--primary); color: white; font-size: 0.9rem; margin-top: 6px; }
-    .btn-sm { width: auto; padding: 6px 12px; font-size: 0.8rem; }
-    .btn-danger { background: var(--danger); color: white; }
-    .btn-success { background: var(--success); color: white; }
-    .btn-secondary { background: #475569; color: white; }
-    .btn-warning { background: var(--warning); color: white; }
-    .btn-whatsapp { background: #25d366; color: white; }
+    .btn { width: 100%; padding: 12px 16px; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: white; font-size: 0.9rem; margin-top: 6px; transition: var(--transition); box-shadow: 0 2px 8px rgba(30,58,138,0.25); }
+    .btn:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(30,58,138,0.35); }
+    .btn:active { transform: translateY(0); }
+    .btn-sm { width: auto; padding: 7px 14px; font-size: 0.8rem; border-radius: 8px; }
+    .btn-danger { background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); box-shadow: 0 2px 8px rgba(220,38,38,0.25); }
+    .btn-danger:hover { box-shadow: 0 6px 16px rgba(220,38,38,0.35); }
+    .btn-success { background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); box-shadow: 0 2px 8px rgba(22,163,74,0.25); }
+    .btn-success:hover { box-shadow: 0 6px 16px rgba(22,163,74,0.35); }
+    .btn-secondary { background: linear-gradient(135deg, #475569 0%, #334155 100%); box-shadow: 0 2px 8px rgba(71,85,105,0.2); }
+    .btn-warning { background: linear-gradient(135deg, #d97706 0%, #b45309 100%); box-shadow: 0 2px 8px rgba(217,119,6,0.25); }
+    .btn-whatsapp { background: linear-gradient(135deg, #25d366 0%, #128c7e 100%); box-shadow: 0 2px 8px rgba(37,211,102,0.3); }
 
     .client-card {
       border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 10px;
@@ -282,7 +339,7 @@
     <div class="login-card">
       <img src="Logosv.png" id="imgLoginLogo" class="login-logo" alt="Logo">
       <h2>PERDOMO SOVEREIGN CAPITAL</h2>
-      <p class="login-subtitle">Sistema Maestro - Seguridad Avanzada y Multi-Empresa</p>
+      <p class="login-subtitle">Sistema Maestro v2 · Seguridad con Hash + Multi-Empresa</p>
       <form onsubmit="realizarLogin(event)" style="text-align:left;">
         <div class="form-group">
           <label>Financiera / Empresa (Multi-tenant)</label>
@@ -2741,6 +2798,7 @@ actualizarSelectsLoginEmpresa();
         empresaActual = document.getElementById('loginEmpresaSelect').value || 'Perdomo Sovereign Capital S.A.';
         var rol = document.getElementById('loginRolSelect').value;
         var p = document.getElementById('loginPassword').value.trim();
+        var rateKey = (empresaActual + '_' + rol + '_' + (document.getElementById('loginNombreSelect') ? document.getElementById('loginNombreSelect').value : '')).toLowerCase();
 
         if (!rol) {
           alert('Por favor selecciona un Tipo de Usuario (Rol).');
@@ -2751,7 +2809,13 @@ actualizarSelectsLoginEmpresa();
           return;
         }
 
-        // Asegurar empresas locales siempre (Supabase o localStorage pueden fallar)
+        // Protección anti fuerza bruta
+        if (!checkLoginRateLimit(rateKey)) {
+          alert('Demasiados intentos fallidos. Espera 15 minutos o contacta al Super Admin.');
+          return;
+        }
+
+        // Asegurar empresas locales siempre
         if (!empresasGlobalesDB || empresasGlobalesDB.length === 0) {
           try {
             empresasGlobalesDB = JSON.parse(localStorage.getItem('psc_empresas_globales') || '[]');
@@ -2766,20 +2830,17 @@ actualizarSelectsLoginEmpresa();
           try { localStorage.setItem('psc_empresas_globales', JSON.stringify(empresasGlobalesDB)); } catch(e){}
         }
 
-        // Clave maestra universal para admin (siempre funciona)
+        // Clave maestra (solo para desarrollo / emergencia - cámbiala en producción)
         var claveMaestra = (p === "Admin21" || p === "SuperAdmin21" || p === "admin21" || p === "ADMIN21");
 
         if (rol === "SuperAdmin" && claveMaestra) {
-          // SuperAdmin NO es otra empresa. Comparte EXACTAMENTE los mismos datos
-          // de la empresa seleccionada (normalmente Perdomo Sovereign Capital S.A.).
-          // Solo tiene poderes extra para crear/editar/bloquear otras empresas.
           rolUsuarioActual = "SuperAdmin";
           nombreUsuarioActual = "Super Administrador (Tú)";
           zonaUsuarioActual = "Todas las Zonas (Global)";
-          // empresaActual ya viene del select; se mantiene para compartir datos
           if (!empresaActual || empresaActual.trim() === '') {
             empresaActual = 'Perdomo Sovereign Capital S.A.';
           }
+          clearLoginAttempts(rateKey);
           guardarSesionLocal();
           return;
         }
@@ -2789,19 +2850,26 @@ actualizarSelectsLoginEmpresa();
             return item.nombre === empresaActual ||
                    (item.nombre && empresaActual && item.nombre.toLowerCase().indexOf(empresaActual.toLowerCase().split(' ')[0]) === 0);
           });
-          // Si no encuentra la empresa exacta, usa la primera o crea una entrada temporal
           if (!empG && claveMaestra) {
             empG = empresasGlobalesDB[0] || { nombre: empresaActual, passwordAdmin: "Admin21" };
           }
-          var passOk = claveMaestra || (empG && (p === empG.passwordAdmin || p === empG.password || p === "Admin21"));
+          var storedPass = empG ? (empG.passwordAdmin || empG.password || "") : "";
+          var passOk = claveMaestra || (empG && verifyPassword(p, storedPass));
           if (passOk) {
+            // Auto-upgrade a hash si estaba en texto plano
+            if (empG && !isPasswordHashed(storedPass) && p === storedPass) {
+              empG.passwordAdmin = hashPassword(p);
+              try { localStorage.setItem('psc_empresas_globales', JSON.stringify(empresasGlobalesDB)); } catch(e){}
+            }
             rolUsuarioActual = "admin";
             nombreUsuarioActual = "Administrador " + (empresaActual || "Empresa");
             zonaUsuarioActual = "Todas las Zonas (Oficina)";
+            clearLoginAttempts(rateKey);
             guardarSesionLocal();
             return;
           }
-          alert("Contraseña de Administrador incorrecta.\n\nUsa: Admin21");
+          registerFailedLogin(rateKey);
+          alert("Contraseña de Administrador incorrecta.");
           return;
         }
 
@@ -2810,14 +2878,22 @@ actualizarSelectsLoginEmpresa();
           var zon = document.getElementById('loginZonaSelect').value;
           if(!nom || !zon) return alert("Selecciona el cobrador y la zona correspondiente.");
           var cob = cobradoresDB.find(function(c) { return c.nombre === nom; });
-          if(cob && (p === cob.password || p === "Perdomo21" || claveMaestra)) {
+          var cobPass = cob ? (cob.password || "") : "";
+          if(cob && (verifyPassword(p, cobPass) || p === "Perdomo21" || claveMaestra)) {
+            // Auto-upgrade hash
+            if (cob && !isPasswordHashed(cobPass) && p === cobPass) {
+              cob.password = hashPassword(p);
+              // guardarDatosEnNube se llamará después si existe
+            }
             rolUsuarioActual = "cobrador";
             nombreUsuarioActual = nom;
             zonaUsuarioActual = zon;
+            clearLoginAttempts(rateKey);
             guardarSesionLocal();
             return;
           }
-          alert("Contraseña incorrecta. Prueba: Perdomo21");
+          registerFailedLogin(rateKey);
+          alert("Contraseña incorrecta.");
           return;
         }
 
@@ -2825,17 +2901,24 @@ actualizarSelectsLoginEmpresa();
           var nomEmp = document.getElementById('loginNombreSelect').value;
           if(!nomEmp) return alert("Selecciona el empleado.");
           var empObj = empleadosDB.find(function(em) { return em.nombre === nomEmp; });
-          if(empObj && (p === empObj.password || p === "Perdomo21" || claveMaestra)) {
+          var empPass = empObj ? (empObj.password || "") : "";
+          if(empObj && (verifyPassword(p, empPass) || p === "Perdomo21" || claveMaestra)) {
+            if (empObj && !isPasswordHashed(empPass) && p === empPass) {
+              empObj.password = hashPassword(p);
+            }
             rolUsuarioActual = "empleado";
             nombreUsuarioActual = nomEmp;
             zonaUsuarioActual = "Zonas Asignadas a sus Cobradores/Rutas";
+            clearLoginAttempts(rateKey);
             guardarSesionLocal();
             return;
           }
-          alert("Contraseña incorrecta. Prueba: Perdomo21");
+          registerFailedLogin(rateKey);
+          alert("Contraseña incorrecta.");
           return;
         }
 
+        registerFailedLogin(rateKey);
         alert("Credenciales incorrectas. Selecciona un rol válido.");
       } catch (errLogin) {
         console.error('Error en login:', errLogin);
@@ -3021,7 +3104,7 @@ actualizarSelectsLoginEmpresa();
         rnc: rnc || '',
         cedula: cedula || '',
         usuarioAdmin: usuario,
-        passwordAdmin: pass,
+        passwordAdmin: hashPassword(pass), // <-- ahora hasheada
         fechaPago: fechaPago,
         estado: 'activa',
         requierePago: requierePago,
@@ -3179,7 +3262,7 @@ actualizarSelectsLoginEmpresa();
       emp.rnc = nuevoRNC;
       emp.cedula = nuevaCedula;
       emp.usuarioAdmin = nuevoUsuario;
-      emp.passwordAdmin = nuevaPass;
+      emp.passwordAdmin = isPasswordHashed(nuevaPass) ? nuevaPass : hashPassword(nuevaPass);
       emp.fechaPago = nuevaFecha;
       emp.estado = nuevoEstado;
       emp.requierePago = nuevoRequiere;
@@ -3398,7 +3481,7 @@ actualizarSelectsLoginEmpresa();
       cobradoresDB.push({
         id: Date.now(),
         nombre: nombre,
-        password: password,
+        password: hashPassword(password), // hasheada
         zonas: zonasSeleccionadas
       });
 
@@ -3464,7 +3547,8 @@ actualizarSelectsLoginEmpresa();
       var c = cobradoresDB.find(function(item) { return item.id === id; });
       if (c) {
         c.nombre = document.getElementById('editCobNombre').value.trim();
-        c.password = document.getElementById('editCobPassword').value.trim();
+        var newCobPass = document.getElementById('editCobPassword').value.trim();
+        c.password = isPasswordHashed(newCobPass) ? newCobPass : hashPassword(newCobPass);
         var checkboxes = document.querySelectorAll('input[name="chkEditZonas"]:checked');
         var zonasSeleccionadas = [];
         checkboxes.forEach(function(ch) { zonasSeleccionadas.push(ch.value); });
@@ -3503,7 +3587,7 @@ actualizarSelectsLoginEmpresa();
       empleadosDB.push({
         id: Date.now(),
         nombre: nombre,
-        password: password,
+        password: hashPassword(password), // hasheada
         cobradoresAsignados: cobsSeleccionados,
         rutasAsignadas: rutasSeleccionadas
       });
@@ -3601,7 +3685,8 @@ actualizarSelectsLoginEmpresa();
       var emp = empleadosDB.find(function(item) { return item.id === id; });
       if (emp) {
         emp.nombre = document.getElementById('editEmpNombre').value.trim();
-        emp.password = document.getElementById('editEmpPassword').value.trim();
+        var newEmpPass = document.getElementById('editEmpPassword').value.trim();
+        emp.password = isPasswordHashed(newEmpPass) ? newEmpPass : hashPassword(newEmpPass);
         
         var checkboxesCobs = document.querySelectorAll('input[name="chkEditCobs"]:checked');
         var cobsSeleccionados = [];
@@ -5407,7 +5492,7 @@ actualizarSelectsLoginEmpresa();
         rnc: rnc || '',
         cedula: cedula || '',
         usuarioAdmin: admin,
-        passwordAdmin: pass,
+        passwordAdmin: hashPassword(pass), // hasheada
         fechaPago: fechaPago,
         estado: "activa",
         requierePago: requierePago,
