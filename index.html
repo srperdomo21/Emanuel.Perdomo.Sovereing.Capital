@@ -480,6 +480,7 @@
     </div>
     <div class="header-icons">
       <span id="badgeRolHeader" style="font-size:0.6rem; padding:3px 6px; border-radius:4px; font-weight:700; background:var(--accent); color:white;">EMPLEADO</span>
+      <span id="badgeSyncStatus" style="font-size:0.65rem; padding:3px 7px; border-radius:4px; font-weight:600; background:rgba(255,255,255,0.15); color:white;" title="Estado de sincronización">☁️ Local</span>
       <button id="btnThemeToggle" onclick="toggleDarkMode()" title="Modo Oscuro / Claro">🌙</button>
       <span onclick="abrirModalImpresoraBluetooth()" style="cursor:pointer; font-size:1.2rem;" title="Configurar Impresora Bluetooth">⚙️</span>
       <button class="btn btn-danger btn-sm" onclick="cerrarSesion()" style="margin:0; padding:4px 6px; font-size:0.65rem;">Salir</button>
@@ -728,17 +729,28 @@
           </div>
         </div>
 
+        <!-- CLIENTES EN RIESGO (IA) -->
+        <div class="card" style="border-left: 4px solid var(--danger);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <h3 style="margin:0; color:var(--danger);">🚨 Clientes en Riesgo (IA Predictiva)</h3>
+            <span id="badgeTotalRiesgo" style="font-size:0.75rem; font-weight:700; background:#fef2f2; color:var(--danger); padding:4px 10px; border-radius:20px;">0</span>
+          </div>
+          <div id="listaClientesRiesgoTablero" style="font-size:0.85rem; max-height:320px; overflow-y:auto;">
+            Analizando clientes...
+          </div>
+        </div>
+
         <!-- RENDIMIENTO TEXTO -->
         <div class="card solo-admin-emp">
           <h3>📊 Rendimiento Semanal y Auditoría</h3>
-          <div id="infoCobroAnterior" style="font-size:0.9rem; color:#475569; background:#f8fafc; padding:14px; border-radius:10px; border:1px solid var(--border);">
+          <div id="infoCobroAnterior" style="font-size:0.9rem; color:var(--text-muted); background:var(--bg); padding:14px; border-radius:10px; border:1px solid var(--border);">
             Cargando métricas...
           </div>
         </div>
 
         <div class="card solo-admin-emp" id="cardNotificacionesAdmin" style="display:none; border-left: 4px solid var(--warning);">
           <h3>🔔 Auditoría Inmutable, Solicitudes de Borrado y Liquidación de Caja</h3>
-          <div id="listaNotificacionesDiv" style="font-size:0.85rem; color:#475569;">No hay notificaciones pendientes.</div>
+          <div id="listaNotificacionesDiv" style="font-size:0.85rem; color:var(--text-muted);">No hay notificaciones pendientes.</div>
         </div>
 
         <!-- COBROS DE HOY -->
@@ -3056,6 +3068,7 @@ actualizarSelectsLoginEmpresa();
         if (typeof actualizarInterfazPorRol === 'function') actualizarInterfazPorRol();
         if (typeof aplicarTemaEmpresa === 'function') aplicarTemaEmpresa();
         if (typeof actualizarMetricas === 'function') actualizarMetricas();
+        if (typeof actualizarBadgeSync === 'function') actualizarBadgeSync(navigator.onLine ? 'ok' : 'error');
       } catch(e) { console.warn('UI post-login:', e); }
     }
 
@@ -5836,6 +5849,78 @@ actualizarSelectsLoginEmpresa();
       } catch (errChart) {
         console.warn('Error renderizando gráficos:', errChart);
       }
+
+      // Renderizar lista de clientes en riesgo
+      try {
+        renderClientesEnRiesgoTablero();
+      } catch (errRiesgo) {
+        console.warn('Error renderizando riesgos:', errRiesgo);
+      }
+    }
+
+    function actualizarBadgeSync(estado) {
+      var badge = document.getElementById('badgeSyncStatus');
+      if (!badge) return;
+      if (estado === 'ok') {
+        badge.textContent = '☁️ Sincronizado';
+        badge.style.background = 'rgba(22,163,74,0.3)';
+      } else if (estado === 'guardando') {
+        badge.textContent = '⏳ Guardando...';
+        badge.style.background = 'rgba(217,119,6,0.3)';
+      } else if (estado === 'error') {
+        badge.textContent = '⚠️ Offline';
+        badge.style.background = 'rgba(220,38,38,0.3)';
+      } else {
+        badge.textContent = '☁️ Local';
+        badge.style.background = 'rgba(255,255,255,0.15)';
+      }
+    }
+
+    function renderClientesEnRiesgoTablero() {
+      var cont = document.getElementById('listaClientesRiesgoTablero');
+      var badge = document.getElementById('badgeTotalRiesgo');
+      if (!cont) return;
+
+      var lista = [];
+      clientesDB.forEach(function(c) {
+        // Filtro por rol
+        if (rolUsuarioActual === 'cobrador' && c.zona !== zonaUsuarioActual) return;
+
+        var r = calcularRiesgoCliente(c.id);
+        if (r.nivel === 'alto' || r.nivel === 'medio') {
+          lista.push({ cliente: c, riesgo: r });
+        }
+      });
+
+      // Ordenar por score descendente
+      lista.sort(function(a, b) { return b.riesgo.score - a.riesgo.score; });
+
+      if (badge) {
+        badge.textContent = lista.length + (lista.length === 1 ? ' cliente' : ' clientes');
+        badge.style.background = lista.length > 0 ? '#fef2f2' : '#f0fdf4';
+        badge.style.color = lista.length > 0 ? '#dc2626' : '#16a34a';
+      }
+
+      if (lista.length === 0) {
+        cont.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding:12px;">✅ No hay clientes en riesgo medio o alto en este momento.</p>';
+        return;
+      }
+
+      cont.innerHTML = lista.map(function(item) {
+        var c = item.cliente;
+        var r = item.riesgo;
+        var apodo = c.apodo ? ' ("' + c.apodo + '")' : '';
+        return '<div onclick="verPerfilCreditoCliente(' + c.id + ', \'clientes\')" style="display:flex; justify-content:space-between; align-items:center; gap:10px; padding:10px 12px; margin-bottom:8px; background:var(--bg); border:1px solid var(--border); border-left:4px solid ' + r.color + '; border-radius:10px; cursor:pointer; transition:var(--transition);">' +
+          '<div style="flex:1; min-width:0;">' +
+            '<div style="font-weight:700; font-size:0.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">' + c.nombre + apodo + '</div>' +
+            '<div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">' + r.detalle + '</div>' +
+          '</div>' +
+          '<div style="text-align:right; flex-shrink:0;">' +
+            '<div style="font-weight:800; font-size:0.95rem; color:' + r.color + ';">' + r.emoji + ' ' + r.score + '</div>' +
+            '<div style="font-size:0.7rem; color:' + r.color + '; font-weight:600;">' + r.etiqueta + '</div>' +
+          '</div>' +
+        '</div>';
+      }).join('');
     }
 
     function guardarNuevaEmpresaAislada(e) {
