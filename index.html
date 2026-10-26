@@ -1,4 +1,4 @@
-
+!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
@@ -7,6 +7,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <!-- BCRYPT para hash seguro de contraseñas -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/bcryptjs/2.4.3/bcrypt.min.js"></script>
+  <!-- CHART.JS para gráficos profesionales -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <!-- SUPABASE -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -615,30 +617,62 @@
 
       <!-- TABLERO -->
       <div id="resumen" class="tab-content active">
-        <div class="metrics-summary-bar">
-          <div class="metric-item">
-            <span style="font-size:0.8rem; color:#475569;">Capital Activo en Calle</span>
-            <span id="mPrestado" style="font-weight:700; font-size:1.1rem; color:var(--primary);">$0.00</span>
+        <!-- MÉTRICAS PRINCIPALES -->
+        <div class="metrics-summary-bar" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px;">
+          <div class="metric-item" style="border-left: 4px solid var(--primary);">
+            <span style="font-size:0.75rem; color:#64748b; font-weight:600;">💰 Capital Activo</span>
+            <span id="mPrestado" style="font-weight:800; font-size:1.25rem; color:var(--primary);">$0.00</span>
           </div>
-          <div class="metric-item" style="border-left: 3px solid var(--danger);">
-            <span style="font-size:0.8rem; color:#475569;">Capital Vencido en Calle</span>
-            <span id="mCapitalVencido" style="font-weight:700; font-size:1.1rem; color:var(--danger);">$0.00</span>
+          <div class="metric-item" style="border-left: 4px solid var(--danger);">
+            <span style="font-size:0.75rem; color:#64748b; font-weight:600;">🔴 Capital Vencido</span>
+            <span id="mCapitalVencido" style="font-weight:800; font-size:1.25rem; color:var(--danger);">$0.00</span>
           </div>
-          <div class="metric-item solo-admin-emp">
-            <span style="font-size:0.8rem; color:#475569;">Total Histórico Cobrado</span>
-            <span id="mCobradoTotal" style="font-weight:700; font-size:1.1rem; color:var(--success);">$0.00</span>
+          <div class="metric-item solo-admin-emp" style="border-left: 4px solid var(--success);">
+            <span style="font-size:0.75rem; color:#64748b; font-weight:600;">📈 Total Histórico</span>
+            <span id="mCobradoTotal" style="font-weight:800; font-size:1.25rem; color:var(--success);">$0.00</span>
           </div>
-          <div class="metric-item">
-            <span style="font-size:0.8rem; color:#475569;">Cuota Semanal Esperada</span>
-            <span id="mCuotaSemanalEsperada" style="font-weight:700; font-size:1.1rem; color:var(--accent);">$0.00</span>
+          <div class="metric-item" style="border-left: 4px solid var(--accent);">
+            <span style="font-size:0.75rem; color:#64748b; font-weight:600;">📅 Cuota Semanal</span>
+            <span id="mCuotaSemanalEsperada" style="font-weight:800; font-size:1.25rem; color:var(--accent);">$0.00</span>
           </div>
-          <div class="metric-item">
-            <span style="font-size:0.8rem; color:#475569;">Cobro Estimado de Hoy</span>
-            <span id="mCobroHoy" style="font-weight:700; font-size:1.1rem; color:var(--warning);">$0.00</span>
+          <div class="metric-item" style="border-left: 4px solid var(--warning);">
+            <span style="font-size:0.75rem; color:#64748b; font-weight:600;">🎯 Estimado Hoy</span>
+            <span id="mCobroHoy" style="font-weight:800; font-size:1.25rem; color:var(--warning);">$0.00</span>
           </div>
-          <div class="metric-item">
-            <span style="font-size:0.8rem; color:#475569;">Cobrado Hoy en Ruta</span>
-            <span id="mCobradoHoyRuta" style="font-weight:700; font-size:1.1rem; color:var(--success);">$0.00</span>
+          <div class="metric-item" style="border-left: 4px solid #10b981;">
+            <span style="font-size:0.75rem; color:#64748b; font-weight:600;">✅ Cobrado Hoy</span>
+            <span id="mCobradoHoyRuta" style="font-weight:800; font-size:1.25rem; color:#059669;">$0.00</span>
+          </div>
+        </div>
+
+        <!-- GRÁFICOS -->
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap:16px; margin-bottom:16px;">
+          <div class="card" style="margin-bottom:0;">
+            <h3 style="margin-bottom:16px;">📊 Capital en Calle</h3>
+            <div style="position:relative; height:220px;">
+              <canvas id="chartCapital"></canvas>
+            </div>
+          </div>
+          <div class="card" style="margin-bottom:0;">
+            <h3 style="margin-bottom:16px;">📈 Cobros: Esta Semana vs Anterior</h3>
+            <div style="position:relative; height:220px;">
+              <canvas id="chartCobrosSemana"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-bottom:16px;">
+          <h3 style="margin-bottom:16px;">📉 Tendencia de Cobros (últimos 14 días)</h3>
+          <div style="position:relative; height:240px;">
+            <canvas id="chartTendencia"></canvas>
+          </div>
+        </div>
+
+        <!-- RENDIMIENTO TEXTO -->
+        <div class="card solo-admin-emp">
+          <h3>📊 Rendimiento Semanal y Auditoría</h3>
+          <div id="infoCobroAnterior" style="font-size:0.9rem; color:#475569; background:#f8fafc; padding:14px; border-radius:10px; border:1px solid var(--border);">
+            Cargando métricas...
           </div>
         </div>
 
@@ -647,20 +681,13 @@
           <div id="listaNotificacionesDiv" style="font-size:0.85rem; color:#475569;">No hay notificaciones pendientes.</div>
         </div>
 
-        <div class="card solo-admin-emp">
-          <h3>📊 Rendimiento Semanal y Auditoría</h3>
-          <div id="infoCobroAnterior" style="font-size:0.9rem; color:#475569; background:#f8fafc; padding:12px; border-radius:6px; border:1px solid var(--border);">
-            Cargando métricas...
-          </div>
-        </div>
-
-        <!-- COBROS DE HOY EN TABLERO -->
+        <!-- COBROS DE HOY -->
         <div class="card">
           <h3 style="color:var(--success);">💵 Cobros de Hoy</h3>
           <div id="listaCobrosHoyTablero" style="font-size:0.85rem;">Cargando cobros de hoy...</div>
         </div>
 
-        <!-- COBROS SEMANA ANTERIOR EN TABLERO -->
+        <!-- COBROS SEMANA ANTERIOR -->
         <div class="card">
           <h3 style="color:var(--warning);">📅 Cobros de la Semana Anterior</h3>
           <div id="listaCobrosSemanaAnteriorTablero" style="font-size:0.85rem;">Cargando cobros de la semana pasada...</div>
@@ -5356,6 +5383,182 @@ actualizarSelectsLoginEmpresa();
       }).join('');
     }
 
+    // ========== GRÁFICOS DEL DASHBOARD ==========
+    var chartCapitalInstance = null;
+    var chartCobrosSemanaInstance = null;
+    var chartTendenciaInstance = null;
+
+    function destruirGraficos() {
+      if (chartCapitalInstance) { chartCapitalInstance.destroy(); chartCapitalInstance = null; }
+      if (chartCobrosSemanaInstance) { chartCobrosSemanaInstance.destroy(); chartCobrosSemanaInstance = null; }
+      if (chartTendenciaInstance) { chartTendenciaInstance.destroy(); chartTendenciaInstance = null; }
+    }
+
+    function renderDashboardCharts(totalActivo, totalVencido, cobrosEstaSemana, cobrosSemanaAnterior) {
+      if (typeof Chart === 'undefined') return;
+
+      // --- 1. Donut Capital Activo vs Vencido ---
+      var ctxCap = document.getElementById('chartCapital');
+      if (ctxCap) {
+        if (chartCapitalInstance) chartCapitalInstance.destroy();
+        var activo = totalActivo || 0;
+        var vencido = totalVencido || 0;
+        if (activo + vencido === 0) { activo = 1; } // evitar vacío
+
+        chartCapitalInstance = new Chart(ctxCap, {
+          type: 'doughnut',
+          data: {
+            labels: ['Capital Activo', 'Capital Vencido'],
+            datasets: [{
+              data: [activo, vencido],
+              backgroundColor: ['#2563eb', '#dc2626'],
+              borderWidth: 0,
+              hoverOffset: 8
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '62%',
+            plugins: {
+              legend: { position: 'bottom', labels: { padding: 16, usePointStyle: true, font: { size: 12, weight: '600' } } },
+              tooltip: {
+                callbacks: {
+                  label: function(ctx) {
+                    var val = ctx.raw || 0;
+                    return ctx.label + ': $' + val.toLocaleString('en-US', {minimumFractionDigits: 2});
+                  }
+                }
+              }
+            }
+          }
+        });
+      }
+
+      // --- 2. Barras Esta Semana vs Anterior ---
+      var ctxSem = document.getElementById('chartCobrosSemana');
+      if (ctxSem) {
+        if (chartCobrosSemanaInstance) chartCobrosSemanaInstance.destroy();
+        chartCobrosSemanaInstance = new Chart(ctxSem, {
+          type: 'bar',
+          data: {
+            labels: ['Semana Anterior', 'Esta Semana'],
+            datasets: [{
+              label: 'Cobrado ($)',
+              data: [cobrosSemanaAnterior || 0, cobrosEstaSemana || 0],
+              backgroundColor: ['#94a3b8', '#16a34a'],
+              borderRadius: 8,
+              borderSkipped: false,
+              maxBarThickness: 60
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: function(ctx) { return '$' + (ctx.raw || 0).toLocaleString('en-US', {minimumFractionDigits: 2}); }
+                }
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  callback: function(v) { return '$' + v; }
+                },
+                grid: { color: 'rgba(0,0,0,0.04)' }
+              },
+              x: { grid: { display: false } }
+            }
+          }
+        });
+      }
+
+      // --- 3. Tendencia últimos 14 días ---
+      var ctxTen = document.getElementById('chartTendencia');
+      if (ctxTen) {
+        if (chartTendenciaInstance) chartTendenciaInstance.destroy();
+
+        var labels = [];
+        var dataVals = [];
+        var hoy = new Date();
+        hoy.setHours(0,0,0,0);
+
+        for (var i = 13; i >= 0; i--) {
+          var d = new Date(hoy);
+          d.setDate(d.getDate() - i);
+          var diaStr = d.toLocaleDateString('es-DO', { day: '2-digit', month: '2-digit' });
+          labels.push(diaStr);
+
+          var totalDia = 0;
+          cobrosDB.forEach(function(c) {
+            if (rolUsuarioActual === 'cobrador') {
+              var p = prestamosDB.find(function(item) { return item.id == c.prestamoId; });
+              var cli = clientesDB.find(function(item) { return item.id == (p ? p.clienteId : 0); });
+              if (!cli || cli.zona !== zonaUsuarioActual) return;
+            }
+            var fechaC;
+            if (c.timestamp) {
+              fechaC = new Date(c.timestamp);
+            } else if (c.fecha) {
+              // intentar parsear fecha local
+              var partes = String(c.fecha).split('/');
+              if (partes.length === 3) fechaC = new Date(partes[2], partes[1]-1, partes[0]);
+              else fechaC = new Date(c.fecha);
+            } else return;
+            fechaC.setHours(0,0,0,0);
+            if (fechaC.getTime() === d.getTime()) totalDia += (c.monto || 0);
+          });
+          dataVals.push(totalDia);
+        }
+
+        chartTendenciaInstance = new Chart(ctxTen, {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: 'Cobrado por día',
+              data: dataVals,
+              borderColor: '#2563eb',
+              backgroundColor: 'rgba(37, 99, 235, 0.12)',
+              fill: true,
+              tension: 0.35,
+              pointRadius: 4,
+              pointHoverRadius: 6,
+              pointBackgroundColor: '#2563eb',
+              borderWidth: 2.5
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: function(ctx) { return '$' + (ctx.raw || 0).toLocaleString('en-US', {minimumFractionDigits: 2}); }
+                }
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: { callback: function(v) { return '$' + v; } },
+                grid: { color: 'rgba(0,0,0,0.04)' }
+              },
+              x: {
+                grid: { display: false },
+                ticks: { maxRotation: 45, minRotation: 0, font: { size: 10 } }
+              }
+            }
+          }
+        });
+      }
+    }
+
     function actualizarMetricas() {
       var hoyObj = new Date();
       hoyObj.setHours(0,0,0,0);
@@ -5463,8 +5666,16 @@ actualizarSelectsLoginEmpresa();
           '<div style="font-weight: 700;">' + mensajeTendencia + '</div>' +
         '</div>';
       }
+
+      // Renderizar gráficos del dashboard
+      try {
+        renderDashboardCharts(totalActivoCalle, totalVencidoCalle, cobrosEstaSemana, cobrosSemanaAnterior);
+      } catch (errChart) {
+        console.warn('Error renderizando gráficos:', errChart);
+      }
     }
-        function guardarNuevaEmpresaAislada(e) {
+
+    function guardarNuevaEmpresaAislada(e) {
       e.preventDefault();
       var nombre = document.getElementById('nuevaEmpresaNombre').value.trim();
       var rnc = document.getElementById('nuevaEmpresaRNC').value.trim();
