@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
@@ -345,6 +345,7 @@
       <button class="sidebar-btn solo-admin-emp" onclick="showTabFromMenu('inversionistasTab')">💼 Módulo de Inversionistas</button>
       <button class="sidebar-btn solo-admin-emp" onclick="showTabFromMenu('recordatorios')">🔔 Recordatorio Cliente</button>
       <button class="sidebar-btn" onclick="showTabFromMenu('listado')">📋 Listado General y Auditoría</button>
+      <button class="sidebar-btn" onclick="showTabFromMenu('cobrosGeneralesTab')">💰 Cobros Generales</button>
       <hr style="border:0; border-top:1px solid var(--border); margin:5px 0;">
       <button class="sidebar-btn" onclick="abrirAyudaWhatsApp()" style="background:#25d366; color:white; font-weight:700;">🆘 Ayuda / Soporte WhatsApp</button>
       <button class="sidebar-btn solo-admin-emp" onclick="abrirModalCambiarTelefonoSoporte()" style="background:#0f172a; color:white;">📱 Cambiar Número de Soporte</button>
@@ -594,6 +595,18 @@
           <div id="infoCobroAnterior" style="font-size:0.9rem; color:#475569; background:#f8fafc; padding:12px; border-radius:6px; border:1px solid var(--border);">
             Cargando métricas...
           </div>
+        </div>
+
+        <!-- COBROS DE HOY EN TABLERO -->
+        <div class="card">
+          <h3 style="color:var(--success);">💵 Cobros de Hoy</h3>
+          <div id="listaCobrosHoyTablero" style="font-size:0.85rem;">Cargando cobros de hoy...</div>
+        </div>
+
+        <!-- COBROS SEMANA ANTERIOR EN TABLERO -->
+        <div class="card">
+          <h3 style="color:var(--warning);">📅 Cobros de la Semana Anterior</h3>
+          <div id="listaCobrosSemanaAnteriorTablero" style="font-size:0.85rem;">Cargando cobros de la semana pasada...</div>
         </div>
       </div>
 
@@ -1193,6 +1206,21 @@
         </div>
       </div>
 
+      <!-- COBROS GENERALES (HISTORIAL COMPLETO) -->
+      <div id="cobrosGeneralesTab" class="tab-content">
+        <div class="card">
+          <h3 style="color:var(--primary);">💰 Cobros Generales — Historial Completo</h3>
+          <p style="font-size:0.85rem; color:#475569; margin-bottom:15px;">Aquí aparecen todos los cobros registrados (pasados, de hoy y futuros). Usa el buscador para filtrar por cliente o fecha.</p>
+          <div class="search-filter-bar" style="margin-bottom:12px;">
+            <div class="search-box">
+              <span>🔍</span>
+              <input type="text" id="inputBusquedaCobrosGenerales" placeholder="Buscar por cliente, nota o fecha..." oninput="renderCobrosGenerales()">
+            </div>
+          </div>
+          <div id="listaCobrosGeneralesDiv">Cargando historial de cobros...</div>
+        </div>
+      </div>
+
     </div>
 
   </div>
@@ -1338,6 +1366,10 @@
         <div class="form-group">
           <label>Mora ($) - <span style="color:var(--danger);">En rojo</span></label>
           <input type="number" id="cobroMora" step="any" value="0" style="color:var(--danger); font-weight:700;">
+        </div>
+        <div class="form-group">
+          <label>📅 Fecha Exacta del Pago <small style="color:#64748b;">(puedes poner fecha anterior para no alterar el cobro de hoy)</small></label>
+          <input type="date" id="cobroFecha" required>
         </div>
         <div class="form-group">
           <label>Forma de Pago</label>
@@ -1864,6 +1896,11 @@ window.addEventListener('DOMContentLoaded', function() {
     document.getElementById('loginScreen').style.display = 'none';
     if (typeof actualizarInterfazPorRol === 'function') actualizarInterfazPorRol();
     if (typeof aplicarTemaEmpresa === 'function') aplicarTemaEmpresa();
+    // Restaurar la última pestaña donde estaba el usuario (no salta al Tablero)
+    var ultimaPestana = localStorage.getItem('psc_ultima_pestana') || 'resumen';
+    setTimeout(function() {
+      if (typeof showTab === 'function') showTab(ultimaPestana, null);
+    }, 300);
   }
 
   if (typeof iniciarPadFirma === 'function') iniciarPadFirma();
@@ -2942,11 +2979,15 @@ actualizarSelectsLoginEmpresa();
       if (tabId === 'recordatorios') renderRecordatorios();
       if (tabId === 'caja') renderArqueoCaja();
       if (tabId === 'listado') renderListadoGeneral();
+      if (tabId === 'cobrosGeneralesTab') renderCobrosGenerales();
       if (tabId === 'aperturaDiaTab') verificarPermisoBloqueoRuta();
       if (tabId === 'resumen') {
         actualizarMetricas();
         renderNotificacionesAdmin();
+        renderCobrosHoyYSemana();
       }
+      // Guardar la pestaña actual para que al recargar se quede aquí
+      try { localStorage.setItem('psc_ultima_pestana', tabId); } catch(e){}
     }
 
     function guardarNuevaEmpresaAdmin(e) {
@@ -3823,8 +3864,17 @@ actualizarSelectsLoginEmpresa();
         }
 
         guardarDatosEnNube();
-        alert('Informacion actualizada correctamente.');
-        cerrarPerfilCliente();
+        alert('✅ Información actualizada correctamente (sin recargar).');
+        // Se queda en el perfil actualizado sin saltar al Tablero
+        if (typeof verPerfilCreditoCliente === 'function') {
+          verPerfilCreditoCliente(id, 'clientes');
+        } else {
+          document.getElementById('seccionEditarCliente').style.display = 'none';
+          document.getElementById('perfilClienteDetalle').style.display = 'block';
+        }
+        // Actualizar listas en caliente
+        if (typeof renderClientes === 'function') renderClientes();
+        if (typeof actualizarMetricas === 'function') actualizarMetricas();
       }
     }
 
@@ -4494,6 +4544,9 @@ actualizarSelectsLoginEmpresa();
       document.getElementById('cobroNotaInput').value = '';
       document.getElementById('cobroTipo').value = 'Efectivo';
       toggleCamposDeposito();
+      // Fecha por defecto = hoy (puedes cambiarla si el pago fue antes)
+      var hoyISO = new Date().toISOString().split('T')[0];
+      document.getElementById('cobroFecha').value = hoyISO;
 
       document.getElementById('modalCobroBox').style.display = 'flex';
     }
@@ -4543,6 +4596,12 @@ actualizarSelectsLoginEmpresa();
       var atrasoRestante = calcularMontoAtrasoPrestamo(prestamo);
       var gpsStr = 'Lat: ' + gpsUltimaPosicion.lat + ', Lng: ' + gpsUltimaPosicion.lng;
 
+      // Fecha exacta del pago (puede ser anterior para no alterar cobros del día actual)
+      var fechaPagoInput = document.getElementById('cobroFecha').value;
+      var fechaPagoObj = fechaPagoInput ? new Date(fechaPagoInput + 'T12:00:00') : new Date();
+      var fechaStr = fechaPagoObj.toLocaleDateString('es-DO');
+      var timestampPago = fechaPagoObj.getTime();
+
       var pago = {
         id: Date.now(),
         prestamoId: prestamo.id,
@@ -4553,8 +4612,8 @@ actualizarSelectsLoginEmpresa();
         balanceRestante: prestamo.balancePendiente,
         cuotaInfo: cuotaInfoTexto,
         montoAtraso: atrasoRestante,
-        fecha: new Date().toLocaleDateString(),
-        timestamp: Date.now(),
+        fecha: fechaStr,
+        timestamp: timestampPago,
         nota: notaFinal,
         tipoPago: tipo,
         gps: gpsStr
@@ -4563,6 +4622,10 @@ actualizarSelectsLoginEmpresa();
       cobrosDB.push(pago);
       guardarDatosEnNube();
       cerrarModalCobro();
+
+      // Actualizar métricas y listas en caliente si estamos en tablero
+      if (typeof actualizarMetricas === 'function') actualizarMetricas();
+      if (typeof renderCobrosHoyYSemana === 'function') renderCobrosHoyYSemana();
 
       mostrarReciboModal(pago);
     }
@@ -5095,6 +5158,117 @@ actualizarSelectsLoginEmpresa();
     function ocultarFormularioCliente() {
       document.getElementById('seccionFormCliente').style.display = 'none';
       document.getElementById('seccionListaClientes').style.display = 'block';
+    }
+
+    // ========== COBROS DE HOY Y SEMANA ANTERIOR EN TABLERO ==========
+    function renderCobrosHoyYSemana() {
+      var contHoy = document.getElementById('listaCobrosHoyTablero');
+      var contSem = document.getElementById('listaCobrosSemanaAnteriorTablero');
+      if (!contHoy || !contSem) return;
+
+      var ahora = Date.now();
+      var sieteDiasMs = 7 * 24 * 60 * 60 * 1000;
+      var catorceDiasMs = 14 * 24 * 60 * 60 * 1000;
+      var hoyObj = new Date();
+      hoyObj.setHours(0,0,0,0);
+      var hoyStr = hoyObj.toLocaleDateString('es-DO');
+
+      // Cobros de HOY (por fecha string o timestamp del día)
+      var cobrosHoy = cobrosDB.filter(function(c) {
+        if (rolUsuarioActual === 'cobrador') {
+          var p = prestamosDB.find(function(item) { return item.id == c.prestamoId; });
+          var cli = clientesDB.find(function(item) { return item.id == (p ? p.clienteId : 0); });
+          if (!cli || cli.zona !== zonaUsuarioActual) return false;
+        }
+        // Comparar por fecha local
+        if (c.fecha === hoyStr) return true;
+        if (c.timestamp) {
+          var d = new Date(c.timestamp);
+          d.setHours(0,0,0,0);
+          return d.getTime() === hoyObj.getTime();
+        }
+        return false;
+      }).sort(function(a,b){ return (b.timestamp||0) - (a.timestamp||0); });
+
+      // Cobros SEMANA ANTERIOR (entre 7 y 14 días atrás)
+      var cobrosSemAna = cobrosDB.filter(function(c) {
+        if (rolUsuarioActual === 'cobrador') {
+          var p = prestamosDB.find(function(item) { return item.id == c.prestamoId; });
+          var cli = clientesDB.find(function(item) { return item.id == (p ? p.clienteId : 0); });
+          if (!cli || cli.zona !== zonaUsuarioActual) return false;
+        }
+        var t = c.timestamp || c.id;
+        var diff = ahora - t;
+        return diff > sieteDiasMs && diff <= catorceDiasMs;
+      }).sort(function(a,b){ return (b.timestamp||0) - (a.timestamp||0); });
+
+      function pintarLista(arr, contenedor, vacioMsg) {
+        if (arr.length === 0) {
+          contenedor.innerHTML = '<p style="color:#64748b; font-size:0.85rem;">' + vacioMsg + '</p>';
+          return;
+        }
+        contenedor.innerHTML = arr.map(function(c) {
+          return '<div style="background:#f8fafc; padding:10px; border-radius:6px; margin-bottom:6px; border-left:4px solid var(--success); display:flex; justify-content:space-between; align-items:center; gap:8px;">' +
+            '<div style="flex:1;">' +
+              '<strong>' + c.clienteNombre + '</strong> — <span style="color:var(--success); font-weight:700;">+$' + c.monto.toFixed(2) + '</span><br>' +
+              '<span style="font-size:0.75rem; color:#64748b;">📅 ' + c.fecha + ' | Cuota: ' + (c.cuotaInfo||'N/A') + ' | ' + (c.tipoPago||'Efectivo') + '</span>' +
+            '</div>' +
+            '<button class="btn btn-warning btn-sm" onclick="imprimirReciboDirecto(' + c.id + ')" style="flex-shrink:0;">🖨️</button>' +
+          '</div>';
+        }).join('');
+      }
+
+      pintarLista(cobrosHoy, contHoy, 'No hay cobros registrados hoy todavía.');
+      pintarLista(cobrosSemAna, contSem, 'No hay cobros de la semana anterior.');
+    }
+
+    // ========== COBROS GENERALES (HISTORIAL COMPLETO) ==========
+    function renderCobrosGenerales() {
+      var cont = document.getElementById('listaCobrosGeneralesDiv');
+      if (!cont) return;
+      var busqueda = (document.getElementById('inputBusquedaCobrosGenerales') || {}).value || '';
+      busqueda = busqueda.toLowerCase().trim();
+
+      var lista = cobrosDB.filter(function(c) {
+        if (rolUsuarioActual === 'cobrador') {
+          var p = prestamosDB.find(function(item) { return item.id == c.prestamoId; });
+          var cli = clientesDB.find(function(item) { return item.id == (p ? p.clienteId : 0); });
+          if (!cli || cli.zona !== zonaUsuarioActual) return false;
+        }
+        if (!busqueda) return true;
+        var texto = (c.clienteNombre + ' ' + (c.nota||'') + ' ' + (c.fecha||'') + ' ' + (c.cuotaInfo||'')).toLowerCase();
+        return texto.indexOf(busqueda) !== -1;
+      }).sort(function(a,b){ return (b.timestamp||0) - (a.timestamp||0); });
+
+      if (lista.length === 0) {
+        cont.innerHTML = '<p style="color:#64748b;">No se encontraron cobros' + (busqueda ? ' con ese filtro.' : '.') + '</p>';
+        return;
+      }
+
+      cont.innerHTML = lista.map(function(c) {
+        var btnBorrar = (typeof verificarPermisoEdicion === 'function' && verificarPermisoEdicion()) ?
+          '<button class="btn btn-danger btn-sm" onclick="eliminarPagoDirectoAdmin(' + c.id + ', null)">🗑️</button>' :
+          '<button class="btn btn-danger btn-sm" onclick="solicitarEliminarElementoCobrador(' + c.id + ', \'pago\')">🗑️ Solicitar</button>';
+
+        return '<div style="background:#f8fafc; padding:12px; border-radius:8px; margin-bottom:8px; border:1px solid var(--border); border-left:4px solid var(--success);">' +
+          '<div style="display:flex; justify-content:space-between; font-weight:700; font-size:0.9rem;">' +
+            '<span>👤 ' + c.clienteNombre + '</span>' +
+            '<span style="color:var(--success);">+$' + c.monto.toFixed(2) + '</span>' +
+          '</div>' +
+          '<div style="font-size:0.78rem; color:#475569; margin-top:4px; line-height:1.45;">' +
+            '📅 <strong>' + c.fecha + '</strong> | Cuota: ' + (c.cuotaInfo || 'N/A') + '<br>' +
+            '🚨 Atraso: $' + (c.montoAtraso || 0).toFixed(2) + ' | Mora: $' + (c.mora || 0).toFixed(2) + '<br>' +
+            '💳 ' + (c.tipoPago || 'Efectivo') + ' | Restante: $' + (c.balanceRestante || 0).toFixed(2) + '<br>' +
+            '📝 ' + (c.nota || '') + '<br>' +
+            '🛰️ GPS: ' + (c.gps || 'N/A') +
+          '</div>' +
+          '<div style="display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;">' +
+            '<button class="btn btn-warning btn-sm" onclick="imprimirReciboDirecto(' + c.id + ')">🖨️ Imprimir</button>' +
+            '<button class="btn btn-whatsapp btn-sm" onclick="enviarReciboWhatsAppDirecto(' + c.id + ')">📲 WhatsApp</button>' +
+            btnBorrar +
+          '</div>' +
+        '</div>';
+      }).join('');
     }
 
     function actualizarMetricas() {
