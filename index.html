@@ -1,4 +1,4 @@
-!DOCTYPE html>
+
 <html lang="es">
 <head>
   <meta charset="UTF-8">
@@ -2898,153 +2898,191 @@ actualizarSelectsLoginEmpresa();
         if (btn) { btn.textContent = '👁️'; btn.title = 'Ver contraseña'; }
       }
     }
+                                                 
 
-    function realizarLogin(e) {
-      e.preventDefault();
-      try {
-        empresaActual = document.getElementById('loginEmpresaSelect').value || 'Perdomo Sovereign Capital S.A.';
-        var rol = document.getElementById('loginRolSelect').value;
-        var p = document.getElementById('loginPassword').value.trim();
-        var rateKey = (empresaActual + '_' + rol + '_' + (document.getElementById('loginNombreSelect') ? document.getElementById('loginNombreSelect').value : '')).toLowerCase();
 
-        if (!rol) {
-          alert('Por favor selecciona un Tipo de Usuario (Rol).');
-          return;
-        }
-        if (!p) {
-          alert('Introduce la contraseña / PIN.');
-          return;
-        }
 
-        // Protección anti fuerza bruta
-        if (!checkLoginRateLimit(rateKey)) {
-          alert('Demasiados intentos fallidos. Espera 15 minutos o contacta al Super Admin.');
-          return;
-        }
 
-        // Asegurar empresas locales siempre
-        if (!empresasGlobalesDB || empresasGlobalesDB.length === 0) {
-          try {
-            empresasGlobalesDB = JSON.parse(localStorage.getItem('psc_empresas_globales') || '[]');
-          } catch(err) { empresasGlobalesDB = []; }
-        }
-        if (!empresasGlobalesDB || empresasGlobalesDB.length === 0) {
-          empresasGlobalesDB = [
-            {id:1, nombre:"Perdomo Sovereign Capital S.A.", usuarioAdmin:"admin", passwordAdmin:"Admin21", fechaPago:"2026-11-30", estado:"activa", requierePago:false},
-            {id:2, nombre:"Financiera Norestana", usuarioAdmin:"norestana", passwordAdmin:"1234", fechaPago:"2026-11-15", estado:"activa"},
-            {id:3, nombre:"Inversiones Cibao Express", usuarioAdmin:"cibao", passwordAdmin:"Admin21", fechaPago:"2026-12-31", estado:"activa"}
-          ];
-          try { localStorage.setItem('psc_empresas_globales', JSON.stringify(empresasGlobalesDB)); } catch(e){}
-        }
+    // ========== LOGIN REAL CONTRA SUPABASE (MULTI-TENANT & RBAC) ==========
+async function realizarLogin(e) {
+  if (e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
 
-        // Clave maestra (solo para desarrollo / emergencia - cámbiala en producción)
-        var claveMaestra = (p === "Admin21" || p === "SuperAdmin21" || p === "admin21" || p === "ADMIN21");
+  var empresaNombre = document.getElementById('loginEmpresaSelect').value;
+  var rol = document.getElementById('loginRolSelect').value;
+  var password = document.getElementById('loginPassword').value;
 
-        if (rol === "SuperAdmin" && claveMaestra) {
-          rolUsuarioActual = "SuperAdmin";
-          nombreUsuarioActual = "Super Administrador (Tú)";
-          zonaUsuarioActual = "Todas las Zonas (Global)";
-          if (!empresaActual || empresaActual.trim() === '') {
-            empresaActual = 'Perdomo Sovereign Capital S.A.';
-          }
-          clearLoginAttempts(rateKey);
-          guardarSesionLocal();
-          return;
-        }
+  if (!empresaNombre || !rol || !password) {
+    alert('Por favor completa todos los campos obligatorios.');
+    return;
+  }
 
-        if (rol === "Administrador") {
-          var empG = empresasGlobalesDB.find(function(item) {
-            return item.nombre === empresaActual ||
-                   (item.nombre && empresaActual && item.nombre.toLowerCase().indexOf(empresaActual.toLowerCase().split(' ')[0]) === 0);
-          });
-          if (!empG && claveMaestra) {
-            empG = empresasGlobalesDB[0] || { nombre: empresaActual, passwordAdmin: "Admin21" };
-          }
-          var storedPass = empG ? (empG.passwordAdmin || empG.password || "") : "";
-          var passOk = claveMaestra || (empG && verifyPassword(p, storedPass));
-          if (passOk) {
-            // Auto-upgrade a hash si estaba en texto plano
-            if (empG && !isPasswordHashed(storedPass) && p === storedPass) {
-              empG.passwordAdmin = hashPassword(p);
-              try { localStorage.setItem('psc_empresas_globales', JSON.stringify(empresasGlobalesDB)); } catch(e){}
-            }
-            rolUsuarioActual = "admin";
-            nombreUsuarioActual = "Administrador " + (empresaActual || "Empresa");
-            zonaUsuarioActual = "Todas las Zonas (Oficina)";
-            clearLoginAttempts(rateKey);
-            guardarSesionLocal();
-            return;
-          }
-          registerFailedLogin(rateKey);
-          alert("Contraseña de Administrador incorrecta.");
-          return;
-        }
-
-        if (rol === "cobrador") {
-          var nom = document.getElementById('loginNombreSelect').value;
-          var zon = document.getElementById('loginZonaSelect').value;
-          if(!nom || !zon) return alert("Selecciona el cobrador y la zona correspondiente.");
-          var cob = cobradoresDB.find(function(c) { return c.nombre === nom; });
-          var cobPass = cob ? (cob.password || "") : "";
-          if(cob && (verifyPassword(p, cobPass) || p === "Perdomo21" || claveMaestra)) {
-            // Auto-upgrade hash
-            if (cob && !isPasswordHashed(cobPass) && p === cobPass) {
-              cob.password = hashPassword(p);
-              // guardarDatosEnNube se llamará después si existe
-            }
-            rolUsuarioActual = "cobrador";
-            nombreUsuarioActual = nom;
-            zonaUsuarioActual = zon;
-            clearLoginAttempts(rateKey);
-            guardarSesionLocal();
-            return;
-          }
-          registerFailedLogin(rateKey);
-          alert("Contraseña incorrecta.");
-          return;
-        }
-
-        if (rol === "empleado") {
-          var nomEmp = document.getElementById('loginNombreSelect').value;
-          if(!nomEmp) return alert("Selecciona el empleado.");
-          var empObj = empleadosDB.find(function(em) { return em.nombre === nomEmp; });
-          var empPass = empObj ? (empObj.password || "") : "";
-          if(empObj && (verifyPassword(p, empPass) || p === "Perdomo21" || claveMaestra)) {
-            if (empObj && !isPasswordHashed(empPass) && p === empPass) {
-              empObj.password = hashPassword(p);
-            }
-            rolUsuarioActual = "empleado";
-            nombreUsuarioActual = nomEmp;
-            zonaUsuarioActual = "Zonas Asignadas a sus Cobradores/Rutas";
-            clearLoginAttempts(rateKey);
-            guardarSesionLocal();
-            return;
-          }
-          registerFailedLogin(rateKey);
-          alert("Contraseña incorrecta.");
-          return;
-        }
-
-        registerFailedLogin(rateKey);
-        alert("Credenciales incorrectas. Selecciona un rol válido.");
-      } catch (errLogin) {
-        console.error('Error en login:', errLogin);
-        // Fallback de emergencia: si la clave es Admin21, entra igual
-        var p2 = (document.getElementById('loginPassword') || {}).value || '';
-        if (String(p2).trim() === 'Admin21' || String(p2).trim() === 'SuperAdmin21') {
-          empresaActual = (document.getElementById('loginEmpresaSelect') || {}).value || 'Perdomo Sovereign Capital S.A.';
-          rolUsuarioActual = (document.getElementById('loginRolSelect') || {}).value === 'SuperAdmin' ? 'SuperAdmin' : 'admin';
-          nombreUsuarioActual = 'Administrador';
-          zonaUsuarioActual = 'Todas las Zonas';
-          try { guardarSesionLocal(); } catch(e2) {
-            document.getElementById('loginScreen').style.display = 'none';
-            localStorage.setItem('psc_sesion_activa', 'true');
-          }
-        } else {
-          alert('Error al iniciar sesión: ' + (errLogin.message || errLogin));
-        }
-      }
+  // Obtener nombre y zona si aplica según el rol
+  var nombrePersona = '';
+  var zonaPersona = '';
+  if (rol === 'cobrador' || rol === 'empleado') {
+    var selectPersona = document.getElementById('loginNombreSelect');
+    nombrePersona = selectPersona ? selectPersona.value : '';
+    if (!nombrePersona) {
+      alert('Por favor selecciona el nombre.');
+      return;
     }
+  }
+  if (rol === 'cobrador') {
+    var selectZona = document.getElementById('loginZonaSelect');
+    zonaPersona = selectZona ? selectZona.value : '';
+    if (!zonaPersona) {
+      alert('Por favor selecciona la zona / ruta.');
+      return;
+    }
+  }
+
+  var rateKey = (empresaNombre + '|' + rol + '|' + nombrePersona).toLowerCase();
+  if (typeof checkLoginRateLimit === 'function' && !checkLoginRateLimit(rateKey)) {
+    alert('Demasiados intentos fallidos. Espera 15 minutos.');
+    return;
+  }
+
+  try {
+    // 1. Buscar la empresa en Supabase
+    var { data: empresa, error: errEmp } = await supabase
+      .from('empresas')
+      .select('*')
+      .eq('nombre', empresaNombre)
+      .single();
+
+    if (errEmp || !empresa) {
+      if (typeof registerFailedLogin === 'function') registerFailedLogin(rateKey);
+      alert('Empresa no encontrada en la base de datos.');
+      return;
+    }
+
+    if (empresa.estado === 'bloqueada') {
+      alert('Esta empresa está bloqueada por impago. Contacta al administrador.');
+      return;
+    }
+
+    var claveMaestra = (password === 'Admin21' || password === 'SuperAdmin21' || password === 'admin21');
+
+    // --- CASO 1: SUPER ADMIN ---
+    if (rol === 'SuperAdmin') {
+      if (claveMaestra || password === 'SuperAdmin21') {
+        rolUsuarioActual = 'SuperAdmin';
+        nombreUsuarioActual = 'Super Administrador';
+        zonaUsuarioActual = 'Todas las Zonas (Global)';
+        if (typeof clearLoginAttempts === 'function') clearLoginAttempts(rateKey);
+        guardarSesionLocal();
+        return;
+      }
+      if (typeof registerFailedLogin === 'function') registerFailedLogin(rateKey);
+      alert('Contraseña de Super Admin incorrecta.');
+      return;
+    }
+
+    // --- CASO 2: ADMINISTRADOR DE EMPRESA ---
+    if (rol === 'Administrador' || rol === 'admin') {
+      var passOk = claveMaestra || (typeof verifyPassword === 'function' ? verifyPassword(password, empresa.password_hash || empresa.passwordAdmin || '') : password === (empresa.passwordAdmin || ''));
+      
+      if (passOk) {
+        if (typeof clearLoginAttempts === 'function') clearLoginAttempts(rateKey);
+
+        var sesion = {
+          empresa_id: empresa.id,
+          empresa_nombre: empresa.nombre,
+          usuario: empresa.usuario_admin || 'admin',
+          rol: 'admin',
+          color: empresa.color_primario || '#1e3a8a',
+          plan: empresa.plan
+        };
+        localStorage.setItem('psc_sesion', JSON.stringify(sesion));
+        localStorage.setItem('psc_empresa_activa', empresa.nombre);
+
+        empresaActual = empresa.nombre;
+        rolUsuarioActual = 'admin';
+        nombreUsuarioActual = 'Administrador de ' + empresa.nombre;
+        zonaUsuarioActual = 'Todas las Zonas (Oficina)';
+
+        if (typeof aplicarTemaEmpresa === 'function') aplicarTemaEmpresa();
+        document.getElementById('loginScreen').style.display = 'none';
+        alert('¡Bienvenido Administrador de ' + empresa.nombre + '!');
+
+        if (typeof sincronizarConNube === 'function') {
+          sincronizarConNube();
+        }
+        return;
+      }
+      if (typeof registerFailedLogin === 'function') registerFailedLogin(rateKey);
+      alert('Contraseña de Administrador incorrecta.');
+      return;
+    }
+
+    // --- CASO 3 & 4: EMPLEADOS O COBRADORES (Consultando tabla usuarios) ---
+    var { data: usuarioDB, error: errUser } = await supabase
+      .from('usuarios')
+      .select('*')
+      .eq('empresa_id', empresa.id)
+      .eq('nombre', nombrePersona)
+      .eq('rol', rol === 'empleado' ? 'empleado' : 'cobrador')
+      .single();
+
+    var passValidado = false;
+    if (!errUser && usuarioDB) {
+      passValidado = claveMaestra || (typeof verifyPassword === 'function' ? verifyPassword(password, usuarioDB.password_hash || '') : password === usuarioDB.password_hash);
+    } else if (claveMaestra) {
+      passValidado = true; // Fallback maestro de desarrollo
+    }
+
+    if (!passValidado) {
+      if (typeof registerFailedLogin === 'function') registerFailedLogin(rateKey);
+      alert('Usuario o contraseña incorrectos.');
+      return;
+    }
+
+    if (typeof clearLoginAttempts === 'function') clearLoginAttempts(rateKey);
+
+    var sesionUsuario = {
+      empresa_id: empresa.id,
+      empresa_nombre: empresa.nombre,
+      usuario: nombrePersona,
+      rol: rol,
+      usuario_id: usuarioDB ? usuarioDB.id : null,
+      zonas: usuarioDB ? (usuarioDB.zonas || []) : [zonaPersona],
+      color: empresa.color_primario || '#1e3a8a',
+      plan: empresa.plan
+    };
+    localStorage.setItem('psc_sesion', JSON.stringify(sesionUsuario));
+    localStorage.setItem('psc_empresa_activa', empresa.nombre);
+
+    empresaActual = empresa.nombre;
+    rolUsuarioActual = rol;
+    nombreUsuarioActual = nombrePersona;
+    zonaUsuarioActual = zonaPersona || (usuarioDB && usuarioDB.zonas ? usuarioDB.zonas[0] : '');
+
+    if (typeof aplicarTemaEmpresa === 'function') aplicarTemaEmpresa();
+    document.getElementById('loginScreen').style.display = 'none';
+    alert('¡Bienvenido ' + nombreUsuarioActual + ' (' + rol + ')!');
+
+    if (typeof sincronizarConNube === 'function') {
+      sincronizarConNube();
+    }
+
+  } catch (e) {
+    console.error('Error crítico en login:', e);
+    // Fallback de emergencia si ocurre algún problema de red con Supabase
+    if (password === 'Admin21' || password === 'SuperAdmin21') {
+      rolUsuarioActual = rol === 'SuperAdmin' ? 'SuperAdmin' : 'admin';
+      nombreUsuarioActual = 'Administrador de Emergencia';
+      zonaUsuarioActual = 'Todas las Zonas';
+      document.getElementById('loginScreen').style.display = 'none';
+      localStorage.setItem('psc_sesion_activa', 'true');
+      alert('Ingreso exitoso por Modo de Emergencia (Offline/Fallback).');
+    } else {
+      alert('Error de conexión con Supabase. Revisa tu red o la consola.');
+    }
+  }
+}
 
     function guardarSesionLocal() {
       try {
