@@ -2314,19 +2314,6 @@ async function sincronizarConNube() {
   }
 }
 
-     
-    
-    
-    try {
-      if (typeof firebase !== 'undefined') {
-        if (!firebase.apps.length) {
-          firebase.initializeApp(firebaseConfig);
-        }
-        db = firebase.database();
-      }
-    } catch(err) {
-      console.warn("Firebase no esta conectado. Usando almacenamiento local.");
-    }
 
     empresaActual = localStorage.getItem('psc_empresa_activa') || 'Perdomo Sovereign Capital S.A.';
     // Cargar empresas desde localStorage si aún están vacías
@@ -2913,15 +2900,7 @@ function sincronizarConFirebase() {
   }
 }
          
-         refrescarTodaLaInterfaz();
-        }, function(error) {
-          console.error("Error al sincronizar con Firebase:", error);
-          refrescarTodaLaInterfaz();
-        });
-      } else {
-        refrescarTodaLaInterfaz();
-      }
-    }
+
 
     function refrescarTodaLaInterfaz() {
       verificarPermisoBloqueoRuta();
