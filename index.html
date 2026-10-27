@@ -500,7 +500,7 @@ function redondear(num) {
 </head>
  <body>
 <!-- Estructura HTML recomendada para el Dashboard y Módulos (Fase 4) -->
-<div id="appContainer" class="dashboard-layout">
+<div id="appContainer" class="dashboard-layout" style="display: none;">
   
   <!-- Barra Superior / Header -->
   <header class="app-header bg-black text-gold p-4 flex justify-between items-center border-b border-yellow-600">
@@ -6644,6 +6644,21 @@ async function registrarPagoYEnviarWhatsApp(prestamoId, telefonoCliente, nombreC
     alert('Hubo un error al registrar el pago en la base de datos.');
   }
 }
+
+function toggleLoginPassword(e) {
+  if (e) { e.preventDefault(); e.stopPropagation(); }
+  var input = document.getElementById('loginPassword');
+  var btn = document.getElementById('btnTogglePassword');
+  if (!input) return;
+  if (input.type === 'password') {
+    input.type = 'text';
+    if (btn) { btn.textContent = '🙈'; btn.title = 'Ocultar contraseña'; }
+  } else {
+    input.type = 'password';
+    if (btn) { btn.textContent = '👁️'; btn.title = 'Ver contraseña'; }
+  }
+}
+
 
 </script>
 </body>
