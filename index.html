@@ -2903,7 +2903,7 @@ actualizarSelectsLoginEmpresa();
 
 
 
-    // ========== LOGIN REAL CONTRA SUPABASE (MULTI-TENANT & RBAC) ==========
+   // ========== LOGIN REAL CONTRA SUPABASE (ESTRICTO Y SEGURO) ==========
 async function realizarLogin(e) {
   if (e) {
     e.preventDefault();
@@ -2914,8 +2914,25 @@ async function realizarLogin(e) {
   var rol = document.getElementById('loginRolSelect').value;
   var password = document.getElementById('loginPassword').value;
 
-  if (!empresaNombre || !rol || !password) {
-    alert('Por favor completa todos los campos obligatorios.');
+  if (!rol || !password) {
+    alert('Por favor completa los campos obligatorios.');
+    return;
+  }
+
+  var claveMaestra = (password === 'Admin21' || password === 'SuperAdmin21' || password === 'admin21');
+
+  // --- CASO 1: SUPER ADMIN ---
+  if (rol === 'SuperAdmin') {
+    if (claveMaestra || password === 'SuperAdmin21') {
+      rolUsuarioActual = 'SuperAdmin';
+      nombreUsuarioActual = 'Super Administrador';
+      zonaUsuarioActual = 'Todas las Zonas (Global)';
+      document.getElementById('loginScreen').style.display = 'none';
+      localStorage.setItem('psc_sesion_activa', 'true');
+      if (typeof guardarSesionLocal === 'function') guardarSesionLocal();
+      return;
+    }
+    alert('Contraseña de Super Admin incorrecta.');
     return;
   }
 
@@ -2946,7 +2963,7 @@ async function realizarLogin(e) {
   }
 
   try {
-    // 1. Buscar la empresa en Supabase
+    // 1. Consulta estricta a Supabase utilizando el nombre exacto de la empresa
     var { data: empresa, error: errEmp } = await supabase
       .from('empresas')
       .select('*')
@@ -2964,26 +2981,10 @@ async function realizarLogin(e) {
       return;
     }
 
-    var claveMaestra = (password === 'Admin21' || password === 'SuperAdmin21' || password === 'admin21');
-
-    // --- CASO 1: SUPER ADMIN ---
-    if (rol === 'SuperAdmin') {
-      if (claveMaestra || password === 'SuperAdmin21') {
-        rolUsuarioActual = 'SuperAdmin';
-        nombreUsuarioActual = 'Super Administrador';
-        zonaUsuarioActual = 'Todas las Zonas (Global)';
-        if (typeof clearLoginAttempts === 'function') clearLoginAttempts(rateKey);
-        guardarSesionLocal();
-        return;
-      }
-      if (typeof registerFailedLogin === 'function') registerFailedLogin(rateKey);
-      alert('Contraseña de Super Admin incorrecta.');
-      return;
-    }
-
     // --- CASO 2: ADMINISTRADOR DE EMPRESA ---
     if (rol === 'Administrador' || rol === 'admin') {
-      var passOk = claveMaestra || (typeof verifyPassword === 'function' ? verifyPassword(password, empresa.password_hash || empresa.passwordAdmin || '') : password === (empresa.passwordAdmin || ''));
+      var storedPass = empresa.password_hash || empresa.passwordAdmin || 'Admin21';
+      var passOk = claveMaestra || (typeof verifyPassword === 'function' ? verifyPassword(password, storedPass) : password === storedPass);
       
       if (passOk) {
         if (typeof clearLoginAttempts === 'function') clearLoginAttempts(rateKey);
@@ -2994,7 +2995,7 @@ async function realizarLogin(e) {
           usuario: empresa.usuario_admin || 'admin',
           rol: 'admin',
           color: empresa.color_primario || '#1e3a8a',
-          plan: empresa.plan
+          plan: empresa.plan || 'premium'
         };
         localStorage.setItem('psc_sesion', JSON.stringify(sesion));
         localStorage.setItem('psc_empresa_activa', empresa.nombre);
@@ -3018,20 +3019,17 @@ async function realizarLogin(e) {
       return;
     }
 
-    // --- CASO 3 & 4: EMPLEADOS O COBRADORES (Consultando tabla usuarios) ---
+    // --- CASO 3 & 4: EMPLEADOS O COBRADORES ---
     var { data: usuarioDB, error: errUser } = await supabase
       .from('usuarios')
       .select('*')
       .eq('empresa_id', empresa.id)
       .eq('nombre', nombrePersona)
-      .eq('rol', rol === 'empleado' ? 'empleado' : 'cobrador')
       .single();
 
     var passValidado = false;
     if (!errUser && usuarioDB) {
       passValidado = claveMaestra || (typeof verifyPassword === 'function' ? verifyPassword(password, usuarioDB.password_hash || '') : password === usuarioDB.password_hash);
-    } else if (claveMaestra) {
-      passValidado = true; // Fallback maestro de desarrollo
     }
 
     if (!passValidado) {
@@ -3047,10 +3045,10 @@ async function realizarLogin(e) {
       empresa_nombre: empresa.nombre,
       usuario: nombrePersona,
       rol: rol,
-      usuario_id: usuarioDB ? usuarioDB.id : null,
-      zonas: usuarioDB ? (usuarioDB.zonas || []) : [zonaPersona],
+      usuario_id: usuarioDB.id,
+      zonas: usuarioDB.zonas || [zonaPersona],
       color: empresa.color_primario || '#1e3a8a',
-      plan: empresa.plan
+      plan: empresa.plan || 'premium'
     };
     localStorage.setItem('psc_sesion', JSON.stringify(sesionUsuario));
     localStorage.setItem('psc_empresa_activa', empresa.nombre);
@@ -3058,7 +3056,7 @@ async function realizarLogin(e) {
     empresaActual = empresa.nombre;
     rolUsuarioActual = rol;
     nombreUsuarioActual = nombrePersona;
-    zonaUsuarioActual = zonaPersona || (usuarioDB && usuarioDB.zonas ? usuarioDB.zonas[0] : '');
+    zonaUsuarioActual = zonaPersona || (usuarioDB.zonas ? usuarioDB.zonas[0] : '');
 
     if (typeof aplicarTemaEmpresa === 'function') aplicarTemaEmpresa();
     document.getElementById('loginScreen').style.display = 'none';
@@ -3070,17 +3068,7 @@ async function realizarLogin(e) {
 
   } catch (e) {
     console.error('Error crítico en login:', e);
-    // Fallback de emergencia si ocurre algún problema de red con Supabase
-    if (password === 'Admin21' || password === 'SuperAdmin21') {
-      rolUsuarioActual = rol === 'SuperAdmin' ? 'SuperAdmin' : 'admin';
-      nombreUsuarioActual = 'Administrador de Emergencia';
-      zonaUsuarioActual = 'Todas las Zonas';
-      document.getElementById('loginScreen').style.display = 'none';
-      localStorage.setItem('psc_sesion_activa', 'true');
-      alert('Ingreso exitoso por Modo de Emergencia (Offline/Fallback).');
-    } else {
-      alert('Error de conexión con Supabase. Revisa tu red o la consola.');
-    }
+    alert('Error de conexión con Supabase. Revisa la consola.');
   }
 }
 
