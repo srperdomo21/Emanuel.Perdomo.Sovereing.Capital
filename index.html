@@ -1331,9 +1331,13 @@ function redondear(num) {
           </div>
 
           <div style="display:flex; gap:8px; margin-bottom:15px; flex-wrap:wrap;">
-            <button class="btn btn-success" style="flex:1;" onclick="mostrarFormularioCliente()">➕ Registrar Nuevo Cliente</button>
-            <button class="btn btn-secondary btn-sm" onclick="exportarExcelClientes()" style="background:var(--success);">📊 Exportar Excel</button>
-          </div>
+  <button class="btn btn-success" style="flex:1;" onclick="mostrarFormularioCliente()">➕ Registrar Nuevo Cliente</button>
+  <button class="btn btn-secondary btn-sm" onclick="exportarExcelClientes()" style="background:var(--success);">📊 Exportar Excel</button>
+  <!-- BOTÓN NUEVO DE IMPORTAR -->
+  <button class="btn btn-warning btn-sm" onclick="document.getElementById('inputCSVImportar').click()">📥 Importar CSV</button>
+  <input type="file" id="inputCSVImportar" accept=".csv" style="display:none;" onchange="importarClientesCSV(event)">
+</div>
+
 
           <!-- BOTONES DE FILTRO -->
           <div class="client-subtabs">
@@ -6657,6 +6661,106 @@ function toggleLoginPassword(e) {
     input.type = 'password';
     if (btn) { btn.textContent = '👁️'; btn.title = 'Ver contraseña'; }
   }
+}
+
+// ========== IMPORTAR CLIENTES DESDE CSV ==========
+function importarClientesCSV(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async function(e) {
+    const text = e.target.result;
+    const lines = text.split('\n');
+    let importados = 0;
+    
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+      
+      // Parseo básico de CSV (separado por comas y comillas)
+      const cols = line.match(/(".*?"|[^,]+)(?=\s*,|\s*$)/g) || [];
+      const clean = cols.map(c => c.replace(/^"|"$/g, '').trim());
+      
+      if (clean.length >= 6) {
+        const nuevoCliente = {
+          id: Date.now() + i, // ID único
+          nombre: clean[1],
+          apodo: clean[2],
+          cedula: clean[3],
+          telefono: clean[4],
+          zona: clean[5] || 'Zona Principal',
+          direccion: clean[6] || 'N/A',
+          estado: 'Activo'
+        };
+        
+        // Insertar en Supabase
+        if (typeof supabase !== 'undefined' && empresaIdActual) {
+          await supabase.from('clientes').insert([{
+            empresa_id: empresaIdActual,
+            nombre: nuevoCliente.nombre,
+            apodo: nuevoCliente.apodo,
+            cedula: nuevoCliente.cedula,
+            telefono: nuevoCliente.telefono,
+            zona: nuevoCliente.zona,
+            direccion: nuevoCliente.direccion,
+            estado: 'Activo'
+          }]);
+        }
+        importados++;
+      }
+    }
+    alert(`✅ Se importaron ${importados} clientes exitosamente.`);
+    if (typeof sincronizarConNube === 'function') sincronizarConNube();
+  };
+  reader.readAsText(file);
+}
+
+// ========== IMPORTAR CLIENTES DESDE CSV ==========
+function importarClientesCSV(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  
+  if (!confirm("¿Estás seguro de importar este archivo CSV? Se agregarán a los clientes actuales.")) {
+    event.target.value = ''; // Limpiar el input
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = async function(e) {
+    const text = e.target.result;
+    const lines = text.split('\n');
+    let importados = 0;
+    
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+      
+      // Parseo de CSV (separado por comas y comillas)
+      const cols = line.match(/(".*?"|[^,]+)(?=\s*,|\s*$)/g) || [];
+      const clean = cols.map(c => c.replace(/^"|"$/g, '').trim());
+      
+      if (clean.length >= 5) {
+        // Insertar en Supabase
+        if (typeof supabase !== 'undefined' && empresaIdActual) {
+          await supabase.from('clientes').insert([{
+            empresa_id: empresaIdActual,
+            nombre: clean[1],
+            apodo: clean[2],
+            cedula: clean[3],
+            telefono: clean[4],
+            zona: clean[5] || 'Zona Principal',
+            direccion: clean[6] || 'N/A',
+            estado: 'Activo'
+          }]);
+        }
+        importados++;
+      }
+    }
+    alert(`✅ Se importaron ${importados} clientes exitosamente.`);
+    if (typeof sincronizarConNube === 'function') sincronizarConNube();
+    event.target.value = ''; // Limpiar el input para permitir subir otro
+  };
+  reader.readAsText(file);
 }
 
 
