@@ -1,4 +1,3 @@
-
 <html lang="es">
 <head>
   <meta charset="UTF-8">
@@ -2903,7 +2902,7 @@ actualizarSelectsLoginEmpresa();
 
 
 
-   // ========== LOGIN REAL CONTRA SUPABASE (ESTRICTO Y SEGURO) ==========
+  // ========== LOGIN REAL CONTRA SUPABASE (ESTRICTO Y SEGURO) ==========
 async function realizarLogin(e) {
   if (e) {
     e.preventDefault();
@@ -2921,7 +2920,7 @@ async function realizarLogin(e) {
 
   var claveMaestra = (password === 'Admin21' || password === 'SuperAdmin21' || password === 'admin21');
 
-  // --- CASO 1: SUPER ADMIN ---
+  // --- CASO 1: SUPER ADMIN (Se evalúa primero, sin tocar la base de datos de empresas) ---
   if (rol === 'SuperAdmin') {
     if (claveMaestra || password === 'SuperAdmin21') {
       rolUsuarioActual = 'SuperAdmin';
@@ -2936,7 +2935,7 @@ async function realizarLogin(e) {
     return;
   }
 
-  // Obtener nombre y zona si aplica según el rol
+  // Obtener nombre y zona si aplica según el rol (para Administrador, Cobrador o Empleado)
   var nombrePersona = '';
   var zonaPersona = '';
   if (rol === 'cobrador' || rol === 'empleado') {
@@ -2963,7 +2962,7 @@ async function realizarLogin(e) {
   }
 
   try {
-    // 1. Consulta estricta a Supabase utilizando el nombre exacto de la empresa
+    // 2. Consulta estricta a Supabase utilizando el nombre exacto de la empresa para los demás roles
     var { data: empresa, error: errEmp } = await supabase
       .from('empresas')
       .select('*')
