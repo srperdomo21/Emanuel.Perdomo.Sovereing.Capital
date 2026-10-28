@@ -796,6 +796,9 @@ function redondear(num) {
     <div class="sidebar-content">
 <button class="sidebar-btn" onclick="showTabFromMenu('reportes')">📊 Reportes y Gráficos</button>
       <button class="sidebar-btn solo-super-admin" onclick="showTabFromMenu('crearEmpresaTab')" style="background:#eff6ff; color:var(--primary); font-weight:700; display:none;">🏢 Crear Nuevas Empresas</button>
+      
+    <button class="sidebar-btn solo-admin-emp" onclick="showTabFromMenu('businessIntelligenceTab')" style="background:#eff6ff; color:var(--primary); font-weight:700;">🧠 Inteligencia de Negocios (BI)</button>  
+      
       <button class="sidebar-btn solo-super-admin" onclick="showTabFromMenu('superAdminTab')" style="background:#eff6ff; color:var(--primary); display:none;">🏢 Actualizar y Crear Empresa</button>
       <button class="sidebar-btn solo-admin-emp" onclick="showTabFromMenu('zonasTab')">MAPA Gestión de Zonas</button>
       <button class="sidebar-btn solo-admin-emp" onclick="showTabFromMenu('empleadosTab')">👥 Empleados</button>
@@ -3489,6 +3492,11 @@ async function realizarLogin(e) {
         renderCobrosHoyYSemana();
       }
       // Guardar la pestaña actual para que al recargar se quede aquí
+      
+      if (tabId === 'businessIntelligenceTab') renderBusinessIntelligence();
+      
+      
+      
       try { localStorage.setItem('psc_ultima_pestana', tabId); } catch(e){}
     }
 
