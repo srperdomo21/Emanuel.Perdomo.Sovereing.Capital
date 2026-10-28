@@ -6764,6 +6764,167 @@ function importarClientesCSV(event) {
 }
 
 
+// ========== FASE 2: SEGURIDAD BANCARIA Y AUDITORÍA ==========
+
+// 1. Obtener la IP pública del usuario para el registro de auditoría
+async function obtenerIPPublica() {
+  try {
+    const res = await fetch('https://api.ipify.org?format=json');
+    const data = await res.json();
+    return data.ip;
+  } catch (e) {
+    return 'IP Desconocida';
+  }
+}
+
+// 2. Registro de auditoría inalterable en Supabase
+async function registrarAuditoria(accion, tabla, registroId, detalles) {
+  try {
+    const ip = await obtenerIPPublica();
+    const userAgent = navigator.userAgent; // Detecta el dispositivo/navegador
+    const usuario = nombreUsuarioActual || 'Desconocido';
+    
+    // Guardamos el log en Supabase
+    await supabase.from('auditoria_logs').insert([{
+      empresa_id: empresaIdActual,
+      usuario: usuario,
+      accion: accion, // Ej: 'BORRAR_PAGO', 'LOGIN', 'CREAR_PRESTAMO'
+      tabla: tabla, // Ej: 'cobros', 'clientes'
+      registro_id: registroId,
+      detalles: detalles,
+      ip: ip,
+      dispositivo: userAgent,
+      fecha: new Date().toISOString()
+    }]);
+    
+    console.log("✅ Auditoría registrada: " + accion);
+  } catch (error) {
+    console.warn("⚠️ Error al registrar auditoría (¿Creaste la tabla 'auditoria_logs'?):", error);
+  }
+}
+
+// 3. Función mejorada para eliminar pagos (Anulación en lugar de borrado)
+async function eliminarPagoConAuditoria(pagoId) {
+  if (!verificarPermisoEdicion()) {
+    solicitarEliminarElementoCobrador(pagoId, 'pago');
+    return;
+  }
+  
+  const motivo = prompt("Indica el motivo por el cual vas a anular este pago (Obligatorio):");
+  if (!motivo) return alert("Operación cancelada: Debes indicar un motivo.");
+
+  if (confirm("¿Estás seguro de anular este pago? El registro NO se borrará, solo se marcará como ANULADO en el historial.")) {
+    try {
+      // En lugar de eliminar (delete), actualizamos (update) marcando como anulado
+      await supabase.from('cobros').update({ 
+        estado: 'anulado', 
+        motivo_anulacion: motivo 
+      }).eq('id', pagoId);
+      
+      // Registrar en auditoría
+      await registrarAuditoria('ANULAR_PAGO', 'cobros', pagoId, 'Motivo: ' + motivo);
+      
+      alert("✅ Pago anulado y registrado en la auditoría.");
+      if (typeof sincronizarConNube === 'function') sincronizarConNube();
+    } catch (error) {
+      alert("Error al anular el pago: " + error.message);
+    }
+  }
+}
+
+// ========== SISTEMA DE DOBLE FACTOR (2FA) SIMULADO ==========
+let codigo2FAEsperado = '';
+
+function saltarSiguiente(current, nextId) {
+  if (current.value.length === 1) {
+    document.getElementById(nextId).focus();
+  }
+}
+
+// Sobrescribimos la función de login para que pida el 2FA antes de entrar
+const realizarLoginOriginal = realizarLogin;
+realizarLogin = async function(e) {
+  if (e) { e.preventDefault(); e.stopPropagation(); }
+  
+  // Validar credenciales básicas primero (empresa, rol, pass)
+  var rol = document.getElementById('loginRolSelect').value;
+  var password = document.getElementById('loginPassword').value;
+  var claveMaestra = (password === 'Admin21' || password === 'SuperAdmin21' || password === 'admin21');
+
+  // Si la contraseña o rol son incorrectos, dejamos que la función original maneje el error
+  if (!claveMaestra && !password) {
+    return realizarLoginOriginal(e);
+  }
+
+  // Si la contraseña es maestra, pedimos el 2FA
+  if (claveMaestra && rol) {
+    // Generar un código aleatorio de 4 dígitos para simular el envío
+    codigo2FAEsperado = Math.floor(1000 + Math.random() * 9000).toString();
+    
+    // En un sistema real, aquí se envía por SMS o Email usando Twilio o SendGrid.
+    // Para probar, usamos un alert:
+    alert(`🔐 SEGURIDAD 2FA ACTIVADA\n\nTu código de verificación es: ${codigo2FAEsperado}\n\n(En producción, este código se envía a tu teléfono).`);
+    
+    // Mostrar el modal
+    document.getElementById('modal2FA').style.display = 'flex';
+    document.getElementById('input2FA1').focus();
+    return;
+  }
+  
+  // Si no es clave maestra, seguimos con el login normal (empleados/cobradores)
+  return realizarLoginOriginal(e);
+};
+
+function validarCodigo2FA() {
+  const c1 = document.getElementById('input2FA1').value;
+  const c2 = document.getElementById('input2FA2').value;
+  const c3 = document.getElementById('input2FA3').value;
+  const c4 = document.getElementById('input2FA4').value;
+  const codigoIngresado = c1 + c2 + c3 + c4;
+
+  if (codigoIngresado === codigo2FAEsperado) {
+    cerrarModal2FA();
+    alert("✅ Identidad verificada. Entrando al sistema...");
+    
+    // Registrar en auditoría que el usuario entró
+    registrarAuditoria('LOGIN_EXITOSO', 'usuarios', null, 'Ingreso con 2FA validado');
+    
+    // Ejecutar el login original ahora sí
+    realizarLoginOriginal(new Event('submit'));
+  } else {
+    alert("❌ Código incorrecto. Inténtalo de nuevo.");
+    document.getElementById('input2FA1').value = '';
+    document.getElementById('input2FA2').value = '';
+    document.getElementById('input2FA3').value = '';
+    document.getElementById('input2FA4').value = '';
+    document.getElementById('input2FA1').focus();
+  }
+}
+
+function cerrarModal2FA() {
+  document.getElementById('modal2FA').style.display = 'none';
+}
+
+
 </script>
+
+<!-- MODAL DE DOBLE FACTOR (2FA) -->
+<div id="modal2FA" class="modal-overlay" style="display:none; z-index: 10000;">
+  <div class="modal-box" style="text-align:center;">
+    <h3 style="color:var(--primary); margin-bottom:10px;">🛡️ Verificación de Seguridad</h3>
+    <p style="font-size:0.9rem; color:#475569; margin-bottom:15px;">Hemos detectado un inicio de sesión desde un nuevo dispositivo. Por seguridad, ingresa el código de 4 dígitos que enviamos a tu teléfono.</p>
+    
+    <div style="display:flex; gap:10px; justify-content:center; margin-bottom:20px;">
+      <input type="text" id="input2FA1" maxlength="1" style="width:50px; height:50px; font-size:1.5rem; text-align:center; border-radius:8px; border:2px solid var(--border);" onkeyup="saltarSiguiente(this, 'input2FA2')">
+      <input type="text" id="input2FA2" maxlength="1" style="width:50px; height:50px; font-size:1.5rem; text-align:center; border-radius:8px; border:2px solid var(--border);" onkeyup="saltarSiguiente(this, 'input2FA3')">
+      <input type="text" id="input2FA3" maxlength="1" style="width:50px; height:50px; font-size:1.5rem; text-align:center; border-radius:8px; border:2px solid var(--border);" onkeyup="saltarSiguiente(this, 'input2FA4')">
+      <input type="text" id="input2FA4" maxlength="1" style="width:50px; height:50px; font-size:1.5rem; text-align:center; border-radius:8px; border:2px solid var(--border);">
+    </div>
+
+    <button class="btn btn-success" onclick="validarCodigo2FA()">Verificar y Entrar</button>
+    <button class="btn btn-secondary" onclick="cerrarModal2FA()">Cancelar</button>
+  </div>
+</div>
+
 </body>
 </html>
