@@ -84,10 +84,10 @@ async function realizarCierreCaja() {
 <script>
   // ========== CONFIG (en producción mueve estas claves a Edge Functions / env) ==========
   var SUPABASE_URL = 'https://vzzfslsosmbgmlyvzyis.supabase.co';
-  var SUPABASE_ANON_KEY = 'sb_publishable_2CFYvUocRvSErAAmRfDSMw_NbI_Gejt';
-  var supabase = (window.supabase && window.supabase.createClient)
-    ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-    : null;
+var SUPABASE_ANON_KEY = 'sb_publishable__tBf4S2mIqfMXluRwkyNHg_pIXWarbJ';
+var supabase = (window.supabase && window.supabase.createClient)
+  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  : null;
 
   // ========== SEGURIDAD: Hash de contraseñas + anti fuerza bruta ==========
   var BCRYPT_ROUNDS = 10;
