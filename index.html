@@ -2265,7 +2265,7 @@ async function sincronizarConNube() {
       console.warn('No se encontró empresa activa en nube; se usa modo local.');
       return;
     }
-
+    
     // 2. Cargar todos los datos de esa empresa
     const [
       { data: clientes },
@@ -2294,7 +2294,6 @@ async function sincronizarConNube() {
     ]);
 
     // ✅ CAMBIO CLAVE: solo sobrescribe si Supabase trae datos.
-    //    Así los cobradores/empleados creados en local NO se borran.
     if (clientes && clientes.length > 0) clientesDB = clientes;
     if (prestamos && prestamos.length > 0) prestamosDB = prestamos;
     if (cobros && cobros.length > 0) cobrosDB = cobros;
@@ -2321,82 +2320,17 @@ async function sincronizarConNube() {
 
   } catch (error) {
     console.error('Error cargando datos:', error);
-    // ⚠️ No mostramos alert para no molestar en cada sincronización fallida
   }
 }
 
+ 
 
 
 
 
 
 
-    // Buscar el id de la empresa actual
-    const empActual = empresasGlobalesDB.find(e => e.nombre === empresaActual);
-    empresaIdActual = empActual ? empActual.id : null;
-
-    if (!empresaIdActual) {
-      console.warn('No se encontró empresa activa en nube; se usa modo local.');
-      return;
-    }
-
-    // 2. Cargar todos los datos de esa empresa
-    const [
-      { data: clientes },
-      { data: prestamos },
-      { data: cobros },
-      { data: gastos },
-      { data: rutas },
-      { data: empleados },
-      { data: cobradores },
-      { data: notas },
-      { data: notificaciones },
-      { data: control },
-      { data: inversionistas }
-    ] = await Promise.all([
-      supabase.from('clientes').select('*').eq('empresa_id', empresaIdActual),
-      supabase.from('prestamos').select('*').eq('empresa_id', empresaIdActual),
-      supabase.from('cobros').select('*').eq('empresa_id', empresaIdActual),
-      supabase.from('gastos').select('*').eq('empresa_id', empresaIdActual),
-      supabase.from('rutas').select('*').eq('empresa_id', empresaIdActual),
-      supabase.from('empleados').select('*').eq('empresa_id', empresaIdActual),
-      supabase.from('cobradores').select('*').eq('empresa_id', empresaIdActual),
-      supabase.from('notas').select('*').eq('empresa_id', empresaIdActual),
-      supabase.from('notificaciones').select('*').eq('empresa_id', empresaIdActual),
-      supabase.from('control_dia').select('*').eq('empresa_id', empresaIdActual).limit(1),
-      supabase.from('inversionistas').select('*').eq('empresa_id', empresaIdActual)
-    ]);
-
-    clientesDB = clientes || [];
-    prestamosDB = prestamos || [];
-    cobrosDB = cobros || [];
-    gastosDB = gastos || [];
-    rutasDB = rutas || [];
-    empleadosDB = empleados || [];
-    cobradoresDB = cobradores || [];
-    notasDB = notas || [];
-    notificacionesDB = notificaciones || [];
-    inversionistasDB = inversionistas || [];
-
-    if (control && control.length > 0) {
-      controlDiaDB = control[0];
-    }
-
-    console.log('✅ Datos cargados desde Supabase');
-
-    if (typeof renderClientes === 'function') renderClientes();
-    if (typeof actualizarMetricas === 'function') actualizarMetricas();
-    if (typeof renderListadoGeneral === 'function') renderListadoGeneral();
-    if (typeof renderNotificacionesAdmin === 'function') renderNotificacionesAdmin();
-    if (typeof renderEmpresasAisladasList === 'function') renderEmpresasAisladasList();
-    if (typeof actualizarSelectsLoginEmpresa === 'function') actualizarSelectsLoginEmpresa();
-
-  } catch (error) {
-    console.error('Error cargando datos:', error);
-    alert('Error al cargar datos desde Supabase: ' + error.message);
-  }
-}
-
+    
 
     empresaActual = localStorage.getItem('psc_empresa_activa') || 'Perdomo Sovereign Capital S.A.';
     // Cargar empresas desde localStorage si aún están vacías
@@ -3284,7 +3218,6 @@ async function realizarLogin(e) {
 
   var claveMaestra = (password === 'Admin21' || password === 'SuperAdmin21' || password === 'admin21');
 
-  // --- CASO 1: SUPER ADMIN (Se evalúa primero, sin tocar la base de datos de empresas) ---
   if (rol === 'SuperAdmin') {
     if (claveMaestra || password === 'SuperAdmin21') {
       rolUsuarioActual = 'SuperAdmin';
@@ -3299,7 +3232,6 @@ async function realizarLogin(e) {
     return;
   }
 
-  // Obtener nombre y zona si aplica según el rol (para Administrador, Cobrador o Empleado)
   var nombrePersona = '';
   var zonaPersona = '';
   if (rol === 'cobrador' || rol === 'empleado') {
@@ -3326,7 +3258,6 @@ async function realizarLogin(e) {
   }
 
   try {
-    // 2. Consulta estricta a Supabase utilizando el nombre exacto de la empresa para los demás roles
     var { data: empresa, error: errEmp } = await supabase
       .from('empresas')
       .select('*')
@@ -3344,29 +3275,12 @@ async function realizarLogin(e) {
       return;
     }
 
-    // --- CASO 2: ADMINISTRADOR DE EMPRESA ---
     if (rol === 'Administrador' || rol === 'admin') {
       var storedPass = empresa.password_hash || empresa.passwordAdmin || 'Admin21';
       var passOk = claveMaestra || (typeof verifyPassword === 'function' ? verifyPassword(password, storedPass) : password === storedPass);
       
       if (passOk) {
         if (typeof clearLoginAttempts === 'function') clearLoginAttempts(rateKey);
-
-// 🔥 INTERCEPTOR 2FA PARA COBRADORES
-if (rol === 'cobrador') {
-  loginPendiente2FA = { empresa: empresa, rol: rol, nombre: nombrePersona, zona: zonaPersona || (usuarioDB.zonas ? usuarioDB.zonas[0] : '') };
-  
-  document.getElementById('lbl2FACobrador').innerText = nombrePersona;
-  document.getElementById('lbl2FAZona').innerText = loginPendiente2FA.zona;
-  
-  await solicitarCodigoJornada(nombrePersona, loginPendiente2FA.zona);
-  
-  document.getElementById('loginScreen').style.display = 'none';
-  document.getElementById('modal2FAJornada').style.display = 'flex';
-  document.getElementById('input2FAJornada').focus();
-  
-  return; // 🛑 Detiene el login aquí
-}
 
         var sesion = {
           empresa_id: empresa.id,
@@ -3378,6 +3292,7 @@ if (rol === 'cobrador') {
         };
         localStorage.setItem('psc_sesion', JSON.stringify(sesion));
         localStorage.setItem('psc_empresa_activa', empresa.nombre);
+        localStorage.setItem('psc_sesion_activa', 'true'); // FIX: Evita que pida login al recargar
 
         empresaActual = empresa.nombre;
         rolUsuarioActual = 'admin';
@@ -3399,36 +3314,35 @@ if (rol === 'cobrador') {
     }
 
     // --- CASO 3 & 4: EMPLEADOS O COBRADORES ---
-var usuarioDB = null;
-var errUser = null;
+    var usuarioDB = null;
+    var errUser = null;
 
-try {
-  var resp = await supabase
-    .from('usuarios')
-    .select('*')
-    .eq('empresa_id', empresa.id)
-    .eq('nombre', nombrePersona)
-    .single();
-  usuarioDB = resp.data;
-  errUser = resp.error;
-} catch(e) {
-  errUser = e;
-}
+    try {
+      var resp = await supabase
+        .from('usuarios')
+        .select('*')
+        .eq('empresa_id', empresa.id)
+        .eq('nombre', nombrePersona)
+        .single();
+      usuarioDB = resp.data;
+      errUser = resp.error;
+    } catch(e) {
+      errUser = e;
+    }
 
-// 🔁 Si no está en Supabase, buscar en los cobradores guardados en local
-if (!usuarioDB) {
-  if (rol === 'cobrador') {
-    var cobLocal = cobradoresDB.find(function(c) { return c.nombre === nombrePersona; });
-    if (cobLocal) {
-      usuarioDB = { id: cobLocal.id, nombre: cobLocal.nombre, password_hash: cobLocal.password, zonas: cobLocal.zonas || [zonaPersona] };
+    if (!usuarioDB) {
+      if (rol === 'cobrador') {
+        var cobLocal = cobradoresDB.find(function(c) { return c.nombre === nombrePersona; });
+        if (cobLocal) {
+          usuarioDB = { id: cobLocal.id, nombre: cobLocal.nombre, password_hash: cobLocal.password, zonas: cobLocal.zonas || [zonaPersona] };
+        }
+      } else if (rol === 'empleado') {
+        var empLocal = empleadosDB.find(function(e) { return e.nombre === nombrePersona; });
+        if (empLocal) {
+          usuarioDB = { id: empLocal.id, nombre: empLocal.nombre, password_hash: empLocal.password, zonas: [] };
+        }
+      }
     }
-  } else if (rol === 'empleado') {
-    var empLocal = empleadosDB.find(function(e) { return e.nombre === nombrePersona; });
-    if (empLocal) {
-      usuarioDB = { id: empLocal.id, nombre: empLocal.nombre, password_hash: empLocal.password, zonas: [] };
-    }
-  }
-}
 
     var passValidado = false;
     if (!errUser && usuarioDB) {
@@ -3443,6 +3357,17 @@ if (!usuarioDB) {
 
     if (typeof clearLoginAttempts === 'function') clearLoginAttempts(rateKey);
 
+    if (rol === 'cobrador') {
+      loginPendiente2FA = { empresa: empresa, rol: rol, nombre: nombrePersona, zona: zonaPersona || '' };
+      document.getElementById('lbl2FACobrador').innerText = nombrePersona;
+      document.getElementById('lbl2FAZona').innerText = loginPendiente2FA.zona;
+      await solicitarCodigoJornada(nombrePersona, loginPendiente2FA.zona);
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('modal2FAJornada').style.display = 'flex';
+      document.getElementById('input2FAJornada').focus();
+      return;
+    }
+
     var sesionUsuario = {
       empresa_id: empresa.id,
       empresa_nombre: empresa.nombre,
@@ -3455,6 +3380,7 @@ if (!usuarioDB) {
     };
     localStorage.setItem('psc_sesion', JSON.stringify(sesionUsuario));
     localStorage.setItem('psc_empresa_activa', empresa.nombre);
+    localStorage.setItem('psc_sesion_activa', 'true'); // FIX: Evita que pida login al recargar
 
     empresaActual = empresa.nombre;
     rolUsuarioActual = rol;
@@ -3474,6 +3400,7 @@ if (!usuarioDB) {
     alert('Error de conexión con Supabase. Revisa la consola.');
   }
 }
+
 
     function guardarSesionLocal() {
       try {
