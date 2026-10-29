@@ -7101,5 +7101,46 @@ function cancelar2FAJornada() {
 </div>
 
 
+<script>
+// Función limpia para abrir la ventana (sin consultar a Supabase todavía)
+function abrirModal2FAConfig() {
+  var modal = document.getElementById('modal2FAConfig');
+  if(modal) {
+    modal.style.display = 'flex';
+  } else {
+    alert("Error crítico: No se encontró la ventana modal en el código.");
+  }
+}
+
+// Función para guardar (esta sí se conecta a Supabase)
+async function guardarConfig2FA(e) {
+  e.preventDefault();
+  const num = document.getElementById('cfg2faWhatsApp').value.replace(/\D/g, '');
+  
+  if (!window.supabase || !empresaIdActual) {
+    return alert('Sin conexión a Supabase. Revisa tu conexión.');
+  }
+
+  const payload = {
+    empresa_id: empresaIdActual,
+    whatsapp_oficina: num,
+    notificar_whatsapp: document.getElementById('cfg2faNotifWhatsApp').checked,
+    notificar_tablero: document.getElementById('cfg2faNotifTablero').checked,
+    updated_at: new Date().toISOString()
+  };
+
+  try {
+    const { error } = await supabase.from('config_2fa_empresa').upsert([payload], { onConflict: 'empresa_id' });
+    if (error) throw error;
+    
+    alert('✅ Configuración guardada. Los códigos se enviarán al: ' + num);
+    document.getElementById('modal2FAConfig').style.display = 'none';
+  } catch (error) {
+    alert('Error guardando en la base de datos: ' + error.message + '\n\n¿Ejecutaste el SQL para crear la tabla config_2fa_empresa?');
+  }
+}
+</script>
+
+  
 </body>
 </html>
