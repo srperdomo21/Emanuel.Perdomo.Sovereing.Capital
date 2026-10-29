@@ -2917,7 +2917,292 @@ function sincronizarConFirebase() {
   }
 }
          
+       // ... función anterior (eliminarInversionista) ...
 
+// AQUÍ PEGAS LA NUEVA FUNCIÓN:
+async function guardarCobradorCalle(e) {
+  e.preventDefault();
+  var nombre = document.getElementById('cobNombre').value.trim();
+  var password = document.getElementById('cobPassword').value.trim();
+  var checkboxes = document.querySelectorAll('input[name="chkZonas"]:checked');
+  var zonasSeleccionadas = [];
+  checkboxes.forEach(function(ch) { zonasSeleccionadas.push(ch.value); });
+
+  var limite = obtenerLimiteCobradoresEmpresaActual();
+  if (limite < 9999 && cobradoresDB.length >= limite) {
+    alert("⚠️ Límite de cobradores alcanzado (" + limite + ").");
+    return;
+  }
+
+  var nuevoCob = {
+    id: Date.now(),
+    nombre: nombre,
+    password: hashPassword(password),
+    zonas: zonasSeleccionadas
+  };
+
+  // 1. GUARDAR EN LOCAL PRIMERO (Para que aparezca en la pantalla inmediatamente)
+  cobradoresDB.push(nuevoCob);
+  guardarDatosEnNube();
+  
+  document.getElementById('cobNombre').value = '';
+  document.getElementById('cobPassword').value = '';
+  
+  // 2. ACTUALIZAR LA PANTALLA
+  renderCobradoresAdmin();
+  renderEmpleadosAdmin();
+  cargarFiltroZonasClientes();
+
+  // 3. INTENTAR GUARDAR EN SUPABASE (En segundo plano)
+  if (supabase && empresaIdActual) {
+    try {
+      const { error } = await supabase.from('cobradores').insert([{
+        empresa_id: empresaIdActual,
+        nombre: nombre,
+        password_hash: nuevoCob.password,
+        zonas: zonasSeleccionadas
+      }]);
+
+      if (error) {
+        console.error("Error de Supabase:", error);
+        alert("✅ Cobrador guardado en el teléfono.\n\n⚠️ NOTA: No se pudo guardar en la nube (Supabase). Asegúrate de haber creado la tabla 'cobradores'.");
+      } else {
+        alert("✅ Cobrador registrado con éxito (Local y Nube).");
+      }
+    } catch(err) {
+      console.warn('Error de red con Supabase:', err);
+      alert("✅ Cobrador guardado en el teléfono (Modo Offline).");
+    }
+  } else {
+    alert("✅ Cobrador registrado localmente.");
+  }
+}
+
+     function renderCobradoresAdmin() {
+  var cont = document.getElementById('listaCobradoresDiv');
+  var checkContainer = document.getElementById('checkZonasAsignadas');
+  if(checkContainer) {
+    checkContainer.innerHTML = zonasDB.map(function(z) {
+      var numText = z.numero ? '#' + z.numero + ' - ' : '';
+      return '<label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" name="chkZonas" value="' + z.nombre + '"> ' + numText + z.nombre + ' (' + z.dia + ')</label>';
+    }).join('');
+  }
+
+  if(!cont) return;
+  if(cobradoresDB.length === 0) {
+    cont.innerHTML = '<p style="font-size:0.85rem; color:#475569;">No hay cobradores registrados.</p>';
+    return;
+  }
+  cont.innerHTML = cobradoresDB.map(function(c) {
+    return '<div style="background:#f8fafc; padding:10px; border-radius:6px; margin-top:6px; border:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; font-size:0.85rem;">' +
+      '<div><strong>🏍️ ' + c.nombre + '</strong><br><small style="color:var(--accent);">Zonas: ' + (c.zonas ? c.zonas.join(', ') : 'Ninguna') + '</small></div>' +
+      '<div style="display:flex; gap:6px;">' +
+        '<button class="btn btn-warning btn-sm" onclick="abrirModalEditarCobrador(' + c.id + ')">✏️</button>' +
+        '<button class="btn btn-danger btn-sm" onclick="eliminarCobrador(' + c.id + ')">🗑️</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function abrirModalEditarCobrador(id) {
+  var c = cobradoresDB.find(function(item) { return item.id === id; });
+  if (!c) return;
+  document.getElementById('editCobId').value = c.id;
+  document.getElementById('editCobNombre').value = c.nombre;
+  document.getElementById('editCobPassword').value = c.password;
+
+  var checkContainer = document.getElementById('checkEditZonasAsignadas');
+  checkContainer.innerHTML = zonasDB.map(function(z) {
+    var numText = z.numero ? '#' + z.numero + ' - ' : '';
+    var isChecked = c.zonas && c.zonas.includes(z.nombre) ? 'checked' : '';
+    return '<label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" name="chkEditZonas" value="' + z.nombre + '" ' + isChecked + '> ' + numText + z.nombre + '</label>';
+  }).join('');
+
+  document.getElementById('modalEditarCobradorBox').style.display = 'flex';
+}
+
+function cerrarModalEditarCobrador() {
+  document.getElementById('modalEditarCobradorBox').style.display = 'none';
+}
+
+function guardarEdicionCobradorForm(e) {
+  e.preventDefault();
+  var id = parseInt(document.getElementById('editCobId').value);
+  var c = cobradoresDB.find(function(item) { return item.id === id; });
+  if (c) {
+    c.nombre = document.getElementById('editCobNombre').value.trim();
+    var newCobPass = document.getElementById('editCobPassword').value.trim();
+    c.password = isPasswordHashed(newCobPass) ? newCobPass : hashPassword(newCobPass);
+    var checkboxes = document.querySelectorAll('input[name="chkEditZonas"]:checked');
+    var zonasSeleccionadas = [];
+    checkboxes.forEach(function(ch) { zonasSeleccionadas.push(ch.value); });
+    c.zonas = zonasSeleccionadas;
+
+    guardarDatosEnNube();
+    cerrarModalEditarCobrador();
+    alert("Cobrador actualizado con éxito.");
+    renderCobradoresAdmin();
+    renderEmpleadosAdmin();
+    cargarFiltroZonasClientes();
+  }
+}
+
+function eliminarCobrador(id) {
+  if(confirm("¿Estás seguro de eliminar este cobrador?")) {
+    cobradoresDB = cobradoresDB.filter(function(c) { return c.id !== id; });
+    guardarDatosEnNube();
+    renderCobradoresAdmin();
+    renderEmpleadosAdmin();
+    cargarFiltroZonasClientes();
+  }
+}
+
+// ========== FUNCIONES DE EMPLEADOS ==========
+function guardarEmpleadoOficina(e) {
+  e.preventDefault();
+  var nombre = document.getElementById('empNombre').value.trim();
+  var password = document.getElementById('empPassword').value.trim();
+  
+  var checkboxesCobs = document.querySelectorAll('input[name="chkCobs"]:checked');
+  var cobsSeleccionados = [];
+  checkboxesCobs.forEach(function(ch) { cobsSeleccionados.push(ch.value); });
+
+  var checkboxesRutas = document.querySelectorAll('input[name="chkRutasEmp"]:checked');
+  var rutasSeleccionadas = [];
+  checkboxesRutas.forEach(function(ch) { rutasSeleccionadas.push(ch.value); });
+
+  empleadosDB.push({
+    id: Date.now(),
+    nombre: nombre,
+    password: hashPassword(password),
+    cobradoresAsignados: cobsSeleccionados,
+    rutasAsignadas: rutasSeleccionadas
+  });
+
+  guardarDatosEnNube();
+  document.getElementById('empNombre').value = '';
+  document.getElementById('empPassword').value = '';
+  alert("Empleado registrado con exito.");
+  renderEmpleadosAdmin();
+  cargarFiltroZonasClientes();
+}
+
+function renderEmpleadosAdmin() {
+  var cont = document.getElementById('listaEmpleadosDiv');
+  var checkContainerCobs = document.getElementById('checkCobradoresAsignados');
+  var checkContainerRutas = document.getElementById('checkRutasAsignadasEmpleado');
+
+  if(checkContainerCobs) {
+    if(cobradoresDB.length === 0) {
+      checkContainerCobs.innerHTML = '<span style="color:#475569; font-size:0.8rem;">No hay cobradores registrados todavía.</span>';
+    } else {
+      checkContainerCobs.innerHTML = cobradoresDB.map(function(c) {
+        return '<label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" name="chkCobs" value="' + c.nombre + '"> ' + c.nombre + '</label>';
+      }).join('');
+    }
+  }
+
+  if(checkContainerRutas) {
+    if(zonasDB.length === 0) {
+      checkContainerRutas.innerHTML = '<span style="color:#475569; font-size:0.8rem;">No hay rutas registradas todavía.</span>';
+    } else {
+      checkContainerRutas.innerHTML = zonasDB.map(function(z) {
+        var numText = z.numero ? '#' + z.numero + ' - ' : '';
+        return '<label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" name="chkRutasEmp" value="' + z.nombre + '"> ' + numText + z.nombre + '</label>';
+      }).join('');
+    }
+  }
+
+  if(!cont) return;
+  if(empleadosDB.length === 0) {
+    cont.innerHTML = '<p style="font-size:0.85rem; color:#475569;">No hay empleados registrados.</p>';
+    return;
+  }
+  cont.innerHTML = empleadosDB.map(function(e) {
+    var infoCobs = e.cobradoresAsignados && e.cobradoresAsignados.length > 0 ? e.cobradoresAsignados.join(', ') : 'Ninguno';
+    var infoRutas = e.rutasAsignadas && e.rutasAsignadas.length > 0 ? e.rutasAsignadas.join(', ') : 'Ninguna';
+    return '<div style="background:#f8fafc; padding:10px; border-radius:6px; margin-top:6px; border:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; font-size:0.85rem;">' +
+      '<div><strong>👥 ' + e.nombre + '</strong> (Asistente RBAC)<br><small style="color:var(--success);">Cobradores: ' + infoCobs + '<br>Rutas: ' + infoRutas + '</small></div>' +
+      '<div style="display:flex; gap:6px;">' +
+        '<button class="btn btn-warning btn-sm" onclick="abrirModalEditarEmpleado(' + e.id + ')">✏️</button>' +
+        '<button class="btn btn-danger btn-sm" onclick="eliminarEmpleado(' + e.id + ')">🗑️</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function abrirModalEditarEmpleado(id) {
+  var e = empleadosDB.find(function(item) { return item.id === id; });
+  if (!e) return;
+  document.getElementById('editEmpId').value = e.id;
+  document.getElementById('editEmpNombre').value = e.nombre;
+  document.getElementById('editEmpPassword').value = e.password;
+
+  var checkContainerCobs = document.getElementById('checkEditCobradoresAsignados');
+  if (cobradoresDB.length === 0) {
+    checkContainerCobs.innerHTML = '<span style="color:#475569; font-size:0.8rem;">No hay cobradores registrados.</span>';
+  } else {
+    checkContainerCobs.innerHTML = cobradoresDB.map(function(c) {
+      var isChecked = e.cobradoresAsignados && e.cobradoresAsignados.includes(c.nombre) ? 'checked' : '';
+      return '<label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" name="chkEditCobs" value="' + c.nombre + '" ' + isChecked + '> ' + c.nombre + '</label>';
+    }).join('');
+  }
+
+  var checkContainerRutas = document.getElementById('checkEditRutasAsignadasEmpleado');
+  if (zonasDB.length === 0) {
+    checkContainerRutas.innerHTML = '<span style="color:#475569; font-size:0.8rem;">No hay rutas registradas.</span>';
+  } else {
+    checkContainerRutas.innerHTML = zonasDB.map(function(z) {
+      var numText = z.numero ? '#' + z.numero + ' - ' : '';
+      var isChecked = e.rutasAsignadas && e.rutasAsignadas.includes(z.nombre) ? 'checked' : '';
+      return '<label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" name="chkEditRutasEmp" value="' + z.nombre + '" ' + isChecked + '> ' + numText + z.nombre + '</label>';
+    }).join('');
+  }
+
+  document.getElementById('modalEditarEmpleadoBox').style.display = 'flex';
+}
+
+function cerrarModalEditarEmpleado() {
+  document.getElementById('modalEditarEmpleadoBox').style.display = 'none';
+}
+
+function guardarEdicionEmpleadoForm(e) {
+  e.preventDefault();
+  var id = parseInt(document.getElementById('editEmpId').value);
+  var emp = empleadosDB.find(function(item) { return item.id === id; });
+  if (emp) {
+    emp.nombre = document.getElementById('editEmpNombre').value.trim();
+    var newEmpPass = document.getElementById('editEmpPassword').value.trim();
+    emp.password = isPasswordHashed(newEmpPass) ? newEmpPass : hashPassword(newEmpPass);
+    
+    var checkboxesCobs = document.querySelectorAll('input[name="chkEditCobs"]:checked');
+    var cobsSeleccionados = [];
+    checkboxesCobs.forEach(function(ch) { cobsSeleccionados.push(ch.value); });
+    emp.cobradoresAsignados = cobsSeleccionados;
+
+    var checkboxesRutas = document.querySelectorAll('input[name="chkEditRutasEmp"]:checked');
+    var rutasSeleccionadas = [];
+    checkboxesRutas.forEach(function(ch) { rutasSeleccionadas.push(ch.value); });
+    emp.rutasAsignadas = rutasSeleccionadas;
+
+    guardarDatosEnNube();
+    cerrarModalEditarEmpleado();
+    alert("Empleado actualizado con éxito.");
+    renderEmpleadosAdmin();
+    cargarFiltroZonasClientes();
+  }
+}
+
+function eliminarEmpleado(id) {
+  if(confirm("¿Estás seguro de eliminar este empleado?")) {
+    empleadosDB = empleadosDB.filter(function(e) { return e.id !== id; });
+    guardarDatosEnNube();
+    renderEmpleadosAdmin();
+    cargarFiltroZonasClientes();
+  }
+}
+     
+            
     function refrescarTodaLaInterfaz() {
       verificarPermisoBloqueoRuta();
       actualizarMetricas();
