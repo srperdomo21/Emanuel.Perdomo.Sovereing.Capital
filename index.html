@@ -2400,26 +2400,16 @@ if (rolActualLogin) {
     logoEmpresaEditTemporal = "";
     </script>
     
-    <script>    
-window.addEventListener('DOMContentLoaded', function() 
-  
-  
+    <script>     
     
     window.addEventListener('DOMContentLoaded', function() {
-  // --- AGREGAR ESTAS LÍNEAS AQUÍ ---
-  // Esto arregla el problema del autocompletado del navegador al recargar
+  // --- LÍNEAS DEL ARREGLO DE SELECTORES ---
   var loginRolSelect = document.getElementById('loginRolSelect');
   if (loginRolSelect && loginRolSelect.value) {
     cambiarTipoLogin(loginRolSelect.value);
   }
-  // ---------------------------------
+  // ----------------------------------------
 
-  if (typeof iniciarGeolocalizacionSatelital === 'function') iniciarGeolocalizacionSatelital();
-  // ... resto de tu código ...
-   
-   
- 
-    {
   if (typeof iniciarGeolocalizacionSatelital === 'function') iniciarGeolocalizacionSatelital();
   if (typeof corregirRegistrosExistentes === 'function') corregirRegistrosExistentes();
   if (typeof verificarEstadoSuscripcionEmpresa === 'function') verificarEstadoSuscripcionEmpresa();
@@ -2435,7 +2425,6 @@ window.addEventListener('DOMContentLoaded', function()
     document.getElementById('loginScreen').style.display = 'none';
     if (typeof actualizarInterfazPorRol === 'function') actualizarInterfazPorRol();
     if (typeof aplicarTemaEmpresa === 'function') aplicarTemaEmpresa();
-    // Restaurar la última pestaña donde estaba el usuario (no salta al Tablero)
     var ultimaPestana = localStorage.getItem('psc_ultima_pestana') || 'resumen';
     setTimeout(function() {
       if (typeof showTab === 'function') showTab(ultimaPestana, null);
@@ -3748,63 +3737,7 @@ async function realizarLogin(e) {
     
     
    
-    var passValidado = false;
-    if (!errUser && usuarioDB) {
-      passValidado = claveMaestra || (typeof verifyPassword === 'function' ? verifyPassword(password, usuarioDB.password_hash || '') : password === usuarioDB.password_hash);
-    }
-
-    if (!passValidado) {
-      if (typeof registerFailedLogin === 'function') registerFailedLogin(rateKey);
-      alert('Usuario o contraseña incorrectos.');
-      return;
-    }
-
-    if (typeof clearLoginAttempts === 'function') clearLoginAttempts(rateKey);
-
-    if (rol === 'cobrador') {
-      loginPendiente2FA = { empresa: empresa, rol: rol, nombre: nombrePersona, zona: zonaPersona || '' };
-      document.getElementById('lbl2FACobrador').innerText = nombrePersona;
-      document.getElementById('lbl2FAZona').innerText = loginPendiente2FA.zona;
-      await solicitarCodigoJornada(nombrePersona, loginPendiente2FA.zona);
-      document.getElementById('loginScreen').style.display = 'none';
-      document.getElementById('modal2FAJornada').style.display = 'flex';
-      document.getElementById('input2FAJornada').focus();
-      return;
-    }
-
-    var sesionUsuario = {
-      empresa_id: empresa.id,
-      empresa_nombre: empresa.nombre,
-      usuario: nombrePersona,
-      rol: rol,
-      usuario_id: usuarioDB.id,
-      zonas: usuarioDB.zonas || [zonaPersona],
-      color: empresa.color_primario || '#1e3a8a',
-      plan: empresa.plan || 'premium'
-    };
-    localStorage.setItem('psc_sesion', JSON.stringify(sesionUsuario));
-    localStorage.setItem('psc_empresa_activa', empresa.nombre);
-    localStorage.setItem('psc_sesion_activa', 'true'); // FIX: Evita que pida login al recargar
-
-    empresaActual = empresa.nombre;
-    rolUsuarioActual = rol;
-    nombreUsuarioActual = nombrePersona;
-    zonaUsuarioActual = zonaPersona || (usuarioDB.zonas ? usuarioDB.zonas[0] : '');
-
-    if (typeof aplicarTemaEmpresa === 'function') aplicarTemaEmpresa();
-    document.getElementById('loginScreen').style.display = 'none';
-    alert('¡Bienvenido ' + nombreUsuarioActual + ' (' + rol + ')!');
-
-    if (typeof sincronizarConNube === 'function') {
-      sincronizarConNube();
-    }
-
-  } catch (e) {
-    console.error('Error crítico en login:', e);
-    alert('Error de conexión con Supabase. Revisa la consola.');
-  }
-}
-
+    
 
     function guardarSesionLocal() {
       try {
@@ -7089,36 +7022,7 @@ function toggleLoginPassword(e) {
   }
 }
 
-// ========== IMPORTAR CLIENTES DESDE CSV ==========
-function importarClientesCSV(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = async function(e) {
-    const text = e.target.result;
-    const lines = text.split('\n');
-    let importados = 0;
-    
-    for (let i = 1; i < lines.length; i++) {
-      const line = lines[i].trim();
-      if (!line) continue;
-      
-      // Parseo básico de CSV (separado por comas y comillas)
-      const cols = line.match(/(".*?"|[^,]+)(?=\s*,|\s*$)/g) || [];
-      const clean = cols.map(c => c.replace(/^"|"$/g, '').trim());
-      
-      if (clean.length >= 6) {
-        const nuevoCliente = {
-          id: Date.now() + i, // ID único
-          nombre: clean[1],
-          apodo: clean[2],
-          cedula: clean[3],
-          telefono: clean[4],
-          zona: clean[5] || 'Zona Principal',
-          direccion: clean[6] || 'N/A',
-          estado: 'Activo'
-        };
-        
+     
         // Insertar en Supabase
         if (typeof supabase !== 'undefined' && empresaIdActual) {
           await supabase.from('clientes').insert([{
