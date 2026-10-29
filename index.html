@@ -2242,7 +2242,7 @@ async function sincronizarConNube() {
       .order('id');
 
     if (errEmp) throw errEmp;
-    // Solo sobrescribir si Supabase devolvió empresas reales (no vaciar el login)
+
     if (empresas && empresas.length > 0) {
       empresasGlobalesDB = empresas;
     } else if (!empresasGlobalesDB || empresasGlobalesDB.length === 0) {
@@ -2256,6 +2256,80 @@ async function sincronizarConNube() {
         ];
       }
     }
+
+    // Buscar el id de la empresa actual
+    const empActual = empresasGlobalesDB.find(e => e.nombre === empresaActual);
+    empresaIdActual = empActual ? empActual.id : null;
+
+    if (!empresaIdActual) {
+      console.warn('No se encontró empresa activa en nube; se usa modo local.');
+      return;
+    }
+
+    // 2. Cargar todos los datos de esa empresa
+    const [
+      { data: clientes },
+      { data: prestamos },
+      { data: cobros },
+      { data: gastos },
+      { data: rutas },
+      { data: empleados },
+      { data: cobradores },
+      { data: notas },
+      { data: notificaciones },
+      { data: control },
+      { data: inversionistas }
+    ] = await Promise.all([
+      supabase.from('clientes').select('*').eq('empresa_id', empresaIdActual),
+      supabase.from('prestamos').select('*').eq('empresa_id', empresaIdActual),
+      supabase.from('cobros').select('*').eq('empresa_id', empresaIdActual),
+      supabase.from('gastos').select('*').eq('empresa_id', empresaIdActual),
+      supabase.from('rutas').select('*').eq('empresa_id', empresaIdActual),
+      supabase.from('empleados').select('*').eq('empresa_id', empresaIdActual),
+      supabase.from('cobradores').select('*').eq('empresa_id', empresaIdActual),
+      supabase.from('notas').select('*').eq('empresa_id', empresaIdActual),
+      supabase.from('notificaciones').select('*').eq('empresa_id', empresaIdActual),
+      supabase.from('control_dia').select('*').eq('empresa_id', empresaIdActual).limit(1),
+      supabase.from('inversionistas').select('*').eq('empresa_id', empresaIdActual)
+    ]);
+
+    // ✅ CAMBIO CLAVE: solo sobrescribe si Supabase trae datos.
+    //    Así los cobradores/empleados creados en local NO se borran.
+    if (clientes && clientes.length > 0) clientesDB = clientes;
+    if (prestamos && prestamos.length > 0) prestamosDB = prestamos;
+    if (cobros && cobros.length > 0) cobrosDB = cobros;
+    if (gastos && gastos.length > 0) gastosDB = gastos;
+    if (rutas && rutas.length > 0) rutasDB = rutas;
+    if (empleados && empleados.length > 0) empleadosDB = empleados;
+    if (cobradores && cobradores.length > 0) cobradoresDB = cobradores;
+    if (notas && notas.length > 0) notasDB = notas;
+    if (notificaciones && notificaciones.length > 0) notificacionesDB = notificaciones;
+    if (inversionistas && inversionistas.length > 0) inversionistasDB = inversionistas;
+
+    if (control && control.length > 0) {
+      controlDiaDB = control[0];
+    }
+
+    console.log('✅ Datos sincronizados desde Supabase');
+
+    if (typeof renderClientes === 'function') renderClientes();
+    if (typeof actualizarMetricas === 'function') actualizarMetricas();
+    if (typeof renderListadoGeneral === 'function') renderListadoGeneral();
+    if (typeof renderNotificacionesAdmin === 'function') renderNotificacionesAdmin();
+    if (typeof renderEmpresasAisladasList === 'function') renderEmpresasAisladasList();
+    if (typeof actualizarSelectsLoginEmpresa === 'function') actualizarSelectsLoginEmpresa();
+
+  } catch (error) {
+    console.error('Error cargando datos:', error);
+    // ⚠️ No mostramos alert para no molestar en cada sincronización fallida
+  }
+}
+
+
+
+
+
+
 
     // Buscar el id de la empresa actual
     const empActual = empresasGlobalesDB.find(e => e.nombre === empresaActual);
@@ -2910,7 +2984,6 @@ function sincronizarConFirebase() {
 }
          
 
-
     function refrescarTodaLaInterfaz() {
       verificarPermisoBloqueoRuta();
       actualizarMetricas();
@@ -3326,12 +3399,36 @@ if (rol === 'cobrador') {
     }
 
     // --- CASO 3 & 4: EMPLEADOS O COBRADORES ---
-    var { data: usuarioDB, error: errUser } = await supabase
-      .from('usuarios')
-      .select('*')
-      .eq('empresa_id', empresa.id)
-      .eq('nombre', nombrePersona)
-      .single();
+var usuarioDB = null;
+var errUser = null;
+
+try {
+  var resp = await supabase
+    .from('usuarios')
+    .select('*')
+    .eq('empresa_id', empresa.id)
+    .eq('nombre', nombrePersona)
+    .single();
+  usuarioDB = resp.data;
+  errUser = resp.error;
+} catch(e) {
+  errUser = e;
+}
+
+// 🔁 Si no está en Supabase, buscar en los cobradores guardados en local
+if (!usuarioDB) {
+  if (rol === 'cobrador') {
+    var cobLocal = cobradoresDB.find(function(c) { return c.nombre === nombrePersona; });
+    if (cobLocal) {
+      usuarioDB = { id: cobLocal.id, nombre: cobLocal.nombre, password_hash: cobLocal.password, zonas: cobLocal.zonas || [zonaPersona] };
+    }
+  } else if (rol === 'empleado') {
+    var empLocal = empleadosDB.find(function(e) { return e.nombre === nombrePersona; });
+    if (empLocal) {
+      usuarioDB = { id: empLocal.id, nombre: empLocal.nombre, password_hash: empLocal.password, zonas: [] };
+    }
+  }
+}
 
     var passValidado = false;
     if (!errUser && usuarioDB) {
@@ -3908,27 +4005,52 @@ if (rol === 'cobrador') {
       renderInversionistas();
     }
 
-    function guardarCobradorCalle(e) {
-      e.preventDefault();
-      var nombre = document.getElementById('cobNombre').value.trim();
-      var password = document.getElementById('cobPassword').value.trim();
-      var checkboxes = document.querySelectorAll('input[name="chkZonas"]:checked');
-      var zonasSeleccionadas = [];
-      checkboxes.forEach(function(ch) { zonasSeleccionadas.push(ch.value); });
+    async function guardarCobradorCalle(e) {
+  e.preventDefault();
+  var nombre = document.getElementById('cobNombre').value.trim();
+  var password = document.getElementById('cobPassword').value.trim();
+  var checkboxes = document.querySelectorAll('input[name="chkZonas"]:checked');
+  var zonasSeleccionadas = [];
+  checkboxes.forEach(function(ch) { zonasSeleccionadas.push(ch.value); });
 
-      // Control de límite de cobradores según el plan de la empresa
-      var limite = obtenerLimiteCobradoresEmpresaActual();
-      if (limite < 9999 && cobradoresDB.length >= limite) {
-        alert("⚠️ Límite de cobradores alcanzado.\n\nTu plan permite máximo " + limite + " cobrador(es).\nActualmente tienes " + cobradoresDB.length + ".\n\nContacta al Super Admin para subir el límite o cambiar de plan.");
-        return;
-      }
+  var limite = obtenerLimiteCobradoresEmpresaActual();
+  if (limite < 9999 && cobradoresDB.length >= limite) {
+    alert("⚠️ Límite de cobradores alcanzado (" + limite + ").");
+    return;
+  }
 
-      cobradoresDB.push({
-        id: Date.now(),
+  var nuevoCob = {
+    id: Date.now(),
+    nombre: nombre,
+    password: hashPassword(password),
+    zonas: zonasSeleccionadas
+  };
+
+  // ✅ NUEVO: Guardar también en Supabase si está conectado
+  if (supabase && empresaIdActual) {
+    try {
+      await supabase.from('cobradores').insert([{
+        empresa_id: empresaIdActual,
         nombre: nombre,
-        password: hashPassword(password), // hasheada
+        password_hash: nuevoCob.password,
         zonas: zonasSeleccionadas
-      });
+      }]);
+    } catch(err) {
+      console.warn('No se guardó en Supabase (revisa si creaste la tabla "cobradores"):', err);
+    }
+  }
+
+  // Guardar en local (memoria y localStorage)
+  cobradoresDB.push(nuevoCob);
+  guardarDatosEnNube();
+
+  document.getElementById('cobNombre').value = '';
+  document.getElementById('cobPassword').value = '';
+  alert("✅ Cobrador registrado con éxito.");
+  renderCobradoresAdmin();
+  renderEmpleadosAdmin();
+  cargarFiltroZonasClientes();
+}
 
       guardarDatosEnNube();
       document.getElementById('cobNombre').value = '';
