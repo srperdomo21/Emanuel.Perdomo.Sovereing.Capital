@@ -4005,62 +4005,7 @@ if (!usuarioDB) {
       renderInversionistas();
     }
 
-    async function guardarCobradorCalle(e) {
-  e.preventDefault();
-  var nombre = document.getElementById('cobNombre').value.trim();
-  var password = document.getElementById('cobPassword').value.trim();
-  var checkboxes = document.querySelectorAll('input[name="chkZonas"]:checked');
-  var zonasSeleccionadas = [];
-  checkboxes.forEach(function(ch) { zonasSeleccionadas.push(ch.value); });
-
-  var limite = obtenerLimiteCobradoresEmpresaActual();
-  if (limite < 9999 && cobradoresDB.length >= limite) {
-    alert("⚠️ Límite de cobradores alcanzado (" + limite + ").");
-    return;
-  }
-
-  var nuevoCob = {
-    id: Date.now(),
-    nombre: nombre,
-    password: hashPassword(password),
-    zonas: zonasSeleccionadas
-  };
-
-  // ✅ NUEVO: Guardar también en Supabase si está conectado
-  if (supabase && empresaIdActual) {
-    try {
-      await supabase.from('cobradores').insert([{
-        empresa_id: empresaIdActual,
-        nombre: nombre,
-        password_hash: nuevoCob.password,
-        zonas: zonasSeleccionadas
-      }]);
-    } catch(err) {
-      console.warn('No se guardó en Supabase (revisa si creaste la tabla "cobradores"):', err);
-    }
-  }
-
-  // Guardar en local (memoria y localStorage)
-  cobradoresDB.push(nuevoCob);
-  guardarDatosEnNube();
-
-  document.getElementById('cobNombre').value = '';
-  document.getElementById('cobPassword').value = '';
-  alert("✅ Cobrador registrado con éxito.");
-  renderCobradoresAdmin();
-  renderEmpleadosAdmin();
-  cargarFiltroZonasClientes();
-}
-
-      guardarDatosEnNube();
-      document.getElementById('cobNombre').value = '';
-      document.getElementById('cobPassword').value = '';
-      alert("Cobrador registrado con éxito.");
-      renderCobradoresAdmin();
-      renderEmpleadosAdmin();
-      cargarFiltroZonasClientes();
-    }
-
+    
     function renderCobradoresAdmin() {
       var cont = document.getElementById('listaCobradoresDiv');
       var checkContainer = document.getElementById('checkZonasAsignadas');
