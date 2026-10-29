@@ -2318,12 +2318,32 @@ async function sincronizarConNube() {
     if (typeof renderEmpresasAisladasList === 'function') renderEmpresasAisladasList();
     if (typeof actualizarSelectsLoginEmpresa === 'function') actualizarSelectsLoginEmpresa();
 
+
+// --- PEGAR ESTAS LÍNEAS AQUÍ (PARTE 3) ---
+// Refresca los selectores del login una vez que los datos de la nube han llegado
+var rolActualLogin = document.getElementById('loginRolSelect') ? document.getElementById('loginRolSelect').value : '';
+if (rolActualLogin) {
+  cambiarTipoLogin(rolActualLogin);
+}
+// -----------------------------------------
+
+
+
+
+
   } catch (error) {
     console.error('Error cargando datos:', error);
   }
 }
 
  
+
+
+
+
+
+
+    
 
     empresaActual = localStorage.getItem('psc_empresa_activa') || 'Perdomo Sovereign Capital S.A.';
     // Cargar empresas desde localStorage si aún están vacías
@@ -2381,7 +2401,25 @@ async function sincronizarConNube() {
     </script>
     
     <script>    
-window.addEventListener('DOMContentLoaded', function() {
+window.addEventListener('DOMContentLoaded', function() 
+  
+  
+    
+    window.addEventListener('DOMContentLoaded', function() {
+  // --- AGREGAR ESTAS LÍNEAS AQUÍ ---
+  // Esto arregla el problema del autocompletado del navegador al recargar
+  var loginRolSelect = document.getElementById('loginRolSelect');
+  if (loginRolSelect && loginRolSelect.value) {
+    cambiarTipoLogin(loginRolSelect.value);
+  }
+  // ---------------------------------
+
+  if (typeof iniciarGeolocalizacionSatelital === 'function') iniciarGeolocalizacionSatelital();
+  // ... resto de tu código ...
+   
+   
+ 
+    {
   if (typeof iniciarGeolocalizacionSatelital === 'function') iniciarGeolocalizacionSatelital();
   if (typeof corregirRegistrosExistentes === 'function') corregirRegistrosExistentes();
   if (typeof verificarEstadoSuscripcionEmpresa === 'function') verificarEstadoSuscripcionEmpresa();
@@ -3422,33 +3460,51 @@ actualizarSelectsLoginEmpresa();
     }
 
     function cambiarTipoLogin(rol) {
-      var divNom = document.getElementById('divNombrePersona');
-      var divZon = document.getElementById('divZonaLogin');
-      var lblNom = document.getElementById('lblNombrePersona');
-      var selNom = document.getElementById('loginNombreSelect');
+  var divNom = document.getElementById('divNombrePersona');
+  var divZon = document.getElementById('divZonaLogin');
+  var lblNom = document.getElementById('lblNombrePersona');
+  var selNom = document.getElementById('loginNombreSelect');
+  var selZon = document.getElementById('loginZonaSelect');
 
-      if(rol === 'SuperAdmin' || rol === 'Administrador') {
-        divNom.style.display = 'none';
-        divZon.style.display = 'none';
-      } else if(rol === 'cobrador') {
-        divNom.style.display = 'block';
-        divZon.style.display = 'block';
-        lblNom.innerText = 'Seleccionar Cobrador';
-        selNom.innerHTML = '<option value="">-- Seleccionar Cobrador --</option>';
-        cobradoresDB.forEach(function(c) {
-          selNom.innerHTML += '<option value="' + c.nombre + '">' + c.nombre + '</option>';
-        });
-      } else if(rol === 'empleado') {
-        divNom.style.display = 'block';
-        divZon.style.display = 'none';
-        lblNom.innerText = 'Seleccionar Empleado (Servicio al Cliente)';
-        selNom.innerHTML = '<option value="">-- Seleccionar Empleado --</option>';
-        empleadosDB.forEach(function(e) {
-          selNom.innerHTML += '<option value="' + e.nombre + '">' + e.nombre + '</option>';
-        });
-      }
+  if(!divNom || !divZon || !selNom) return;
+
+  if(rol === 'SuperAdmin' || rol === 'Administrador') {
+    divNom.style.display = 'none';
+    divZon.style.display = 'none';
+  } else if(rol === 'cobrador') {
+    divNom.style.display = 'block';
+    divZon.style.display = 'block';
+    lblNom.innerText = 'Seleccionar Cobrador';
+    selNom.innerHTML = '<option value="">-- Seleccionar Cobrador --</option>';
+    
+    // Validar que la base de datos local tenga cobradores
+    if (typeof cobradoresDB !== 'undefined' && cobradoresDB.length > 0) {
+      cobradoresDB.forEach(function(c) {
+        selNom.innerHTML += '<option value="' + c.nombre + '">' + c.nombre + '</option>';
+      });
+    } else {
+      selNom.innerHTML += '<option value="">(Cargando cobradores o no hay registrados)</option>';
     }
-
+    
+    // Limpiar el select de zonas hasta que se elija un cobrador
+    if(selZon) selZon.innerHTML = '<option value="">-- Seleccionar Zona --</option>';
+    
+  } else if(rol === 'empleado') {
+    divNom.style.display = 'block';
+    divZon.style.display = 'none';
+    lblNom.innerText = 'Seleccionar Empleado (Servicio al Cliente)';
+    selNom.innerHTML = '<option value="">-- Seleccionar Empleado --</option>';
+    
+    // Validar que la base de datos local tenga empleados
+    if (typeof empleadosDB !== 'undefined' && empleadosDB.length > 0) {
+      empleadosDB.forEach(function(e) {
+        selNom.innerHTML += '<option value="' + e.nombre + '">' + e.nombre + '</option>';
+      });
+    } else {
+      selNom.innerHTML += '<option value="">(Cargando empleados o no hay registrados)</option>';
+    }
+  }
+}
     function actualizarZonasLogin(nombreCobrador) {
       var selZon = document.getElementById('loginZonaSelect');
       selZon.innerHTML = '<option value="">-- Seleccionar Zona Asignada --</option>';
