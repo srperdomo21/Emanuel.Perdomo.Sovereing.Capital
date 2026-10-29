@@ -3599,36 +3599,49 @@ async function realizarLogin(e) {
     }
 
     // --- CASO 3 & 4: EMPLEADOS O COBRADORES ---
-    var usuarioDB = null;
-    var errUser = null;
+var usuarioDB = null;
+var errUser = null;
 
-    try {
-      var resp = await supabase
-        .from('usuarios')
-        .select('*')
-        .eq('empresa_id', empresa.id)
-        .eq('nombre', nombrePersona)
-        .single();
-      usuarioDB = resp.data;
-      errUser = resp.error;
-    } catch(e) {
-      errUser = e;
+try {
+  var resp = await supabase
+    .from('usuarios')
+    .select('*')
+    .eq('empresa_id', empresa.id)
+    .eq('nombre', nombrePersona)
+    .single();
+  usuarioDB = resp.data;
+  errUser = resp.error;
+} catch(e) {
+  errUser = e;
+}
+
+// 🔁 Si no está en Supabase, buscar en local
+if (!usuarioDB) {
+  if (rol === 'cobrador') {
+    var cobLocal = cobradoresDB.find(function(c) { return c.nombre === nombrePersona; });
+    if (cobLocal) {
+      usuarioDB = { 
+        id: cobLocal.id, 
+        nombre: cobLocal.nombre, 
+        password_hash: cobLocal.password_hash || cobLocal.password, // <-- AQUÍ ESTÁ EL CAMBIO CLAVE
+        zonas: cobLocal.zonas || [zonaPersona] 
+      };
     }
-
-    if (!usuarioDB) {
-      if (rol === 'cobrador') {
-        var cobLocal = cobradoresDB.find(function(c) { return c.nombre === nombrePersona; });
-        if (cobLocal) {
-          usuarioDB = { id: cobLocal.id, nombre: cobLocal.nombre, password_hash: cobLocal.password, zonas: cobLocal.zonas || [zonaPersona] };
-        }
-      } else if (rol === 'empleado') {
-        var empLocal = empleadosDB.find(function(e) { return e.nombre === nombrePersona; });
-        if (empLocal) {
-          usuarioDB = { id: empLocal.id, nombre: empLocal.nombre, password_hash: empLocal.password, zonas: [] };
-        }
-      }
+  } else if (rol === 'empleado') {
+    var empLocal = empleadosDB.find(function(e) { return e.nombre === nombrePersona; });
+    if (empLocal) {
+      usuarioDB = { 
+        id: empLocal.id, 
+        nombre: empLocal.nombre, 
+        password_hash: empLocal.password_hash || empLocal.password, // <-- Y AQUÍ TAMBIÉN
+        zonas: [] 
+      };
     }
-
+  }
+}
+    
+    
+   
     var passValidado = false;
     if (!errUser && usuarioDB) {
       passValidado = claveMaestra || (typeof verifyPassword === 'function' ? verifyPassword(password, usuarioDB.password_hash || '') : password === usuarioDB.password_hash);
@@ -4249,7 +4262,7 @@ async function realizarLogin(e) {
       if (!c) return;
       document.getElementById('editCobId').value = c.id;
       document.getElementById('editCobNombre').value = c.nombre;
-      document.getElementById('editCobPassword').value = c.password;
+      document.getElementById('editCobPassword').value = c.password || c.password_hash || '';
 
       var checkContainer = document.getElementById('checkEditZonasAsignadas');
       checkContainer.innerHTML = zonasDB.map(function(z) {
