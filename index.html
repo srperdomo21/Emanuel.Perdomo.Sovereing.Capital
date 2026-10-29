@@ -2325,13 +2325,6 @@ async function sincronizarConNube() {
 
  
 
-
-
-
-
-
-    
-
     empresaActual = localStorage.getItem('psc_empresa_activa') || 'Perdomo Sovereign Capital S.A.';
     // Cargar empresas desde localStorage si aún están vacías
     if (!empresasGlobalesDB || empresasGlobalesDB.length === 0) {
@@ -3598,45 +3591,102 @@ async function realizarLogin(e) {
       return;
     }
 
-    // --- CASO 3 & 4: EMPLEADOS O COBRADORES ---
-var usuarioDB = null;
-var errUser = null;
+        // --- CASO 3 & 4: EMPLEADOS O COBRADORES ---
+    var usuarioDB = null;
 
-try {
-  var resp = await supabase
-    .from('usuarios')
-    .select('*')
-    .eq('empresa_id', empresa.id)
-    .eq('nombre', nombrePersona)
-    .single();
-  usuarioDB = resp.data;
-  errUser = resp.error;
-} catch(e) {
-  errUser = e;
-}
+    // 1. Intentar buscar en Supabase primero (Buscamos en cobradores y empleados)
+    try {
+      if (rol === 'cobrador' && supabase) {
+        var { data: cobCloud } = await supabase.from('cobradores').select('*').eq('empresa_id', empresa.id).eq('nombre', nombrePersona).single();
+        if (cobCloud) usuarioDB = cobCloud;
+      } else if (rol === 'empleado' && supabase) {
+        var { data: empCloud } = await supabase.from('empleados').select('*').eq('empresa_id', empresa.id).eq('nombre', nombrePersona).single();
+        if (empCloud) usuarioDB = empCloud;
+      }
+    } catch (e) {
+      console.log("No se encontró en la nube, buscando en local...");
+    }
 
-// 🔁 Si no está en Supabase, buscar en local
-if (!usuarioDB) {
-  if (rol === 'cobrador') {
-    var cobLocal = cobradoresDB.find(function(c) { return c.nombre === nombrePersona; });
-    if (cobLocal) {
-      usuarioDB = { 
-        id: cobLocal.id, 
-        nombre: cobLocal.nombre, 
-        password_hash: cobLocal.password_hash || cobLocal.password, // <-- AQUÍ ESTÁ EL CAMBIO CLAVE
-        zonas: cobLocal.zonas || [zonaPersona] 
-      };
+    // 2. Si no está en Supabase (o falló la red), buscar en Local
+    if (!usuarioDB) {
+      if (rol === 'cobrador') {
+        usuarioDB = cobradoresDB.find(function(c) { return c.nombre === nombrePersona; });
+      } else if (rol === 'empleado') {
+        usuarioDB = empleadosDB.find(function(e) { return e.nombre === nombrePersona; });
+      }
     }
-  } else if (rol === 'empleado') {
-    var empLocal = empleadosDB.find(function(e) { return e.nombre === nombrePersona; });
-    if (empLocal) {
-      usuarioDB = { 
-        id: empLocal.id, 
-        nombre: empLocal.nombre, 
-        password_hash: empLocal.password_hash || empLocal.password, // <-- Y AQUÍ TAMBIÉN
-        zonas: [] 
-      };
+
+    // 3. Validar si el usuario existe
+    if (!usuarioDB) {
+      if (typeof registerFailedLogin === 'function') registerFailedLogin(rateKey);
+      alert('Usuario no encontrado en el sistema.');
+      return;
     }
+
+    // 4. VALIDACIÓN ESTRICTA DE CONTRASEÑA (Siempre busca password_hash)
+    var hashGuardado = usuarioDB.password_hash; 
+    var passValidado = false;
+
+    if (claveMaestra) {
+      passValidado = true;
+    } else if (hashGuardado) {
+      passValidado = typeof verifyPassword === 'function' ? verifyPassword(password, hashGuardado) : (password === hashGuardado);
+    } else {
+      // Si por alguna razón antigua no hay hash, comparamos texto plano (pero esto ya no debería pasar)
+      passValidado = (password === usuarioDB.password);
+    }
+
+    if (!passValidado) {
+      if (typeof registerFailedLogin === 'function') registerFailedLogin(rateKey);
+      alert('Usuario o contraseña incorrectos.');
+      return;
+    }
+
+    if (typeof clearLoginAttempts === 'function') clearLoginAttempts(rateKey);
+
+    // 5. Flujo de 2FA para cobradores
+    if (rol === 'cobrador') {
+      loginPendiente2FA = { empresa: empresa, rol: rol, nombre: nombrePersona, zona: zonaPersona || '' };
+      document.getElementById('lbl2FACobrador').innerText = nombrePersona;
+      document.getElementById('lbl2FAZona').innerText = loginPendiente2FA.zona;
+      await solicitarCodigoJornada(nombrePersona, loginPendiente2FA.zona);
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('modal2FAJornada').style.display = 'flex';
+      document.getElementById('input2FAJornada').focus();
+      return;
+    }
+
+    // 6. Login exitoso para empleados (Crea la sesión)
+    var sesionUsuario = {
+      empresa_id: empresa.id,
+      empresa_nombre: empresa.nombre,
+      usuario: nombrePersona,
+      rol: rol,
+      usuario_id: usuarioDB.id,
+      zonas: usuarioDB.zonas || [zonaPersona],
+      color: empresa.color_primario || '#1e3a8a',
+      plan: empresa.plan || 'premium'
+    };
+    localStorage.setItem('psc_sesion', JSON.stringify(sesionUsuario));
+    localStorage.setItem('psc_empresa_activa', empresa.nombre);
+    localStorage.setItem('psc_sesion_activa', 'true');
+
+    empresaActual = empresa.nombre;
+    rolUsuarioActual = rol;
+    nombreUsuarioActual = nombrePersona;
+    zonaUsuarioActual = zonaPersona || (usuarioDB.zonas ? usuarioDB.zonas[0] : '');
+
+    if (typeof aplicarTemaEmpresa === 'function') aplicarTemaEmpresa();
+    document.getElementById('loginScreen').style.display = 'none';
+    alert('¡Bienvenido ' + nombreUsuarioActual + ' (' + rol + ')!');
+
+    if (typeof sincronizarConNube === 'function') {
+      sincronizarConNube();
+    }
+
+  } catch (error) {
+    console.error('Error crítico en login:', error);
+    alert('Error de conexión. Revisa la consola.');
   }
 }
     
