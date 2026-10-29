@@ -794,6 +794,8 @@ function redondear(num) {
       <button class="btn btn-secondary btn-sm" onclick="toggleSidebar()" style="margin:0;">✕</button>
     </div>
     <div class="sidebar-content">
+<button class="sidebar-btn solo-admin-emp" onclick="abrirModal2FAConfig()" style="background:#7c3aed; color:white; font-weight:700;">🔐 Configurar 2FA (WhatsApp Oficina)</button>
+
 <button class="sidebar-btn" onclick="showTabFromMenu('reportes')">📊 Reportes y Gráficos</button>
       <button class="sidebar-btn solo-super-admin" onclick="showTabFromMenu('crearEmpresaTab')" style="background:#eff6ff; color:var(--primary); font-weight:700; display:none;">🏢 Crear Nuevas Empresas</button>
       
@@ -3276,6 +3278,24 @@ async function realizarLogin(e) {
       
       if (passOk) {
         if (typeof clearLoginAttempts === 'function') clearLoginAttempts(rateKey);
+
+
+// 🔥 INTERCEPTOR 2FA PARA COBRADORES
+if (rol === 'cobrador') {
+  loginPendiente2FA = { empresa: empresa, rol: rol, nombre: nombrePersona, zona: zonaPersona || (usuarioDB.zonas ? usuarioDB.zonas[0] : '') };
+  
+  document.getElementById('lbl2FACobrador').innerText = nombrePersona;
+  document.getElementById('lbl2FAZona').innerText = loginPendiente2FA.zona;
+  
+  await solicitarCodigoJornada(nombrePersona, loginPendiente2FA.zona);
+  
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('modal2FAJornada').style.display = 'flex';
+  document.getElementById('input2FAJornada').focus();
+  
+  return; // 🛑 Detiene el login aquí
+}
+
 
         var sesion = {
           empresa_id: empresa.id,
@@ -6614,7 +6634,9 @@ async function realizarLogin(e) {
       6. El aislamiento actual por prefijo de localStorage + empresaActual es una capa temporal.
     */
     </script>
+
 <script>
+
 // ==========================================
 // FASE 5: REGISTRO DE PAGOS Y WHATSAPP
 // ==========================================
@@ -6914,6 +6936,131 @@ function cerrarModal2FA() {
 }
 
 
+<script>
+var loginPendiente2FA = null;
+
+async function abrirModal2FAConfig() {
+  if (!['admin', 'empleado', 'SuperAdmin'].includes(rolUsuarioActual)) return alert('Solo la oficina puede configurar esto.');
+  if (supabase && empresaIdActual) {
+    const { data } = await supabase.from('config_2fa_empresa').select('*').eq('empresa_id', empresaIdActual).maybeSingle();
+    if (data) {
+      document.getElementById('cfg2faWhatsApp').value = data.whatsapp_oficina || '';
+      document.getElementById('cfg2faNotifWhatsApp').checked = data.notificar_whatsapp !== false;
+      document.getElementById('cfg2faNotifTablero').checked = data.notificar_tablero !== false;
+    }
+  }
+  document.getElementById('modal2FAConfig').style.display = 'flex';
+}
+
+async function guardarConfig2FA(e) {
+  e.preventDefault();
+  const num = document.getElementById('cfg2faWhatsApp').value.replace(/\D/g, '');
+  if (!supabase || !empresaIdActual) return alert('Sin conexión a Supabase.');
+
+  const payload = {
+    empresa_id: empresaIdActual,
+    whatsapp_oficina: num,
+    notificar_whatsapp: document.getElementById('cfg2faNotifWhatsApp').checked,
+    notificar_tablero: document.getElementById('cfg2faNotifTablero').checked,
+    updated_at: new Date().toISOString()
+  };
+
+  const { error } = await supabase.from('config_2fa_empresa').upsert([payload], { onConflict: 'empresa_id' });
+  if (error) alert('Error guardando: ' + error.message);
+  else {
+    alert('✅ Configuración guardada. Los códigos se enviarán al: ' + num);
+    document.getElementById('modal2FAConfig').style.display = 'none';
+  }
+}
+
+async function solicitarCodigoJornada(nombre, zona) {
+  const { data: cfg } = await supabase.from('config_2fa_empresa').select('*').eq('empresa_id', empresaIdActual).maybeSingle();
+  if (!cfg || !cfg.whatsapp_oficina) return alert('La oficina no ha configurado el WhatsApp para 2FA en el menú.');
+
+  const codigo = Math.floor(100000 + Math.random() * 900000).toString();
+  const expira = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+
+  const { error } = await supabase.from('codigos_jornada').insert([{
+    empresa_id: empresaIdActual, usuario_nombre: nombre, zona: zona, codigo_hash: codigo, usado: false, expira_en: expira
+  }]);
+
+  if (error) return alert('Error generando código: ' + error.message);
+
+  if (cfg.notificar_whatsapp) {
+    await supabase.functions.invoke('enviar-whatsapp', {
+      body: { telefono: cfg.whatsapp_oficina, mensaje: `🔐 AUTORIZACIÓN DE JORNADA\n\nCobrador: *${nombre}*\nZona: *${zona}*\n\nCódigo: *${codigo}*\n\nVálido por 5 minutos.` }
+    });
+  }
+
+  if (cfg.notificar_tablero) {
+    notificacionesDB.push({
+      id: Date.now(), texto: `🔐 SOLICITUD DE JORNADA: ${nombre} (Zona: ${zona}). CÓDIGO: ${codigo}`, fecha: new Date().toLocaleString(), tipo: 'CodigoJornada'
+    });
+    if (typeof renderNotificacionesAdmin === 'function') renderNotificacionesAdmin();
+  }
+}
+
+async function confirmar2FAJornada() {
+  const cod = document.getElementById('input2FAJornada').value;
+  if (cod.length !== 6) return alert('Ingresa los 6 dígitos.');
+
+  const { data: registro } = await supabase.from('codigos_jornada')
+    .select('*').eq('empresa_id', empresaIdActual).eq('codigo_hash', cod).eq('usado', false).gt('expira_en', new Date().toISOString()).maybeSingle();
+
+  if (!registro) return alert('❌ Código incorrecto o expirado.');
+
+  await supabase.from('codigos_jornada').update({ usado: true }).eq('id', registro.id);
+
+  empresaActual = loginPendiente2FA.empresa.nombre;
+  rolUsuarioActual = loginPendiente2FA.rol;
+  nombreUsuarioActual = loginPendiente2FA.nombre;
+  zonaUsuarioActual = loginPendiente2FA.zona;
+
+  localStorage.setItem('psc_empresa_activa', empresaActual);
+  localStorage.setItem('psc_rol_activo', rolUsuarioActual);
+  localStorage.setItem('psc_nombre_usuario', nombreUsuarioActual);
+  localStorage.setItem('psc_zona_usuario', zonaUsuarioActual);
+  localStorage.setItem('psc_sesion_activa', 'true');
+
+  document.getElementById('modal2FAJornada').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'none';
+  
+  alert('✅ Jornada autorizada. ¡Buen día de cobros!');
+  if (typeof actualizarInterfazPorRol === 'function') actualizarInterfazPorRol();
+  if (typeof sincronizarConNube === 'function') sincronizarConNube();
+}
+
+function cancelar2FAJornada() {
+  document.getElementById('modal2FAJornada').style.display = 'none';
+  document.getElementById('input2FAJornada').value = '';
+  document.getElementById('loginScreen').style.display = 'flex';
+}
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 </script>
 
 <!-- MODAL DE DOBLE FACTOR (2FA) -->
@@ -6933,6 +7080,50 @@ function cerrarModal2FA() {
     <button class="btn btn-secondary" onclick="cerrarModal2FA()">Cancelar</button>
   </div>
 </div>
+
+<!-- MODAL CONFIGURACIÓN 2FA (Para la oficina) -->
+<div id="modal2FAConfig" class="modal-overlay" style="z-index:10001;">
+  <div class="modal-box" style="max-width: 480px;">
+    <h3 style="color:var(--primary); margin-bottom:12px;">🔐 Configurar 2FA de Jornada</h3>
+    <p style="font-size:0.85rem; color:#475569; margin-bottom:15px;">Cuando un cobrador inicie jornada, el código de 6 dígitos se enviará a este WhatsApp. El cobrador NO lo verá; deberá llamar a la oficina para que se lo dicten.</p>
+    <form onsubmit="guardarConfig2FA(event)">
+      <div class="form-group">
+        <label>📱 WhatsApp de la Oficina (quien recibe los códigos) *</label>
+        <input type="tel" id="cfg2faWhatsApp" required placeholder="Ej. 18495819150" pattern="[0-9]{10,15}">
+        <small style="font-size:0.72rem; color:#64748b;">Formato: 10-15 dígitos, sin guiones ni el signo +.</small>
+      </div>
+      <div class="form-group" style="background:#f8fafc; padding:10px; border-radius:8px; border:1px solid var(--border);">
+        <label style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+          <input type="checkbox" id="cfg2faNotifWhatsApp" checked style="width:auto;"> <span>Enviar por WhatsApp</span>
+        </label>
+        <label style="display:flex; align-items:center; gap:8px;">
+          <input type="checkbox" id="cfg2faNotifTablero" checked style="width:auto;"> <span>Mostrar en el Tablero (Notificación interna)</span>
+        </label>
+      </div>
+      <div style="display:flex; gap:10px; margin-top:15px;">
+        <button type="button" class="btn btn-secondary" onclick="document.getElementById('modal2FAConfig').style.display='none'">Cancelar</button>
+        <button type="submit" class="btn btn-success">💾 Guardar Configuración</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL 2FA DE JORNADA (Para el cobrador) -->
+<div id="modal2FAJornada" class="modal-overlay" style="z-index: 10002;">
+  <div class="modal-box" style="text-align:center; max-width: 400px;">
+    <h3 style="color:var(--primary); margin-bottom:8px;">🔐 Autorización de Jornada</h3>
+    <p style="font-size:0.9rem; color:#475569; margin-bottom:4px;">Cobrador: <strong id="lbl2FACobrador"></strong></p>
+    <p style="font-size:0.9rem; color:#475569; margin-bottom:15px;">Zona: <strong id="lbl2FAZona"></strong></p>
+    <p style="font-size:0.85rem; background:#fef3c7; padding:10px; border-radius:8px; border:1px solid #fcd34d; margin-bottom:15px;">📞 <strong>Llama a la oficina</strong> para que te dicten el código de 6 dígitos que acaban de recibir.</p>
+    <div class="form-group">
+      <label>Código de 6 dígitos</label>
+      <input type="text" id="input2FAJornada" maxlength="6" inputmode="numeric" pattern="[0-9]{6}" placeholder="000000" style="text-align:center; font-size:1.6rem; letter-spacing:8px; font-weight:700;">
+    </div>
+    <button class="btn btn-success" onclick="confirmar2FAJornada()" style="margin-top:10px;">✅ Verificar y Entrar</button>
+    <button class="btn btn-secondary" onclick="cancelar2FAJornada()" style="margin-top:8px;">Cancelar</button>
+  </div>
+</div>
+
 
 </body>
 </html>
