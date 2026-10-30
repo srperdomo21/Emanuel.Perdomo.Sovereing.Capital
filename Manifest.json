@@ -1,12 +1,13 @@
 {
-  "name": "Perdomo Sovereign Capital",
+  "name": "Perdomo Capital",
   "short_name": "Perdomo",
-  "description": "Sistema de gestión de cobros y préstamos de Perdomo Sovereign Capital.",
-  "start_url": "./index.html",
+  "description": "Sistema de gestión de cobros, préstamos y rutas para Perdomo Sovereign Capital.",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#1e3a8a",
   "orientation": "portrait",
+  "id": "com.perdomo.capital",
   "icons": [
     {
       "src": "Logosv.png",
