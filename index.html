@@ -1408,20 +1408,16 @@ function redondear(num) {
           </div>
 
           <div style="display:flex; gap:8px; margin-bottom:15px; flex-wrap:wrap;">
-  <button class="btn btn-success" style="flex:1;" onclick="mostrarFormularioCliente()">➕ Registrar Nuevo Cliente</button>
-  <button class="btn btn-secondary btn-sm" onclick="exportarExcelClientes()" style="background:var(--success);">📊 Exportar Excel</button>
   
   
-  
-  
-  <!-- BOTÓN NUEVO DE IMPORTAR -->
-  <button class="btn btn-warning btn-sm" onclick="document.getElementById('inputCSVImportar').click()">📥 Importar CSV</button>
+<div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom:15px;">
+  <button class="btn btn-success" onclick="mostrarFormularioCliente()">➕ Registrar Cliente</button>
+  <button class="btn" onclick="abrirModalImportarTexto()" style="background:#8b5cf6; color:white; font-weight:bold;">📋 Pegar Datos</button>
+  <button class="btn btn-secondary" onclick="exportarExcelClientes()" style="background:var(--success);">📊 Exportar Excel</button>
+  <button class="btn btn-warning" onclick="document.getElementById('inputCSVImportar').click()">📥 Importar CSV</button>
   <input type="file" id="inputCSVImportar" accept="*/*" style="display:none;" onchange="importarClientesCSV(event)">
-  
-  
-  <button class="btn btn-warning btn-sm" onclick="abrirModalImportarTexto()" style="background:#8b5cf6; color: white;">📋 Pegar Datos</button>
-  
 </div>
+
 
 
           <!-- BOTONES DE FILTRO -->
