@@ -1622,7 +1622,15 @@ function redondear(num) {
       <!-- NUEVO PRÉSTAMO -->
       <div id="nuevoPrestamo" class="tab-content">
         <div class="card">
-          <h3>Crear Contrato de Préstamo con Múltiples Tasas y Modalidades</h3>
+          <h3>Crear Contrato de Préstamo con Múltiples Tasas y Modalidades
+        
+  
+  <button class="btn" onclick="abrirModalImportarPrestamos()" style="background:#8b5cf6; color:white; font-weight:bold; margin-bottom:15px;">📋 Pegar Préstamos (Importar)</button>
+  
+  
+          
+          
+          </h3>
           <form id="formPrestamo" onsubmit="guardarPrestamo(event)">
             <div class="form-group">
               <label>Cliente</label>
@@ -7483,8 +7491,150 @@ async function procesarTextoImportado() {
   document.getElementById('modalImportarTexto').style.display = 'none';
   if (typeof sincronizarConNube === 'function') sincronizarConNube();
 }
+
+<script>
+function abrirModalImportarPrestamos() {
+  document.getElementById('modalImportarPrestamos').style.display = 'flex';
+  document.getElementById('textoImportarPrestamos').value = '';
+}
+
+async function procesarTextoImportadoPrestamos() {
+  const texto = document.getElementById('textoImportarPrestamos').value;
+  if (!texto) return alert('Pega algunos datos primero.');
+  
+  const lineas = texto.split('\n');
+  let importados = 0;
+  let errores = 0;
+  
+  for (let i = 0; i < lineas.length; i++) {
+    const linea = lineas[i].trim();
+    if (!linea) continue;
+    
+    if (i === 0 && (linea.toUpperCase().startsWith('PRESTAMOID') || linea.toUpperCase().startsWith('CLIENTE'))) continue;
+
+    const cols = linea.match(/(".*?"|[^,]+)(?=\s*,|\s*$)/g) || [];
+    const columnas = cols.map(c => c.replace(/^"|"$/g, '').trim());
+    
+    // Formato: 0=ID, 1=Cliente, 2=Monto, 3=Balance, 4=Plazo, 5=Cuota, 6=Estado, 7=FechaTermino
+    if (columnas.length >= 7) {
+      const nombreCliente = columnas[1];
+      
+      // Buscar al cliente en la base de datos local
+      const cliente = clientesDB.find(c => c.nombre.toLowerCase() === nombreCliente.toLowerCase());
+      
+      if (!cliente) {
+        console.warn("Cliente no encontrado:", nombreCliente);
+        errores++;
+        continue; // Si no existe el cliente, saltamos al siguiente
+      }
+
+      const monto = parseFloat(columnas[2]) || 0;
+      const balance = parseFloat(columnas[3]) || 0;
+      const plazo = columnas[4] || '13_semanas';
+      const cuota = parseFloat(columnas[5]) || 0;
+      const fechaTerminoStr = columnas[7] || '';
+      
+      // Calcular cuotas totales
+      let numCuotas = 13;
+      if (plazo === '13_semanas') numCuotas = 13;
+      else if (plazo === '10_semanas') numCuotas = 10;
+      else if (plazo === 'quincenal') numCuotas = 6;
+      else if (plazo === 'mensual') numCuotas = 3;
+      else if (plazo === 'personalizado') numCuotas = Math.round((balance + (monto - balance)) / cuota) || 1;
+
+      // Calcular Fecha Inicio (Restando las semanas a la Fecha Termino)
+      let fechaInicio = new Date();
+      if (fechaTerminoStr) {
+        const partes = fechaTerminoStr.split('/');
+        if (partes.length === 3) {
+          const ftDate = new Date(partes[2], partes[1]-1, partes[0]);
+          ftDate.setDate(ftDate.getDate() - (numCuotas * 7)); // Restar las semanas
+          fechaInicio = ftDate;
+        }
+      }
+      const fechaInicioStr = fechaInicio.toLocaleDateString('es-DO');
+
+      const nuevoPrestamo = {
+        id: Date.now() + i,
+        clienteId: cliente.id,
+        clienteNombre: cliente.nombre,
+        cedula: cliente.cedula,
+        telefono: cliente.telefono,
+        direccion: cliente.direccion,
+        monto: monto,
+        gastoCierre: 0,
+        montoNeto: monto,
+        tasa: 30, // Asumimos 30% por defecto
+        plazo: plazo,
+        numCuotas: numCuotas,
+        valorCuota: cuota,
+        totalPagar: cuota * numCuotas,
+        balancePendiente: balance,
+        fechaInicio: fechaInicioStr,
+        fechaTermino: fechaTerminoStr,
+        fotoConfirmacion: "",
+        firma: cliente.firma || "",
+        estado: 'Activo'
+      };
+      
+      // Guardar en Supabase
+      if (typeof supabase !== 'undefined' && empresaIdActual) {
+        await supabase.from('prestamos').insert([{
+          empresa_id: empresaIdActual,
+          cliente_id: cliente.id,
+          cliente_nombre: cliente.nombre,
+          cedula: cliente.cedula,
+          telefono: cliente.telefono,
+          direccion: cliente.direccion,
+          monto: monto,
+          gasto_cierre: 0,
+          monto_neto: monto,
+          tasa: 30,
+          plazo: plazo,
+          num_cuotas: numCuotas,
+          valor_cuota: cuota,
+          total_pagar: cuota * numCuotas,
+          balance_pendiente: balance,
+          fecha_inicio: fechaInicioStr,
+          fecha_termino: fechaTerminoStr,
+          estado: 'Activo'
+        }]);
+      }
+      
+      // Guardar localmente para que aparezca en la pantalla
+      prestamosDB.push(nuevoPrestamo);
+      importados++;
+    }
+  }
+  
+  alert(`✅ Se importaron ${importados} préstamos con éxito.` + (errores > 0 ? `\n⚠️ ${errores} préstamos fallaron porque el cliente no existe (asegúrate de haber importado los clientes primero).` : ''));
+  
+  document.getElementById('modalImportarPrestamos').style.display = 'none';
+  if (typeof sincronizarConNube === 'function') sincronizarConNube();
+  
+  // Refrescar la pantalla
+  if (typeof renderClientes === 'function') renderClientes();
+  if (typeof actualizarMetricas === 'function') actualizarMetricas();
+}
 </script>
 
 
+<!-- MODAL PARA PEGAR PRÉSTAMOS -->
+<div id="modalImportarPrestamos" class="modal-overlay" style="z-index: 10006;">
+  <div class="modal-box" style="max-width: 500px;">
+    <h3 style="color:var(--primary); margin-bottom:10px;">📋 Importar Préstamos</h3>
+    <p style="font-size:0.85rem; color:#475569; margin-bottom:10px;">
+      Pega los datos de los préstamos aquí. <br>
+      <strong>Formato:</strong> ID, Cliente, Monto, Balance, Plazo, Cuota, Estado, FechaTermino.
+    </p>
+    <textarea id="textoImportarPrestamos" rows="10" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:6px; font-family:monospace;" placeholder="Pega aquí los datos de tus préstamos..."></textarea>
+    
+    <div style="display:flex; gap:10px; margin-top:15px;">
+      <button type="button" class="btn btn-secondary" onclick="document.getElementById('modalImportarPrestamos').style.display='none'">Cancelar</button>
+      <button type="button" class="btn btn-success" onclick="procesarTextoImportadoPrestamos()">✅ Importar Préstamos</button>
+    </div>
+  </div>
+  
+</div>
 </body>
 </html>
