@@ -1410,10 +1410,16 @@ function redondear(num) {
           <div style="display:flex; gap:8px; margin-bottom:15px; flex-wrap:wrap;">
   <button class="btn btn-success" style="flex:1;" onclick="mostrarFormularioCliente()">➕ Registrar Nuevo Cliente</button>
   <button class="btn btn-secondary btn-sm" onclick="exportarExcelClientes()" style="background:var(--success);">📊 Exportar Excel</button>
+  
+  
+  
+  
   <!-- BOTÓN NUEVO DE IMPORTAR -->
   <button class="btn btn-warning btn-sm" onclick="document.getElementById('inputCSVImportar').click()">📥 Importar CSV</button>
   <input type="file" id="inputCSVImportar" accept="*/*" style="display:none;" onchange="importarClientesCSV(event)">
   
+  
+  <button class="btn btn-warning btn-sm" onclick="abrirModalImportarTexto()" style="background:#8b5cf6; color: white;">📋 Pegar Datos</button>
   
 </div>
 
@@ -7413,6 +7419,76 @@ function cancelar2FAJornada() {
   document.getElementById('loginScreen').style.display = 'flex';
 }
 </script>
+
+<!-- MODAL PARA PEGAR TEXTO -->
+<div id="modalImportarTexto" class="modal-overlay" style="z-index: 10005;">
+  <div class="modal-box" style="max-width: 500px;">
+    <h3 style="color:var(--primary); margin-bottom:10px;">📋 Importar Pegando Texto</h3>
+    <p style="font-size:0.85rem; color:#475569; margin-bottom:10px;">
+      Abre tu Excel o archivo de texto, copia las filas y pégalas aquí abajo. Formato: <br>
+      <strong>Nombre, Apodo, Cédula, Teléfono, Zona, Dirección</strong> (separados por comas).
+    </p>
+    <textarea id="textoImportar" rows="8" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:6px; font-family:monospace;" placeholder="Juan Perez,,001-0000000-1,8095551234,Zona Norte,Calle 1"></textarea>
+    
+    <div style="display:flex; gap:10px; margin-top:15px;">
+      <button type="button" class="btn btn-secondary" onclick="document.getElementById('modalImportarTexto').style.display='none'">Cancelar</button>
+      <button type="button" class="btn btn-success" onclick="procesarTextoImportado()">✅ Importar Clientes</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function abrirModalImportarTexto() {
+  document.getElementById('modalImportarTexto').style.display = 'flex';
+  document.getElementById('textoImportar').value = '';
+}
+
+async function procesarTextoImportado() {
+  const texto = document.getElementById('textoImportar').value;
+  if (!texto) return alert('Pega algunos datos primero.');
+  
+  const lineas = texto.split('\n');
+  let importados = 0;
+  
+  for (let i = 0; i < lineas.length; i++) {
+    const linea = lineas[i].trim();
+    if (!linea) continue;
+    
+    const separador = linea.includes(';') ? ';' : ',';
+    const cols = linea.match(/(".*?"|[^,]+)(?=\s*,|\s*$)/g) || [];
+    const columnas = cols.map(c => c.replace(/^"|"$/g, '').trim());
+    
+    if (columnas.length >= 2) {
+      // Si el texto empieza con "ID," lo saltamos porque es el encabezado
+      if (i === 0 && (columnas[0].toUpperCase() === 'ID' || columnas[0].toUpperCase() === 'NOMBRE')) continue;
+
+      const nuevoCliente = {
+        id: Date.now() + i,
+        nombre: columnas[1] || columnas[0] || 'Sin Nombre', // Ajuste por si no hay columna ID
+        apodo: columnas[2] || columnas[1] || '',
+        cedula: columnas[3] || columnas[2] || '000-0000000-0',
+        telefono: columnas[4] || columnas[3] || '',
+        zona: columnas[5] || columnas[4] || 'Zona Principal',
+        direccion: columnas[6] || columnas[5] || 'N/A',
+        estado: 'Activo'
+      };
+      
+      if (typeof supabase !== 'undefined' && empresaIdActual) {
+        await supabase.from('clientes').insert([{
+          empresa_id: empresaIdActual, nombre: nuevoCliente.nombre, apodo: nuevoCliente.apodo,
+          cedula: nuevoCliente.cedula, telefono: nuevoCliente.telefono, zona: nuevoCliente.zona, direccion: nuevoCliente.direccion, estado: 'Activo'
+        }]);
+      }
+      importados++;
+    }
+  }
+  
+  alert(`✅ Se importaron ${importados} clientes con éxito.`);
+  document.getElementById('modalImportarTexto').style.display = 'none';
+  if (typeof sincronizarConNube === 'function') sincronizarConNube();
+}
+</script>
+
 
 </body>
 </html>
