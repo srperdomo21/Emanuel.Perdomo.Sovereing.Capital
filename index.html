@@ -82,6 +82,7 @@ async function realizarCierreCaja() {
 </script>
 
 <script>
+    
   // ========== CONFIG (en producción mueve estas claves a Edge Functions / env) ==========
   var SUPABASE_URL = 'https://vzzfslsosmbgmlyvzyis.supabase.co';
 var SUPABASE_ANON_KEY = 'sb_publishable__tBf4S2mIqfMXluRwkyNHg_pIXWarbJ';
@@ -90,58 +91,70 @@ var supabase = (window.supabase && window.supabase.createClient)
   : null;
 
 
-// --- ESCUCHA EN TIEMPO REAL PARA EL TABLERO ---
-if (supabase) {
-  supabase
-    .channel('codigos-en-vivo')
-    .on(
-      'postgres_changes',
-      {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'codigos_jornada'
-      },
-      (payload) => {
-        console.log("¡Nuevo código recibido!", payload);
+// --- MÉTODO DE RESPALDO INFALIBLE (POLLING) ---
+let ultimoCodigoId = null;
+
+setInterval(async () => {
+  if (!supabase) return;
+  
+  try {
+    // Pregunta a Supabase cada 5 segundos si hay un código nuevo
+    const { data, error } = await supabase
+      .from('codigos_jornada')
+      .select('*')
+      .order('id', { ascending: false })
+      .limit(1);
+
+    if (error) throw error;
+
+    if (data && data.length > 0) {
+      const registroActual = data[0];
+
+      // Si es un código nuevo y no ha sido usado
+      if (ultimoCodigoId !== registroActual.id && !registroActual.usado) {
         
-        const nuevoRegistro = payload.new;
-        const codigoGenerado = nuevoRegistro.codigo_hash; 
-        const usuario = nuevoRegistro.usuario_nombre;
+        // Solo mostrarlo si es reciente (menos de 2 minutos)
+        const fechaCreacion = new Date(registroActual.created_at).getTime();
+        if (Date.now() - fechaCreacion < 120000) {
+          
+          ultimoCodigoId = registroActual.id;
+          const codigoGenerado = registroActual.codigo_hash;
+          const usuario = registroActual.usuario_nombre;
 
-        // 1. Crear notificación visual flotante (Toast)
-        const toast = document.createElement('div');
-        toast.style.cssText = 'position:fixed; top:20px; right:20px; background:#16a34a; color:white; padding:20px; border-radius:10px; box-shadow:0 10px 25px rgba(0,0,0,0.5); z-index:99999; font-family:sans-serif; border-left: 8px solid #fff; min-width: 300px; transition: all 0.3s ease;';
-        toast.innerHTML = `
-          <div style="font-size:18px; margin-bottom:5px;">🚨 <strong>Jornada Solicitada</strong></div>
-          <div style="font-size:14px; margin-bottom:10px;">Cobrador: <b>${usuario}</b></div>
-          <div style="font-size:14px;">Código de Autorización:</div>
-          <div style="font-size:32px; letter-spacing:8px; background:#fff; color:#16a34a; padding:5px 10px; border-radius:6px; text-align:center; font-weight:900; margin-top:5px;">${codigoGenerado}</div>
-        `;
-        
-        document.body.appendChild(toast);
+          // 1. Mostrar el cuadro verde flotante
+          const toast = document.createElement('div');
+          toast.style.cssText = 'position:fixed; top:20px; right:20px; background:#16a34a; color:white; padding:20px; border-radius:10px; box-shadow:0 10px 25px rgba(0,0,0,0.5); z-index:99999; font-family:sans-serif; border-left: 8px solid #fff; min-width: 300px; transition: all 0.3s ease;';
+          toast.innerHTML = `
+            <div style="font-size:18px; margin-bottom:5px;">🚨 <strong>Jornada Solicitada</strong></div>
+            <div style="font-size:14px; margin-bottom:10px;">Cobrador: <b>${usuario}</b></div>
+            <div style="font-size:14px;">Código de Autorización:</div>
+            <div style="font-size:32px; letter-spacing:8px; background:#fff; color:#16a34a; padding:5px 10px; border-radius:6px; text-align:center; font-weight:900; margin-top:5px;">${codigoGenerado}</div>
+          `;
+          document.body.appendChild(toast);
 
-        // 2. Reproducir un pitido para llamar tu atención
-        try {
-          const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-          const oscillator = audioCtx.createOscillator();
-          oscillator.type = 'sine';
-          oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); 
-          oscillator.connect(audioCtx.destination);
-          oscillator.start();
-          oscillator.stop(audioCtx.currentTime + 0.3);
-        } catch(e) { console.log('Audio no soportado'); }
+          // 2. Pitido
+          try {
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioCtx.createOscillator();
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); 
+            oscillator.connect(audioCtx.destination);
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.4);
+          } catch(e) { console.log('Audio bloqueado por el navegador'); }
 
-        // 3. Hacer que la notificación desaparezca después de 20 segundos
-        setTimeout(() => {
-          toast.style.opacity = '0';
+          // 3. Desaparecer en 20 segundos
           setTimeout(() => {
-            if(toast.parentNode) toast.parentNode.removeChild(toast);
-          }, 300);
-        }, 20000);
+            toast.style.opacity = '0';
+            setTimeout(() => { if(toast.parentNode) toast.parentNode.removeChild(toast); }, 300);
+          }, 20000);
+        }
       }
-    )
-    .subscribe();
-}
+    }
+  } catch (err) {
+    console.error("Error buscando códigos:", err);
+  }
+}, 5000); // Se ejecuta cada 5 segundos
 
 
 
