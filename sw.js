@@ -1,4 +1,4 @@
-const CACHE_NAME = 'perdomo-app-v1';
+const CACHE_NAME = 'perdomo-app-v7';
 const urlsToCache = [
   './',
   './index.html',
