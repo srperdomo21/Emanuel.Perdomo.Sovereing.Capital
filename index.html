@@ -7107,12 +7107,13 @@ function toggleLoginPassword(e) {
 
 // ========== IMPORTAR CLIENTES DESDE CSV ==========
 
+
 function importarClientesCSV(event) {
   const file = event.target.files[0];
   if (!file) return;
   
   if (!confirm("¿Estás seguro de importar este archivo? Se agregarán a los clientes actuales.")) {
-    event.target.value = ''; // Limpiar el input
+    event.target.value = ''; 
     return;
   }
 
@@ -7127,12 +7128,11 @@ function importarClientesCSV(event) {
         const line = lines[i].trim();
         if (!line) continue;
         
-        // Esta línea detecta si el archivo usa comas o punto y coma (común en Excel)
-        const separador = line.includes(';') ? ';' : ',';
-        const cols = line.split(separador);
+        // ESTA ES LA MAGIA: Un lector que respeta las comas dentro de las comillas
+        const cols = line.match(/(".*?"|[^,]+)(?=\s*,|\s*$)/g) || [];
         const clean = cols.map(c => c.replace(/^"|"$/g, '').trim());
         
-        // Asumiendo que las columnas son: 0=ID, 1=Nombre, 2=Apodo, 3=Cedula, 4=Telefono, 5=Zona, 6=Direccion
+        // Formato: 0=ID, 1=Nombre, 2=Apodo, 3=Cedula, 4=Telefono, 5=Zona, 6=Direccion
         if (clean.length >= 5) {
           const nuevoCliente = {
             id: Date.now() + i,
@@ -7162,9 +7162,9 @@ function importarClientesCSV(event) {
       }
       alert(`✅ ¡Éxito! Se importaron ${importados} clientes correctamente.`);
       if (typeof sincronizarConNube === 'function') sincronizarConNube();
-      event.target.value = ''; // Limpiar el input
+      event.target.value = ''; 
     } catch (err) {
-      alert("Error al leer el archivo. Asegúrate de que sea un CSV válido. Error: " + err.message);
+      alert("Error al leer el archivo: " + err.message);
     }
   };
   reader.readAsText(file);
