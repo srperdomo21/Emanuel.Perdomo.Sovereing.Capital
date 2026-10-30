@@ -89,6 +89,33 @@ var supabase = (window.supabase && window.supabase.createClient)
   ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
   : null;
 
+
+// --- ESCUCHA EN TIEMPO REAL PARA EL TABLERO ---
+if (supabase) {
+  supabase
+    .channel('codigos-en-vivo')
+    .on(
+      'postgres_changes',
+      { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'codigos_jornada' 
+      },
+      (payload) => {
+        const nuevoRegistro = payload.new;
+        const codigoGenerado = nuevoRegistro.codigo_hash; 
+        const usuario = nuevoRegistro.usuario_nombre;
+
+        // Esto hará que salte una alerta en tu pantalla
+        alert(`🚨 SOLICITUD DE JORNADA\n\nEl cobrador ${usuario} necesita autorización.\n\nEl código es: ${codigoGenerado}`);
+      }
+    )
+    .subscribe();
+}
+
+
+
+
   // ========== SEGURIDAD: Hash de contraseñas + anti fuerza bruta ==========
   var BCRYPT_ROUNDS = 10;
   var loginAttempts = {};
