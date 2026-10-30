@@ -8,7 +8,10 @@
   <meta name="apple-mobile-web-app-title" content="Perdomo Capital">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="description" content="Sistema Maestro Empresarial de microfinanzas - Multi-tenant, cobros GPS, IA predictiva de atraso">
-  <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiUGVyZG9tbyBTb3ZlcmVpZ24gQ2FwaXRhbCIsInNob3J0X25hbWUiOiJQZXJkb21vIENhcGl0YWwiLCJzdGFydF91cmwiOiIuLyIsImRpc3BsYXkiOiJzdGFuZGFsb25lIiwicmFja2dyb3VuZF9jb2xvciI6IiMxZTNhOGEiLCJ0aGVtZV9jb2xvciI6IiMxZTNhOGEiLCJvcmllbnRhdGlvbiI6InBvcnRyYWl0IiwiY2F0ZWdvcmllcyI6WyJmaW5hbmNlIiwiYnVzaW5lc3MiXX0=">
+  
+  <link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="Logosv.png">
+
   <title>Perdomo Sovereign Capital - Sistema Maestro Empresarial v2 Secure</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <!-- BCRYPT para hash seguro de contraseñas -->
@@ -6896,35 +6899,21 @@ async function realizarLogin(e) {
       });
     }
 
-    // Service Worker básico (offline cache de la app)
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', function() {
-        // Registramos un SW inline simple mediante blob
-        var swCode = `
-          const CACHE = 'perdomo-v2-cache-1';
-          self.addEventListener('install', e => {
-            self.skipWaiting();
-            e.waitUntil(caches.open(CACHE).then(c => c.addAll(['./'])));
-          });
-          self.addEventListener('activate', e => {
-            e.waitUntil(self.clients.claim());
-          });
-          self.addEventListener('fetch', e => {
-            e.respondWith(
-              caches.match(e.request).then(r => r || fetch(e.request).catch(() => caches.match('./')))
-            );
-          });
-        `;
-        var blob = new Blob([swCode], { type: 'application/javascript' });
-        var swUrl = URL.createObjectURL(blob);
-        navigator.serviceWorker.register(swUrl).then(function(reg) {
-          console.log('Service Worker registrado (PWA offline)');
-        }).catch(function(err) {
-          console.warn('SW no se pudo registrar:', err);
-        });
-      });
-    }
 
+
+    // Service Worker REAL (Conectado al archivo sw.js)
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('sw.js').then(function(reg) {
+      console.log('✅ Service Worker registrado correctamente.');
+    }).catch(function(err) {
+      console.warn('⚠️ Error al registrar Service Worker:', err);
+    });
+  });
+}
+    
+    
+    
     // ========== AUTOMATIZACIÓN INTELIGENTE DE RECORDATORIOS ==========
     function generarMensajeRecordatorioInteligente(cliente, riesgo, prestamo) {
       var nombreEmpresa = empresaActual || 'Perdomo Sovereign Capital';
