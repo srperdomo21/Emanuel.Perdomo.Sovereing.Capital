@@ -1,14 +1,7 @@
 <html lang="es">
 <head>
-
-<script>
-  window.onerror = function(msg, url, lineNo, columnNo, error) {
-    alert('⚠️ ERROR EN EL SISTEMA:\n' + msg + '\nEn la línea: ' + lineNo);
-    return false;
-  };
-</script>
-
-  
+    
+    
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#1e3a8a">
@@ -7085,43 +7078,6 @@ async function registrarPagoYEnviarWhatsApp(prestamoId, telefonoCliente, nombreC
   }
 }
 
-function toggleLoginPassword(e) {
-  if (e) { e.preventDefault(); e.stopPropagation(); }
-  var input = document.getElementById('loginPassword');
-  var btn = document.getElementById('btnTogglePassword');
-  if (!input) return;
-  if (input.type === 'password') {
-    input.type = 'text';
-    if (btn) { btn.textContent = '🙈'; btn.title = 'Ocultar contraseña'; }
-  } else {
-    input.type = 'password';
-    if (btn) { btn.textContent = '👁️'; btn.title = 'Ver contraseña'; }
-  }
-}
-
-     
-        // Insertar en Supabase
-        if (typeof supabase !== 'undefined' && empresaIdActual) {
-          await supabase.from('clientes').insert([{
-            empresa_id: empresaIdActual,
-            nombre: nuevoCliente.nombre,
-            apodo: nuevoCliente.apodo,
-            cedula: nuevoCliente.cedula,
-            telefono: nuevoCliente.telefono,
-            zona: nuevoCliente.zona,
-            direccion: nuevoCliente.direccion,
-            estado: 'Activo'
-          }]);
-        }
-        importados++;
-      }
-    }
-    alert(`✅ Se importaron ${importados} clientes exitosamente.`);
-    if (typeof sincronizarConNube === 'function') sincronizarConNube();
-  };
-  reader.readAsText(file);
-}
-
 // ========== IMPORTAR CLIENTES DESDE CSV ==========
 
 
@@ -7499,6 +7455,7 @@ async function procesarTextoImportado() {
   if (typeof sincronizarConNube === 'function') sincronizarConNube();
 }
 
+</script>
 <script>
 function abrirModalImportarPrestamos() {
   document.getElementById('modalImportarPrestamos').style.display = 'flex';
