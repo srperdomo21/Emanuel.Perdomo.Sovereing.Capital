@@ -96,18 +96,48 @@ if (supabase) {
     .channel('codigos-en-vivo')
     .on(
       'postgres_changes',
-      { 
-        event: 'INSERT', 
-        schema: 'public', 
-        table: 'codigos_jornada' 
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'codigos_jornada'
       },
       (payload) => {
+        console.log("¡Nuevo código recibido!", payload);
+        
         const nuevoRegistro = payload.new;
         const codigoGenerado = nuevoRegistro.codigo_hash; 
         const usuario = nuevoRegistro.usuario_nombre;
 
-        // Esto hará que salte una alerta en tu pantalla
-        alert(`🚨 SOLICITUD DE JORNADA\n\nEl cobrador ${usuario} necesita autorización.\n\nEl código es: ${codigoGenerado}`);
+        // 1. Crear notificación visual flotante (Toast)
+        const toast = document.createElement('div');
+        toast.style.cssText = 'position:fixed; top:20px; right:20px; background:#16a34a; color:white; padding:20px; border-radius:10px; box-shadow:0 10px 25px rgba(0,0,0,0.5); z-index:99999; font-family:sans-serif; border-left: 8px solid #fff; min-width: 300px; transition: all 0.3s ease;';
+        toast.innerHTML = `
+          <div style="font-size:18px; margin-bottom:5px;">🚨 <strong>Jornada Solicitada</strong></div>
+          <div style="font-size:14px; margin-bottom:10px;">Cobrador: <b>${usuario}</b></div>
+          <div style="font-size:14px;">Código de Autorización:</div>
+          <div style="font-size:32px; letter-spacing:8px; background:#fff; color:#16a34a; padding:5px 10px; border-radius:6px; text-align:center; font-weight:900; margin-top:5px;">${codigoGenerado}</div>
+        `;
+        
+        document.body.appendChild(toast);
+
+        // 2. Reproducir un pitido para llamar tu atención
+        try {
+          const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          const oscillator = audioCtx.createOscillator();
+          oscillator.type = 'sine';
+          oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); 
+          oscillator.connect(audioCtx.destination);
+          oscillator.start();
+          oscillator.stop(audioCtx.currentTime + 0.3);
+        } catch(e) { console.log('Audio no soportado'); }
+
+        // 3. Hacer que la notificación desaparezca después de 20 segundos
+        setTimeout(() => {
+          toast.style.opacity = '0';
+          setTimeout(() => {
+            if(toast.parentNode) toast.parentNode.removeChild(toast);
+          }, 300);
+        }, 20000);
       }
     )
     .subscribe();
