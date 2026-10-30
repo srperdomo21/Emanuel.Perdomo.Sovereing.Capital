@@ -7106,52 +7106,70 @@ function toggleLoginPassword(e) {
 }
 
 // ========== IMPORTAR CLIENTES DESDE CSV ==========
+
 function importarClientesCSV(event) {
   const file = event.target.files[0];
   if (!file) return;
   
-  if (!confirm("¿Estás seguro de importar este archivo CSV? Se agregarán a los clientes actuales.")) {
+  if (!confirm("¿Estás seguro de importar este archivo? Se agregarán a los clientes actuales.")) {
     event.target.value = ''; // Limpiar el input
     return;
   }
 
   const reader = new FileReader();
   reader.onload = async function(e) {
-    const text = e.target.result;
-    const lines = text.split('\n');
-    let importados = 0;
-    
-    for (let i = 1; i < lines.length; i++) {
-      const line = lines[i].trim();
-      if (!line) continue;
+    try {
+      const text = e.target.result;
+      const lines = text.split('\n');
+      let importados = 0;
       
-      // Parseo de CSV (separado por comas y comillas)
-      const cols = line.match(/(".*?"|[^,]+)(?=\s*,|\s*$)/g) || [];
-      const clean = cols.map(c => c.replace(/^"|"$/g, '').trim());
-      
-      if (clean.length >= 5) {
-        // Insertar en Supabase
-        if (typeof supabase !== 'undefined' && empresaIdActual) {
-          await supabase.from('clientes').insert([{
-            empresa_id: empresaIdActual,
-            nombre: clean[1],
-            apodo: clean[2],
-            cedula: clean[3],
-            telefono: clean[4],
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+        
+        // Esta línea detecta si el archivo usa comas o punto y coma (común en Excel)
+        const separador = line.includes(';') ? ';' : ',';
+        const cols = line.split(separador);
+        const clean = cols.map(c => c.replace(/^"|"$/g, '').trim());
+        
+        // Asumiendo que las columnas son: 0=ID, 1=Nombre, 2=Apodo, 3=Cedula, 4=Telefono, 5=Zona, 6=Direccion
+        if (clean.length >= 5) {
+          const nuevoCliente = {
+            id: Date.now() + i,
+            nombre: clean[1] || 'Sin Nombre',
+            apodo: clean[2] || '',
+            cedula: clean[3] || '000-0000000-0',
+            telefono: clean[4] || '',
             zona: clean[5] || 'Zona Principal',
             direccion: clean[6] || 'N/A',
             estado: 'Activo'
-          }]);
+          };
+          
+          if (typeof supabase !== 'undefined' && empresaIdActual) {
+            await supabase.from('clientes').insert([{
+              empresa_id: empresaIdActual,
+              nombre: nuevoCliente.nombre,
+              apodo: nuevoCliente.apodo,
+              cedula: nuevoCliente.cedula,
+              telefono: nuevoCliente.telefono,
+              zona: nuevoCliente.zona,
+              direccion: nuevoCliente.direccion,
+              estado: 'Activo'
+            }]);
+          }
+          importados++;
         }
-        importados++;
       }
+      alert(`✅ ¡Éxito! Se importaron ${importados} clientes correctamente.`);
+      if (typeof sincronizarConNube === 'function') sincronizarConNube();
+      event.target.value = ''; // Limpiar el input
+    } catch (err) {
+      alert("Error al leer el archivo. Asegúrate de que sea un CSV válido. Error: " + err.message);
     }
-    alert(`✅ Se importaron ${importados} clientes exitosamente.`);
-    if (typeof sincronizarConNube === 'function') sincronizarConNube();
-    event.target.value = ''; // Limpiar el input para permitir subir otro
   };
   reader.readAsText(file);
 }
+
 
 
 // ========== FASE 2: SEGURIDAD BANCARIA Y AUDITORÍA ==========
