@@ -1662,17 +1662,17 @@ function redondear(num) {
             </div>
 
             <div id="divPlazoPersonalizadoNuevo" style="display:none; background:#f8fafc; padding:12px; border-radius:6px; border:1px dashed var(--border); margin-bottom:12px;">
-              <div class="form-row">
-                <div class="form-group">
-                  <label>Cantidad de Semanas / Cuotas</label>
-                  <input type="number" id="pSemanasCustom" min="1" placeholder="Ej. 8, 12, 15" oninput="calcularCuotaPreview()">
-                </div>
-                <div class="form-group">
-                  <label>Monto a Pagar por Cuota ($)</label>
-                  <input type="number" id="pCuotaCustom" step="any" placeholder="Ej. 500" oninput="calcularCuotaPreview()">
-                </div>
-              </div>
-            </div>
+  <div class="form-row">
+    <div class="form-group">
+      <label>Cantidad de Semanas / Cuotas</label>
+      <input type="number" id="pSemanasCustom" min="1" placeholder="Ej. 8, 12, 15" oninput="calcularCuotaPreview()">
+    </div>
+    <div class="form-group">
+      <label>Monto a Pagar por Cuota ($)</label>
+      <input type="number" id="pCuotaCustom" step="any" placeholder="Ej. 500" oninput="calcularCuotaPreview()">
+    </div>
+  </div>
+</div>
 
             <div class="form-group">
               <label>Fecha de Inicio</label>
@@ -3917,7 +3917,9 @@ async function realizarLogin(e) {
         cargarFiltroZonasClientes();
         renderClientes();
       }
-      if (tabId === 'nuevoPrestamo') cargarSelectClientes();
+      if (tabId === 'nuevoPrestamo') {
+  try { cargarSelectClientes(); } catch(e) { console.error(e); }
+}
       if (tabId === 'transferenciaRuta') cargarSelectTransferencia();
       if (tabId === 'zonasTab') renderZonasAdmin();
       if (tabId === 'cobradoresTab') renderCobradoresAdmin();
@@ -5804,15 +5806,33 @@ async function realizarLogin(e) {
     }
 
     function cargarSelectClientes() {
-      var select = document.getElementById('pClienteSelect');
-      select.innerHTML = '<option value="">-- Seleccionar --</option>';
-      clientesDB.forEach(function(c) {
-        if (rolUsuarioActual === 'cobrador' && c.zona !== zonaUsuarioActual) return;
-        var apodoTxt = c.apodo ? ' ("' + c.apodo + '")' : '';
-        select.innerHTML += '<option value="' + c.id + '">' + c.nombre + apodoTxt + ' (' + c.cedula + ')</option>';
-      });
-      fotoConfirmacionTemporal = "";
+  try {
+    var select = document.getElementById('pClienteSelect');
+    if (!select) {
+      console.error('No se encontró #pClienteSelect');
+      return;
     }
+    
+    select.innerHTML = '<option value="">-- Seleccionar --</option>';
+    
+    if (!Array.isArray(clientesDB)) {
+      clientesDB = [];
+    }
+    
+    clientesDB.forEach(function(c) {
+      if (rolUsuarioActual === 'cobrador' && c.zona !== zonaUsuarioActual) return;
+      var apodoTxt = c.apodo ? ' ("' + c.apodo + '")' : '';
+      select.innerHTML += '<option value="' + c.id + '">' + c.nombre + apodoTxt + ' (' + c.cedula + ')</option>';
+    });
+    
+    fotoConfirmacionTemporal = "";
+  } catch (err) {
+    console.error('Error en cargarSelectClientes:', err);
+  }
+}
+
+
+
 
     function guardarCliente(e) {
       e.preventDefault();
