@@ -1625,11 +1625,7 @@ function redondear(num) {
       <div id="nuevoPrestamo" class="tab-content">
         <div class="card">
           <h3>Crear Contrato de Préstamo con Múltiples Tasas y Modalidades</h3>
-        
-  
-  <button class="btn" onclick="abrirModalImportarPrestamos()" style="background:#8b5cf6; color:white; font-weight:bold; margin-bottom:15px;">📋 Pegar Préstamos (Importar)</button>
-  
-  
+                                                          
           
           <form id="formPrestamo" onsubmit="guardarPrestamo(event)">
             <div class="form-group">
@@ -3589,23 +3585,7 @@ actualizarSelectsLoginEmpresa();
       }
     }
 
-    function toggleLoginPassword(e) {
-  if (e) { e.preventDefault(); e.stopPropagation(); }
-  var input = document.getElementById('loginPassword');
-  var btn = document.getElementById('btnTogglePassword');
-  if (!input) return;
-  if (input.type === 'password') {
-    input.type = 'text';
-    if (btn) { btn.textContent = '🙈'; btn.title = 'Ocultar contraseña'; }
-  } else {
-    input.type = 'password';
-    if (btn) { btn.textContent = '👁️'; btn.title = 'Ver contraseña'; }
-  }
-}
-                                                 
-
-
-
+                                         
 
   // ========== LOGIN REAL CONTRA SUPABASE (ESTRICTO Y SEGURO) ==========
 async function realizarLogin(e) {
@@ -7583,19 +7563,6 @@ async function procesarTextoImportadoPrestamos() {
 </script>
 
 
-<!-- MODAL PARA PEGAR PRÉSTAMOS -->
-<div id="modalImportarPrestamos" class="modal-overlay" style="z-index: 10006;">
-  <div class="modal-box" style="max-width: 500px;">
-    <h3 style="color:var(--primary); margin-bottom:10px;">📋 Importar Préstamos</h3>
-    <p style="font-size:0.85rem; color:#475569; margin-bottom:10px;">
-      Pega los datos de los préstamos aquí. <br>
-      <strong>Formato:</strong> ID, Cliente, Monto, Balance, Plazo, Cuota, Estado, FechaTermino.
-    </p>
-    <textarea id="textoImportarPrestamos" rows="10" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:6px; font-family:monospace;" placeholder="Pega aquí los datos de tus préstamos..."></textarea>
-    
-    <div style="display:flex; gap:10px; margin-top:15px;">
-      <button type="button" class="btn btn-secondary" onclick="document.getElementById('modalImportarPrestamos').style.display='none'">Cancelar</button>
-      <button type="button" class="btn btn-success" onclick="procesarTextoImportadoPrestamos()">✅ Importar Préstamos</button>
     </div>
   </div>
   
