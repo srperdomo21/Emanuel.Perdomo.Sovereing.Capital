@@ -12,6 +12,12 @@
   <link rel="manifest" href='data:application/json,{"name":"Perdomo Capital","short_name":"Perdomo","start_url":"./","display":"standalone","background_color":"#0f172a","theme_color":"#1e3a8a","description":"Sistema de gestion de cobros y prestamos","icons":[{"src":"Logosv.png","sizes":"192x192","type":"image/png"},{"src":"Logosv.png","sizes":"512x512","type":"image/png"}]}'>
 
   <title>Perdomo Sovereign Capital - Sistema Maestro Empresarial v2 Secure</title>
+
+  
+  
+  
+  
+  
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <!-- BCRYPT para hash seguro de contraseñas -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/bcryptjs/2.4.3/bcrypt.min.js"></script>
@@ -20,6 +26,8 @@
 <!-- SUPABASE -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+
+
 <script>
 // ==========================================
 // FASE 7: CONTROL DE GRÁFICOS Y CIERRE DE CAJA
@@ -27,30 +35,92 @@
 let miGraficoFinanciero = null;
 
 function inicializarGraficoFinanciero() {
-  const ctx = document.getElementById('graficoFinanciero')?.getContext('2d');
-  if (!ctx) return;
-
-  // Destruir gráfico previo si ya existía para evitar solapamientos
-  if (miGraficoFinanciero) {
-    miGraficoFinanciero.destroy();
+  const canvas = document.getElementById('graficoFinanciero');
+  if (!canvas) {
+    console.warn('No existe #graficoFinanciero en el DOM');
+    return;
+  }
+  if (typeof Chart === 'undefined') {
+    console.error('Chart.js no está cargado');
+    return;
   }
 
-  // Renderizar gráfico profesional con Chart.js usando la paleta corporativa (Negro/Oro)
+  const ctx = canvas.getContext('2d');
+
+  // Destruir instancia previa para evitar solapamientos
+  if (miGraficoFinanciero) {
+    miGraficoFinanciero.destroy();
+    miGraficoFinanciero = null;
+  }
+
+  // ============ CALCULAR DATOS REALES DE LOS ÚLTIMOS 6 DÍAS ============
+  const hoy = new Date();
+  hoy.setHours(0,0,0,0);
+
+  const labels = [];
+  const dataCobros = [];
+  const dataPrestamos = [];
+
+  // Nombres de días
+  const diasNombre = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(hoy);
+    d.setDate(d.getDate() - i);
+    labels.push(diasNombre[d.getDay()] + ' ' + d.getDate());
+
+    // Cobros de ese día
+    let totalCobro = 0;
+    (cobrosDB || []).forEach(function(c) {
+      if (rolUsuarioActual === 'cobrador') {
+        const p = prestamosDB.find(function(item){ return item.id == c.prestamoId; });
+        const cli = clientesDB.find(function(item){ return item.id == (p ? p.clienteId : 0); });
+        if (!cli || cli.zona !== zonaUsuarioActual) return;
+      }
+      let fechaC = null;
+      if (c.timestamp) fechaC = new Date(c.timestamp);
+      else if (c.fecha) {
+        const partes = String(c.fecha).split('/');
+        if (partes.length === 3) fechaC = new Date(partes[2], partes[1]-1, partes[0]);
+        else fechaC = new Date(c.fecha);
+      }
+      if (!fechaC) return;
+      fechaC.setHours(0,0,0,0);
+      if (fechaC.getTime() === d.getTime()) totalCobro += (c.monto || 0);
+    });
+    dataCobros.push(totalCobro);
+
+    // Préstamos desembolsados ese día
+    let totalPrestamo = 0;
+    (prestamosDB || []).forEach(function(p) {
+      if (!p.fechaInicio) return;
+      const partes = String(p.fechaInicio).split('-');
+      let fechaP = null;
+      if (partes.length === 3) fechaP = new Date(partes[0], partes[1]-1, partes[2]);
+      else fechaP = new Date(p.fechaInicio);
+      if (!fechaP) return;
+      fechaP.setHours(0,0,0,0);
+      if (fechaP.getTime() === d.getTime()) totalPrestamo += (p.monto || 0);
+    });
+    dataPrestamos.push(totalPrestamo);
+  }
+
+  // ============ RENDERIZAR ============
   miGraficoFinanciero = new Chart(ctx, {
     type: 'bar',
     data: {
-      labels: ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'],
+      labels: labels,
       datasets: [
         {
           label: 'Cobros Realizados (RD$)',
-          data: [12500, 18000, 14200, 21500, 26000, 31000],
-          backgroundColor: '#D4AF37', // Tono dorado de Perdomo Sovereign Capital
+          data: dataCobros,
+          backgroundColor: '#D4AF37',
           borderRadius: 4
         },
         {
           label: 'Préstamos Desembolsados (RD$)',
-          data: [30000, 15000, 40000, 25000, 10000, 45000],
-          backgroundColor: '#1f2937', // Tono gris oscuro corporativo
+          data: dataPrestamos,
+          backgroundColor: '#1f2937',
           borderRadius: 4
         }
       ]
@@ -59,29 +129,110 @@ function inicializarGraficoFinanciero() {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: { labels: { color: '#fff' } }
+        legend: { labels: { color: '#fff' } },
+        tooltip: {
+          callbacks: {
+            label: function(ctx) {
+              return ctx.dataset.label + ': RD$ ' + (ctx.raw || 0).toLocaleString('en-US', {minimumFractionDigits: 2});
+            }
+          }
+        }
       },
       scales: {
         x: { ticks: { color: '#9ca3af' }, grid: { color: '#374151' } },
-        y: { ticks: { color: '#9ca3af' }, grid: { color: '#374151' } }
+        y: {
+          beginAtZero: true,
+          ticks: {
+            color: '#9ca3af',
+            callback: function(v) { return 'RD$ ' + v.toLocaleString(); }
+          },
+          grid: { color: '#374151' }
+        }
       }
     }
   });
+
+  // ============ ACTUALIZAR TARJETAS RESUMEN ============
+  actualizarResumenReportes();
+}
+
+function actualizarResumenReportes() {
+  const hoyStr = new Date().toLocaleDateString('es-DO');
+
+  // Total cartera (balances activos)
+  let totalCartera = 0;
+  let totalMora = 0;
+
+  (prestamosDB || []).forEach(function(p) {
+    if (rolUsuarioActual === 'cobrador') {
+      const cli = clientesDB.find(function(c){ return c.id == p.clienteId; });
+      if (!cli || cli.zona !== zonaUsuarioActual) return;
+    }
+    if (p.balancePendiente > 0) {
+      totalCartera += p.balancePendiente;
+      totalMora += (p.moraManualFija || 0);
+    }
+  });
+
+  // Cobros de hoy
+  const cobrosHoy = (cobrosDB || []).filter(function(c){ return c.fecha === hoyStr; })
+    .reduce(function(acc, c){ return acc + (c.monto || 0); }, 0);
+
+  const el1 = document.getElementById('lblTotalCartera');
+  const el2 = document.getElementById('lblCobrosHoy');
+  const el3 = document.getElementById('lblMoraTotal');
+
+  if (el1) el1.textContent = 'RD$ ' + totalCartera.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+  if (el2) el2.textContent = 'RD$ ' + cobrosHoy.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+  if (el3) el3.textContent = 'RD$ ' + totalMora.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
 }
 
 async function realizarCierreCaja() {
-  const fechaHoy = new Date().toISOString().split('T')[0];
-  if (confirm(`¿Deseas efectuar el cierre de caja y consolidación del día ${fechaHoy}?`)) {
-    try {
-      // Opcional: Registro del cierre en Supabase
-      alert('¡Cierre de caja completado exitosamente! Los registros del día han sido sellados en el sistema.');
-    } catch (err) {
-      console.error('Error al realizar cierre:', err);
-      alert('Ocurrió un error al procesar el cierre.');
+  const fechaHoy = new Date().toLocaleDateString('es-DO');
+  if (!confirm(`¿Deseas efectuar el cierre de caja y consolidación del día ${fechaHoy}?`)) return;
+
+  try {
+    // Calcular totales del día
+    const cobrosHoy = (cobrosDB || []).filter(function(c){ return c.fecha === fechaHoy; })
+      .reduce(function(a,c){ return a + (c.monto||0); }, 0);
+    const gastosHoy = (gastosDB || []).filter(function(g){ return g.fecha === fechaHoy; })
+      .reduce(function(a,g){ return a + (g.monto||0); }, 0);
+    const fondo = (controlDiaDB && controlDiaDB.fecha === fechaHoy) ? (controlDiaDB.fondoInicial||0) : 0;
+    const neto = fondo + cobrosHoy - gastosHoy;
+
+    // Guardar notificación de cierre
+    if (typeof notificacionesDB !== 'undefined') {
+      notificacionesDB.push({
+        id: Date.now(),
+        texto: '✅ CIERRE DE CAJA del ' + fechaHoy + ' — Cobros: RD$' + cobrosHoy.toFixed(2) +
+               ' | Gastos: RD$' + gastosHoy.toFixed(2) + ' | Fondo: RD$' + fondo.toFixed(2) +
+               ' | Efectivo Neto: RD$' + neto.toFixed(2),
+        fecha: new Date().toLocaleString(),
+        tipo: 'CierreCaja'
+      });
     }
+
+    // Cerrar jornada
+    if (typeof controlDiaDB !== 'undefined') {
+      controlDiaDB.abierto = false;
+    }
+
+    if (typeof guardarDatosEnNube === 'function') guardarDatosEnNube();
+    if (typeof renderNotificacionesAdmin === 'function') renderNotificacionesAdmin();
+
+    alert('✅ Cierre de caja completado.\n\nCobros: RD$' + cobrosHoy.toFixed(2) +
+          '\nGastos: RD$' + gastosHoy.toFixed(2) +
+          '\nEfectivo neto: RD$' + neto.toFixed(2));
+  } catch (err) {
+    console.error('Error al realizar cierre:', err);
+    alert('Ocurrió un error al procesar el cierre.');
   }
 }
 </script>
+
+
+
+
 
 <script>
     
@@ -669,14 +820,13 @@ function redondear(num) {
 </div>
 
      <!-- ========================================== -->
-<!-- FASE 7: ESTADÍSTICAS Y CIERRES DE CAJA     -->
+<!-- FASE 7: ESTADÍSTICAS Y CIERRE DE CAJA     -->
 <!-- ========================================== -->
-
-<div id="reportes" class="tab-content p-6 bg-gray-950 text-white min-h-screen" style="display: none;">
+<div id="reportes" class="tab-content p-6 bg-gray-950 text-white min-h-screen">
   <div class="max-w-4xl mx-auto space-y-6">
     <h2 class="text-xl font-bold text-yellow-500 border-b border-yellow-600 pb-2 flex justify-between items-center">
       <span>📊 Estadísticas y Cierre de Caja</span>
-      <button onclick="inicializarGraficoFinanciero()" class="text-xs bg-gray-800 text-yellow-400 px-3 py-1 rounded border border-yellow-600">Actualizar Datos</button>
+      <button onclick="inicializarGraficoFinanciero()" class="text-xs bg-gray-800 text-yellow-400 px-3 py-1 rounded border border-yellow-600">🔄 Actualizar Datos</button>
     </h2>
     
     <!-- Tarjetas de Resumen Financiero -->
@@ -697,8 +847,8 @@ function redondear(num) {
 
     <!-- Contenedor para Gráfico de Chart.js -->
     <div class="bg-gray-900 border border-gray-800 p-4 rounded-lg shadow">
-      <h3 class="text-sm font-bold text-yellow-500 mb-4">Comportamiento Semanal: Cobros vs Préstamos</h3>
-      <div class="relative h-64 w-full">
+      <h3 class="text-sm font-bold text-yellow-500 mb-4">Comportamiento Semanal: Cobros vs Préstamos (últimos 6 días)</h3>
+      <div class="relative" style="height:280px; width:100%;">
         <canvas id="graficoFinanciero"></canvas>
       </div>
     </div>
@@ -711,48 +861,7 @@ function redondear(num) {
     </div>
   </div>
 </div>
-
-<div id="seccionReportes" class="p-6 bg-gray-950 text-white min-h-screen" style="display: none;">
-  <div class="max-w-4xl mx-auto space-y-6">
-    <h2 class="text-xl font-bold text-yellow-500 border-b border-yellow-600 pb-2 flex justify-between items-center">
-      <span>📊 Estadísticas y Cierre de Caja</span>
-      <button onclick="inicializarGraficoFinanciero()" class="text-xs bg-gray-800 text-yellow-400 px-3 py-1 rounded border border-yellow-600">Actualizar Datos</button>
-    </h2>
-    
-    <!-- Tarjetas de Resumen Financiero -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div class="bg-gray-900 border border-gray-800 p-4 rounded-lg shadow">
-        <p class="text-xs text-gray-400">Total Prestado (Cartera)</p>
-        <h3 id="lblTotalCartera" class="text-xl font-bold text-white">RD$ 0.00</h3>
-      </div>
-      <div class="bg-gray-900 border border-gray-800 p-4 rounded-lg shadow">
-        <p class="text-xs text-gray-400">Cobros del Día</p>
-        <h3 id="lblCobrosHoy" class="text-xl font-bold text-green-400">RD$ 0.00</h3>
-      </div>
-      <div class="bg-gray-900 border border-gray-800 p-4 rounded-lg shadow">
-        <p class="text-xs text-gray-400">Cuotas en Mora</p>
-        <h3 id="lblMoraTotal" class="text-xl font-bold text-red-500">RD$ 0.00</h3>
-      </div>
-    </div>
-
-    <!-- Contenedor para Gráfico de Chart.js -->
-    <div class="bg-gray-900 border border-gray-800 p-4 rounded-lg shadow">
-      <h3 class="text-sm font-bold text-yellow-500 mb-4">Comportamiento Semanal: Cobros vs Préstamos</h3>
-      <div class="relative h-64 w-full">
-        <canvas id="graficoFinanciero"></canvas>
-      </div>
-    </div>
-    
-    <!-- Botón de Cierre de Caja -->
-    <div class="flex justify-end">
-      <button onclick="realizarCierreCaja()" class="bg-yellow-600 hover:bg-yellow-500 text-black font-bold px-6 py-2.5 rounded shadow transition">
-        🔒 Realizar Cierre de Caja Diario
-      </button>
-    </div>
-  </div>
-</div>                                                              
-
-
+                                                              
 
   <!-- BANNER DE ALERTA DE PAGO AUTOMÁTICO (5 DÍAS ANTES) -->
   <div id="bannerAlertaPago" style="display:none; background:var(--warning); color:white; padding:10px 15px; text-align:center; font-weight:700; font-size:0.85rem; position:relative; z-index:2100;">
@@ -939,6 +1048,60 @@ function redondear(num) {
     </div>
 
     <div id="seccionModuloPrincipal">
+        
+   <!-- ========================================== -->
+<!-- INTELIGENCIA DE NEGOCIOS (BI)              -->
+<!-- ========================================== -->
+<div id="businessIntelligenceTab" class="tab-content">
+  <div class="card">
+    <h3 style="color:var(--primary);">🧠 Inteligencia de Negocios (BI)</h3>
+    <p style="font-size:0.85rem; color:#475569; margin-bottom:15px;">Análisis predictivo del comportamiento de tu cartera, clientes en riesgo y proyecciones financieras.</p>
+
+    <!-- KPIs principales -->
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap:12px; margin-bottom:20px;">
+      <div class="metric-item" style="border-left:4px solid var(--success);">
+        <span style="font-size:0.75rem; color:#64748b; font-weight:600;">📈 Tasa de Recuperación</span>
+        <span id="biTasaRecuperacion" style="font-weight:800; font-size:1.3rem; color:var(--success);">0%</span>
+      </div>
+      <div class="metric-item" style="border-left:4px solid var(--danger);">
+        <span style="font-size:0.75rem; color:#64748b; font-weight:600;">⚠️ Tasa de Mora</span>
+        <span id="biTasaMora" style="font-weight:800; font-size:1.3rem; color:var(--danger);">0%</span>
+      </div>
+      <div class="metric-item" style="border-left:4px solid var(--primary);">
+        <span style="font-size:0.75rem; color:#64748b; font-weight:600;">👥 Clientes Activos</span>
+        <span id="biClientesActivos" style="font-weight:800; font-size:1.3rem; color:var(--primary);">0</span>
+      </div>
+      <div class="metric-item" style="border-left:4px solid var(--warning);">
+        <span style="font-size:0.75rem; color:#64748b; font-weight:600;">🎯 Ticket Promedio</span>
+        <span id="biTicketPromedio" style="font-weight:800; font-size:1.3rem; color:var(--warning);">$0</span>
+      </div>
+    </div>
+
+    <!-- Gráfico: distribución de riesgo -->
+    <div class="card" style="margin-bottom:16px;">
+      <h4 style="font-size:0.9rem; color:var(--primary); margin-bottom:10px;">Distribución de Clientes por Nivel de Riesgo (IA)</h4>
+      <div style="position:relative; height:250px;">
+        <canvas id="chartRiesgoBI"></canvas>
+      </div>
+    </div>
+
+    <!-- Gráfico: evolución mensual -->
+    <div class="card" style="margin-bottom:16px;">
+      <h4 style="font-size:0.9rem; color:var(--primary); margin-bottom:10px;">Proyección: Cobrado vs Esperado (últimos 6 meses)</h4>
+      <div style="position:relative; height:250px;">
+        <canvas id="chartProyeccionBI"></canvas>
+      </div>
+    </div>
+
+    <!-- Top 10 clientes por riesgo -->
+    <div class="card">
+      <h4 style="font-size:0.9rem; color:var(--danger); margin-bottom:10px;">🚨 Top 10 Clientes en Riesgo (IA Predictiva)</h4>
+      <div id="biTopRiesgoDiv">Cargando análisis...</div>
+    </div>
+  </div>
+</div>   
+    
+        
               <!-- APARTADO: CREAR NUEVAS EMPRESAS (AISLADAS) -->
       <div id="crearEmpresaTab" class="tab-content">
         <div class="card">
@@ -3954,6 +4117,25 @@ async function realizarLogin(e) {
       
       if (tabId === 'businessIntelligenceTab') renderBusinessIntelligence();
       
+    
+    // === INICIALIZAR MÓDULOS CON GRÁFICOS ===
+if (tabId === 'reportes') {
+  setTimeout(function() {
+    try { inicializarGraficoFinanciero(); } catch(e) { console.warn('Error gráfico reportes:', e); }
+  }, 100);
+}
+if (tabId === 'businessIntelligenceTab') {
+  setTimeout(function() {
+    try { renderBusinessIntelligence(); } catch(e) { console.warn('Error BI:', e); }
+  }, 100);
+}
+if (tabId === 'resumen') {
+  setTimeout(function() {
+    try { actualizarMetricas(); } catch(e) { console.warn('Error métricas:', e); }
+  }, 100);
+}
+    
+    
       
       
       try { localStorage.setItem('psc_ultima_pestana', tabId); } catch(e){}
@@ -7490,5 +7672,208 @@ async function procesarTextoImportado() {
 </script>
 
 
+<script>
+// ==========================================
+// INTELIGENCIA DE NEGOCIOS (BI)
+// ==========================================
+var chartRiesgoBIInstance = null;
+var chartProyeccionBIInstance = null;
+
+function renderBusinessIntelligence() {
+  if (typeof Chart === 'undefined') return;
+
+  // ===== KPIs =====
+  let totalPrestado = 0;
+  let totalCobrado = 0;
+  let totalCartera = 0;
+  let totalMora = 0;
+  let clientesActivos = 0;
+  const conteoRiesgo = { alto: 0, medio: 0, bajo: 0, sin_prestamo: 0 };
+
+  const riesgosPorCliente = [];
+
+  (prestamosDB || []).forEach(function(p) {
+    totalPrestado += (p.monto || 0);
+    totalCobrado += ((p.totalPagar || 0) - (p.balancePendiente || 0));
+    if (p.balancePendiente > 0) {
+      totalCartera += p.balancePendiente;
+      totalMora += (p.moraManualFija || 0);
+      clientesActivos++;
+    }
+  });
+
+  (clientesDB || []).forEach(function(c) {
+    const r = calcularRiesgoCliente(c.id);
+    if (conteoRiesgo[r.nivel] !== undefined) conteoRiesgo[r.nivel]++;
+    if (r.nivel === 'alto' || r.nivel === 'medio') {
+      riesgosPorCliente.push({ cliente: c, riesgo: r });
+    }
+  });
+
+  const tasaRecuperacion = totalPrestado > 0 ? (totalCobrado / totalPrestado) * 100 : 0;
+  const tasaMora = totalCartera > 0 ? (totalMora / totalCartera) * 100 : 0;
+  const ticketPromedio = clientesActivos > 0 ? (totalCartera / clientesActivos) : 0;
+
+  const el1 = document.getElementById('biTasaRecuperacion');
+  const el2 = document.getElementById('biTasaMora');
+  const el3 = document.getElementById('biClientesActivos');
+  const el4 = document.getElementById('biTicketPromedio');
+
+  if (el1) el1.textContent = tasaRecuperacion.toFixed(1) + '%';
+  if (el2) el2.textContent = tasaMora.toFixed(1) + '%';
+  if (el3) el3.textContent = clientesActivos;
+  if (el4) el4.textContent = '$' + ticketPromedio.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+
+  // ===== Gráfico: distribución de riesgo =====
+  const ctxRiesgo = document.getElementById('chartRiesgoBI');
+  if (ctxRiesgo) {
+    if (chartRiesgoBIInstance) chartRiesgoBIInstance.destroy();
+    chartRiesgoBIInstance = new Chart(ctxRiesgo, {
+      type: 'doughnut',
+      data: {
+        labels: ['Riesgo Alto', 'Riesgo Medio', 'Riesgo Bajo', 'Sin préstamo'],
+        datasets: [{
+          data: [conteoRiesgo.alto, conteoRiesgo.medio, conteoRiesgo.bajo, conteoRiesgo.sin_prestamo],
+          backgroundColor: ['#dc2626', '#d97706', '#16a34a', '#94a3b8'],
+          borderWidth: 0,
+          hoverOffset: 8
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '60%',
+        plugins: {
+          legend: { position: 'bottom', labels: { padding: 15, usePointStyle: true } }
+        }
+      }
+    });
+  }
+
+  // ===== Gráfico: proyección mensual =====
+  const ctxProy = document.getElementById('chartProyeccionBI');
+  if (ctxProy) {
+    if (chartProyeccionBIInstance) chartProyeccionBIInstance.destroy();
+
+    const labels = [];
+    const esperado = [];
+    const cobrado = [];
+
+    const hoy = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1);
+      labels.push(d.toLocaleDateString('es-DO', { month: 'short', year: '2-digit' }));
+
+      let mesEsperado = 0;
+      let mesCobrado = 0;
+
+      (prestamosDB || []).forEach(function(p) {
+        if (!p.fechaInicio) return;
+        const parts = String(p.fechaInicio).split('-');
+        if (parts.length !== 3) return;
+        const fP = new Date(parts[0], parts[1]-1, parts[2]);
+        if (fP.getMonth() === d.getMonth() && fP.getFullYear() === d.getFullYear()) {
+          mesEsperado += (p.totalPagar || 0);
+        }
+      });
+
+      (cobrosDB || []).forEach(function(c) {
+        let fechaC = null;
+        if (c.timestamp) fechaC = new Date(c.timestamp);
+        else if (c.fecha) {
+          const parts = String(c.fecha).split('/');
+          if (parts.length === 3) fechaC = new Date(parts[2], parts[1]-1, parts[0]);
+        }
+        if (!fechaC) return;
+        if (fechaC.getMonth() === d.getMonth() && fechaC.getFullYear() === d.getFullYear()) {
+          mesCobrado += (c.monto || 0);
+        }
+      });
+
+      esperado.push(mesEsperado);
+      cobrado.push(mesCobrado);
+    }
+
+    chartProyeccionBIInstance = new Chart(ctxProy, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'Esperado',
+            data: esperado,
+            borderColor: '#94a3b8',
+            backgroundColor: 'rgba(148,163,184,0.1)',
+            borderDash: [5,5],
+            tension: 0.35,
+            fill: false
+          },
+          {
+            label: 'Cobrado Real',
+            data: cobrado,
+            borderColor: '#16a34a',
+            backgroundColor: 'rgba(22,163,74,0.15)',
+            tension: 0.35,
+            fill: true
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { labels: { color: '#475569' } },
+          tooltip: {
+            callbacks: {
+              label: function(ctx) { return ctx.dataset.label + ': $' + (ctx.raw||0).toLocaleString(); }
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: { callback: function(v){ return '$' + v.toLocaleString(); } },
+            grid: { color: 'rgba(0,0,0,0.05)' }
+          },
+          x: { grid: { display: false } }
+        }
+      }
+    });
+  }
+
+  // ===== Top 10 clientes en riesgo =====
+  const cont = document.getElementById('biTopRiesgoDiv');
+  if (cont) {
+    riesgosPorCliente.sort(function(a,b){ return b.riesgo.score - a.riesgo.score; });
+    const top10 = riesgosPorCliente.slice(0, 10);
+
+    if (top10.length === 0) {
+      cont.innerHTML = '<p style="color:var(--success); text-align:center; padding:15px;">✅ No hay clientes en riesgo alto o medio actualmente.</p>';
+    } else {
+      cont.innerHTML = top10.map(function(item, idx) {
+        const c = item.cliente;
+        const r = item.riesgo;
+        return '<div onclick="verPerfilCreditoCliente(' + c.id + ', \'clientes\')" style="display:flex; justify-content:space-between; align-items:center; padding:10px 12px; margin-bottom:6px; background:var(--bg); border-left:4px solid ' + r.color + '; border-radius:8px; cursor:pointer;">' +
+          '<div style="flex:1;">' +
+            '<strong>#' + (idx+1) + ' ' + c.nombre + '</strong> <span style="font-size:0.75rem; color:var(--accent);">[' + (c.zona||'') + ']</span><br>' +
+            '<small style="color:var(--text-muted); font-size:0.75rem;">' + r.detalle + '</small>' +
+          '</div>' +
+          '<div style="text-align:right;">' +
+            '<div style="font-size:1.1rem; font-weight:800; color:' + r.color + ';">' + r.score + '/100</div>' +
+            '<small style="color:' + r.color + '; font-weight:700;">' + r.emoji + ' ' + r.etiqueta + '</small>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    }
+  }
+}
+</script>
+
 </body>
 </html>
+
+
+
+
+
+
