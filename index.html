@@ -1673,6 +1673,90 @@ let controlDiaDB = { abierto: false, fondoInicial: 0, fecha: '', empleado: '', z
 let empresasGlobalesDB = [];
 
 // ============ CARGAR TODO DESDE SUPABASE ============
+function mapEmpresaFromSB(e) {
+  if (!e) return e;
+  return {
+    id: e.id,
+    nombre: e.nombre || '',
+    rnc: e.rnc || '',
+    cedula: e.cedula || '',
+    usuarioAdmin: e.usuario_admin || e.usuarioAdmin || 'admin',
+    passwordAdmin: e.password_hash || e.passwordAdmin || e.password || 'Admin21',
+    fechaPago: e.fecha_pago || e.fechaPago || '',
+    estado: e.estado || 'activa',
+    requierePago: (e.requiere_pago !== undefined) ? e.requiere_pago : (e.requierePago !== undefined ? e.requierePago : true),
+    colorPrimario: e.color_primario || e.colorPrimario || '#1e3a8a',
+    logo: e.logo || '',
+    plan: e.plan || 'profesional',
+    limiteCobradores: e.limite_cobradores || e.limiteCobradores || 15
+  };
+}
+
+function mapClienteFromSB(c) {
+  if (!c) return c;
+  return {
+    id: c.id,
+    empresaId: c.empresa_id || c.empresaId,
+    nombre: c.nombre || '',
+    apodo: c.apodo || '',
+    cedula: c.cedula || '',
+    telefono: c.telefono || '',
+    provincia: c.provincia || '',
+    ciudad: c.ciudad || '',
+    sector: c.sector || '',
+    calle: c.calle || '',
+    numCasa: c.num_casa || c.numCasa || '',
+    direccion: c.direccion || '',
+    zona: c.zona || '',
+    foto: c.foto || '',
+    firma: c.firma || '',
+    estado: c.estado || 'Activo'
+  };
+}
+
+function mapPrestamoFromSB(p) {
+  if (!p) return p;
+  return {
+    id: p.id,
+    empresaId: p.empresa_id || p.empresaId,
+    clienteId: p.cliente_id || p.clienteId,
+    clienteNombre: p.cliente_nombre || p.clienteNombre || '',
+    cedula: p.cedula || '',
+    telefono: p.telefono || '',
+    direccion: p.direccion || '',
+    monto: Number(p.monto || 0),
+    gastoCierre: Number(p.gasto_cierre || p.gastoCierre || 0),
+    montoNeto: p.monto_neto != null ? Number(p.monto_neto) : (p.montoNeto != null ? Number(p.montoNeto) : null),
+    tasa: Number(p.tasa || 30),
+    plazo: p.plazo || '',
+    numCuotas: Number(p.num_cuotas || p.numCuotas || 0),
+    valorCuota: Number(p.valor_cuota || p.valorCuota || 0),
+    totalPagar: Number(p.total_pagar || p.totalPagar || 0),
+    balancePendiente: Number(p.balance_pendiente != null ? p.balance_pendiente : (p.balancePendiente != null ? p.balancePendiente : 0)),
+    fechaInicio: p.fecha_inicio || p.fechaInicio || '',
+    fechaTermino: p.fecha_termino || p.fechaTermino || '',
+    fotoConfirmacion: p.foto_confirmacion || p.fotoConfirmacion || '',
+    firma: p.firma || '',
+    moraManualFija: Number(p.mora_manual_fija || p.moraManualFija || 0),
+    estado: p.estado || 'Activo'
+  };
+}
+
+function mapCobroFromSB(c) {
+  if (!c) return c;
+  return {
+    id: c.id,
+    empresaId: c.empresa_id || c.empresaId,
+    prestamoId: c.prestamo_id || c.prestamoId,
+    clienteId: c.cliente_id || c.clienteId,
+    monto: Number(c.monto || 0),
+    fecha: c.fecha || '',
+    timestamp: c.timestamp || c.created_at || c.id,
+    nota: c.nota || '',
+    cobrador: c.cobrador || ''
+  };
+}
+
 async function sincronizarConNube() {
   // Usar cliente seguro (window.supabaseClient o variable supabase)
   var sb = (typeof window !== 'undefined' && window.supabaseClient) ? window.supabaseClient : (typeof supabase !== 'undefined' ? supabase : null);
@@ -1684,12 +1768,12 @@ async function sincronizarConNube() {
   }
 
   try {
-    // 1. Cargar empresas
+    // 1. Cargar empresas y mapear a formato del sistema
     var resEmp = await sb.from('empresas').select('*').order('id');
     if (resEmp.error) throw resEmp.error;
     var empresas = resEmp.data;
     if (empresas && empresas.length > 0) {
-      empresasGlobalesDB = empresas;
+      empresasGlobalesDB = empresas.map(mapEmpresaFromSB);
     }
 
     // Buscar el id de la empresa actual
@@ -1716,23 +1800,40 @@ async function sincronizarConNube() {
       sb.from('inversionistas').select('*').eq('empresa_id', empresaIdActual)
     ]);
 
-    clientesDB = (resultados[0].data) || clientesDB || [];
-    prestamosDB = (resultados[1].data) || prestamosDB || [];
-    cobrosDB = (resultados[2].data) || cobrosDB || [];
-    gastosDB = (resultados[3].data) || gastosDB || [];
-    rutasDB = (resultados[4].data) || rutasDB || [];
-    empleadosDB = (resultados[5].data) || empleadosDB || [];
-    cobradoresDB = (resultados[6].data) || cobradoresDB || [];
-    notasDB = (resultados[7].data) || notasDB || [];
-    notificacionesDB = (resultados[8].data) || notificacionesDB || [];
+    // Mapear snake_case (Supabase) → camelCase (sistema)
+    clientesDB = (resultados[0].data || []).map(mapClienteFromSB);
+    prestamosDB = (resultados[1].data || []).map(mapPrestamoFromSB);
+    cobrosDB = (resultados[2].data || []).map(mapCobroFromSB);
+    gastosDB = resultados[3].data || [];
+    rutasDB = resultados[4].data || [];
+    empleadosDB = resultados[5].data || [];
+    cobradoresDB = resultados[6].data || [];
+    notasDB = resultados[7].data || [];
+    notificacionesDB = resultados[8].data || [];
     var control = resultados[9].data;
-    inversionistasDB = (resultados[10].data) || inversionistasDB || [];
+    inversionistasDB = resultados[10].data || [];
 
     if (control && control.length > 0) {
-      controlDiaDB = control[0];
+      var cd = control[0];
+      controlDiaDB = {
+        id: cd.id,
+        abierto: cd.abierto,
+        fondoInicial: cd.fondo_inicial != null ? cd.fondo_inicial : (cd.fondoInicial || 0),
+        fecha: cd.fecha || '',
+        empleado: cd.empleado || '',
+        zona: cd.zona || ''
+      };
     }
 
-    console.log('✅ Datos cargados desde Supabase');
+    // Guardar copia local para modo offline
+    try {
+      localStorage.setItem('psc_clientes', JSON.stringify(clientesDB));
+      localStorage.setItem('psc_prestamos', JSON.stringify(prestamosDB));
+      localStorage.setItem('psc_cobros', JSON.stringify(cobrosDB));
+      localStorage.setItem('psc_empresas_globales', JSON.stringify(empresasGlobalesDB));
+    } catch (e) {}
+
+    console.log('✅ Datos cargados desde Supabase:', clientesDB.length, 'clientes,', prestamosDB.length, 'préstamos');
 
     if (typeof renderClientes === 'function') renderClientes();
     if (typeof actualizarMetricas === 'function') actualizarMetricas();
