@@ -5217,6 +5217,7 @@ if (tabId === 'resumen') {
 }
     
     
+       
     
     function exportarExcelClientes() {
       var csv = "ID,Nombre,Apodo,Cedula,Telefono,Zona,Direccion\n";
@@ -7828,21 +7829,25 @@ function renderBusinessIntelligence() {
       cont.innerHTML = top10.map(function(item, idx) {
         const c = item.cliente;
         const r = item.riesgo;
-        return `<div onclick="verPerfilCreditoCliente(${c.id}, 'clientes')" style="display:flex; justify-content:space-between; align-items:center; padding:10px 12px; margin-bottom:6px; background:var(--bg); border-left:4px solid ${r.color}; border-radius:8px; cursor:pointer;">
-          <div style="flex:1;">
-            <strong>#${idx+1} ${c.nombre}</strong> <span style="font-size:0.75rem; color:var(--accent);">[${c.zona||''}]</span><br>
-            <small style="color:var(--text-muted); font-size:0.75rem;">${r.detalle}</small>
-          </div>
-          <div style="text-align:right;">
-            <div style="font-size:1.1rem; font-weight:800; color:${r.color};">${r.score}/100</div>
-            <small style="color:${r.color}; font-weight:700;">${r.emoji} ${r.etiqueta}</small>
-          </div>
-        </div>`;
+        return '<div onclick="verPerfilCreditoCliente(' + c.id + ', \'clientes\')" style="display:flex; justify-content:space-between; align-items:center; padding:10px 12px; margin-bottom:6px; background:var(--bg); border-left:4px solid ' + r.color + '; border-radius:8px; cursor:pointer;">' +
+          '<div style="flex:1;">' +
+            '<strong>#' + (idx+1) + ' ' + c.nombre + '</strong> <span style="font-size:0.75rem; color:var(--accent);">[' + (c.zona||'') + ']</span><br>' +
+            '<small style="color:var(--text-muted); font-size:0.75rem;">' + r.detalle + '</small>' +
+          '</div>' +
+          '<div style="text-align:right;">' +
+            '<div style="font-size:1.1rem; font-weight:800; color:' + r.color + ';">' + r.score + '/100</div>' +
+            '<small style="color:' + r.color + '; font-weight:700;">' + r.emoji + ' ' + r.etiqueta + '</small>' +
+          '</div>' +
+        '</div>';
       }).join('');
     }
   }
 }
+
+
 </script>
 
 </body>
 </html>
+
+
