@@ -11,7 +11,20 @@
 <script>
   const SUPABASE_URL = 'https://quspjrizkyhowquonyum.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_2CFYvUocRvSErAAmRfDSMw_NbI_Gejt';
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  // Crear cliente de forma segura (evitar conflicto con window.supabase del CDN)
+  var supabase = null;
+  try {
+    var _sbLib = window.supabase;
+    var _createClient = (_sbLib && _sbLib.createClient) ? _sbLib.createClient : null;
+    if (typeof _createClient === 'function') {
+      supabase = _createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      window.supabaseClient = supabase; // alias global seguro
+    } else {
+      console.warn('Supabase library no cargó createClient');
+    }
+  } catch (e) {
+    console.warn('Error iniciando Supabase:', e);
+  }
 </script>
 
 <style>
@@ -1661,62 +1674,59 @@ let empresasGlobalesDB = [];
 
 // ============ CARGAR TODO DESDE SUPABASE ============
 async function sincronizarConNube() {
+  // Usar cliente seguro (window.supabaseClient o variable supabase)
+  var sb = (typeof window !== 'undefined' && window.supabaseClient) ? window.supabaseClient : (typeof supabase !== 'undefined' ? supabase : null);
+
+  // Si no hay cliente válido, usar solo datos locales (sin molestar al usuario)
+  if (!sb || typeof sb.from !== 'function') {
+    console.warn('Supabase no disponible. Usando datos locales (localStorage).');
+    return;
+  }
+
   try {
     // 1. Cargar empresas
-    const { data: empresas, error: errEmp } = await supabase
-      .from('empresas')
-      .select('*')
-      .order('id');
-
-    if (errEmp) throw errEmp;
-    empresasGlobalesDB = empresas || [];
+    var resEmp = await sb.from('empresas').select('*').order('id');
+    if (resEmp.error) throw resEmp.error;
+    var empresas = resEmp.data;
+    if (empresas && empresas.length > 0) {
+      empresasGlobalesDB = empresas;
+    }
 
     // Buscar el id de la empresa actual
-    const empActual = empresasGlobalesDB.find(e => e.nombre === empresaActual);
+    var empActual = empresasGlobalesDB.find(function(e) { return e.nombre === empresaActual; });
     empresaIdActual = empActual ? empActual.id : null;
 
     if (!empresaIdActual) {
-      console.warn('No se encontró empresa activa');
+      console.warn('No se encontró empresa activa en Supabase. Continuando con datos locales.');
       return;
     }
 
     // 2. Cargar todos los datos de esa empresa
-    const [
-      { data: clientes },
-      { data: prestamos },
-      { data: cobros },
-      { data: gastos },
-      { data: rutas },
-      { data: empleados },
-      { data: cobradores },
-      { data: notas },
-      { data: notificaciones },
-      { data: control },
-      { data: inversionistas }
-    ] = await Promise.all([
-      supabase.from('clientes').select('*').eq('empresa_id', empresaIdActual),
-      supabase.from('prestamos').select('*').eq('empresa_id', empresaIdActual),
-      supabase.from('cobros').select('*').eq('empresa_id', empresaIdActual),
-      supabase.from('gastos').select('*').eq('empresa_id', empresaIdActual),
-      supabase.from('rutas').select('*').eq('empresa_id', empresaIdActual),
-      supabase.from('empleados').select('*').eq('empresa_id', empresaIdActual),
-      supabase.from('cobradores').select('*').eq('empresa_id', empresaIdActual),
-      supabase.from('notas').select('*').eq('empresa_id', empresaIdActual),
-      supabase.from('notificaciones').select('*').eq('empresa_id', empresaIdActual),
-      supabase.from('control_dia').select('*').eq('empresa_id', empresaIdActual).limit(1),
-      supabase.from('inversionistas').select('*').eq('empresa_id', empresaIdActual)
+    var resultados = await Promise.all([
+      sb.from('clientes').select('*').eq('empresa_id', empresaIdActual),
+      sb.from('prestamos').select('*').eq('empresa_id', empresaIdActual),
+      sb.from('cobros').select('*').eq('empresa_id', empresaIdActual),
+      sb.from('gastos').select('*').eq('empresa_id', empresaIdActual),
+      sb.from('rutas').select('*').eq('empresa_id', empresaIdActual),
+      sb.from('empleados').select('*').eq('empresa_id', empresaIdActual),
+      sb.from('cobradores').select('*').eq('empresa_id', empresaIdActual),
+      sb.from('notas').select('*').eq('empresa_id', empresaIdActual),
+      sb.from('notificaciones').select('*').eq('empresa_id', empresaIdActual),
+      sb.from('control_dia').select('*').eq('empresa_id', empresaIdActual).limit(1),
+      sb.from('inversionistas').select('*').eq('empresa_id', empresaIdActual)
     ]);
 
-    clientesDB = clientes || [];
-    prestamosDB = prestamos || [];
-    cobrosDB = cobros || [];
-    gastosDB = gastos || [];
-    rutasDB = rutas || [];
-    empleadosDB = empleados || [];
-    cobradoresDB = cobradores || [];
-    notasDB = notas || [];
-    notificacionesDB = notificaciones || [];
-    inversionistasDB = inversionistas || [];
+    clientesDB = (resultados[0].data) || clientesDB || [];
+    prestamosDB = (resultados[1].data) || prestamosDB || [];
+    cobrosDB = (resultados[2].data) || cobrosDB || [];
+    gastosDB = (resultados[3].data) || gastosDB || [];
+    rutasDB = (resultados[4].data) || rutasDB || [];
+    empleadosDB = (resultados[5].data) || empleadosDB || [];
+    cobradoresDB = (resultados[6].data) || cobradoresDB || [];
+    notasDB = (resultados[7].data) || notasDB || [];
+    notificacionesDB = (resultados[8].data) || notificacionesDB || [];
+    var control = resultados[9].data;
+    inversionistasDB = (resultados[10].data) || inversionistasDB || [];
 
     if (control && control.length > 0) {
       controlDiaDB = control[0];
@@ -1732,8 +1742,8 @@ async function sincronizarConNube() {
     if (typeof actualizarSelectsLoginEmpresa === 'function') actualizarSelectsLoginEmpresa();
 
   } catch (error) {
-    console.error('Error cargando datos:', error);
-    alert('Error al cargar datos desde Supabase: ' + error.message);
+    console.warn('Supabase no respondió, usando datos locales:', error && error.message ? error.message : error);
+    // No mostrar alert: el sistema sigue funcionando offline con localStorage
   }
 }
 
@@ -1815,21 +1825,35 @@ window.addEventListener('DOMContentLoaded', function() {
 
 // ============ GUARDAR DATOS EN SUPABASE ============
 async function guardarDatosEnNube() {
+  // Siempre guardar en localStorage como respaldo
+  try {
+    localStorage.setItem('psc_clientes', JSON.stringify(clientesDB || []));
+    localStorage.setItem('psc_prestamos', JSON.stringify(prestamosDB || []));
+    localStorage.setItem('psc_cobros', JSON.stringify(cobrosDB || []));
+    localStorage.setItem('psc_empresas_globales', JSON.stringify(empresasGlobalesDB || []));
+    localStorage.setItem('psc_notas', JSON.stringify(notasDB || []));
+    localStorage.setItem('psc_notificaciones', JSON.stringify(notificacionesDB || []));
+    localStorage.setItem('psc_gastos', JSON.stringify(gastosDB || []));
+    localStorage.setItem('psc_empleados', JSON.stringify(empleadosDB || []));
+    localStorage.setItem('psc_cobradores', JSON.stringify(cobradoresDB || []));
+    localStorage.setItem('psc_inversionistas', JSON.stringify(inversionistasDB || []));
+    localStorage.setItem('psc_controldia', JSON.stringify(controlDiaDB || {}));
+  } catch(e){}
+
+  var sb = (typeof window !== 'undefined' && window.supabaseClient) ? window.supabaseClient : (typeof supabase !== 'undefined' ? supabase : null);
+  if (!sb || typeof sb.from !== 'function') {
+    console.warn('Supabase no disponible. Datos guardados solo en localStorage.');
+    return;
+  }
+
   if (!empresaIdActual) {
-    console.warn('No hay empresa activa para guardar');
-    // Fallback localStorage
-    try {
-      localStorage.setItem('psc_clientes', JSON.stringify(clientesDB || []));
-      localStorage.setItem('psc_prestamos', JSON.stringify(prestamosDB || []));
-      localStorage.setItem('psc_cobros', JSON.stringify(cobrosDB || []));
-      localStorage.setItem('psc_empresas_globales', JSON.stringify(empresasGlobalesDB || []));
-    } catch(e){}
+    console.warn('No hay empresa activa en nube. Datos guardados en localStorage.');
     return;
   }
 
   try {
     if (controlDiaDB && controlDiaDB.id) {
-      await supabase
+      await sb
         .from('control_dia')
         .update({
           abierto: controlDiaDB.abierto,
@@ -1840,9 +1864,9 @@ async function guardarDatosEnNube() {
         })
         .eq('id', controlDiaDB.id);
     }
-    console.log('✅ Datos guardados (parcial)');
+    console.log('✅ Datos guardados (local + nube parcial)');
   } catch (error) {
-    console.error('Error guardando:', error);
+    console.warn('Error guardando en Supabase (datos sí quedaron en local):', error);
   }
 }
 
