@@ -5110,110 +5110,114 @@ if (tabId === 'resumen') {
     }
 
     function renderClientes() {
-      var contenedor = document.getElementById('listaClientesGeneral');
-      var tituloLista = document.getElementById('tituloListaClientes');
-      if(!contenedor) return;
-      
-      var busqueda = document.getElementById('inputBusquedaCliente').value.toLowerCase();
-      var filtroZonaSel = document.getElementById('selectFiltroZonaCliente') ? document.getElementById('selectFiltroZonaCliente').value : 'TODAS';
-      
-      contenedor.innerHTML = '';
+  var contenedor = document.getElementById('listaClientesGeneral');
+  var tituloLista = document.getElementById('tituloListaClientes');
+  if(!contenedor) return;
+  
+  var busqueda = document.getElementById('inputBusquedaCliente').value.toLowerCase();
+  var filtroZonaSel = document.getElementById('selectFiltroZonaCliente') ? document.getElementById('selectFiltroZonaCliente').value : 'TODAS';
+  
+  contenedor.innerHTML = '';
 
-      var titulosMap = {
-        'todos': '📁 Todos los Clientes',
-        'activos': '🟢 Clientes Activos (Al Dia)',
-        'atrasados': '🟡 Clientes con Atrasos (14+ dias sin pago)',
-        'salientes': '🔵 Clientes Salientes / Renovacion (Semana 10+)',
-        'vencidos': '🔴 Clientes Vencidos (Plazo Expirado)'
-      };
-      if(tituloLista) tituloLista.innerText = titulosMap[filtroClientesActual] || 'Listado de Clientes';
+  var titulosMap = {
+    'todos': '📁 Todos los Clientes',
+    'activos': '🟢 Clientes Activos (Al Dia)',
+    'atrasados': '🟡 Clientes con Atrasos (14+ dias sin pago)',
+    'salientes': '🔵 Clientes Salientes / Renovacion (Semana 10+)',
+    'vencidos': '🔴 Clientes Vencidos (Plazo Expirado)'
+  };
+  if(tituloLista) tituloLista.innerText = titulosMap[filtroClientesActual] || 'Listado de Clientes';
 
-      var hoy = new Date();
-      hoy.setHours(0,0,0,0);
+  var hoy = new Date();
+  hoy.setHours(0,0,0,0);
 
-      var filtrados = clientesDB.filter(function(c) {
-        var apodoText = c.apodo ? c.apodo.toLowerCase() : '';
-        var matchTexto = c.nombre.toLowerCase().indexOf(busqueda) !== -1 || apodoText.indexOf(busqueda) !== -1 || c.cedula.indexOf(busqueda) !== -1;
-        if (!matchTexto) return false;
+  var filtrados = clientesDB.filter(function(c) {
+    var apodoText = c.apodo ? c.apodo.toLowerCase() : '';
+    var matchTexto = c.nombre.toLowerCase().indexOf(busqueda) !== -1 || apodoText.indexOf(busqueda) !== -1 || c.cedula.indexOf(busqueda) !== -1;
+    if (!matchTexto) return false;
 
-        if (filtroZonaSel !== 'TODAS' && c.zona !== filtroZonaSel) return false;
+    if (filtroZonaSel !== 'TODAS' && c.zona !== filtroZonaSel) return false;
 
-        if (rolUsuarioActual === 'cobrador' && c.zona !== zonaUsuarioActual) return false;
+    if (rolUsuarioActual === 'cobrador' && c.zona !== zonaUsuarioActual) return false;
 
-        if (rolUsuarioActual === 'empleado') {
-          var empObj = empleadosDB.find(function(e) { return e.nombre === nombreUsuarioActual; });
-          if(empObj) {
-            var zonasPermitidas = [];
-            if (empObj.rutasAsignadas) zonasPermitidas = zonasPermitidas.concat(empObj.rutasAsignadas);
-            if (empObj.cobradoresAsignados) {
-              empObj.cobradoresAsignados.forEach(function(nomCob) {
-                var cobObj = cobradoresDB.find(function(co) { return co.nombre === nomCob; });
-                if(cobObj && cobObj.zonas) zonasPermitidas = zonasPermitidas.concat(cobObj.zonas);
-              });
-            }
-            if(!zonasPermitidas.includes(c.zona)) return false;
-          }
+    if (rolUsuarioActual === 'empleado') {
+      var empObj = empleadosDB.find(function(e) { return e.nombre === nombreUsuarioActual; });
+      if(empObj) {
+        var zonasPermitidas = [];
+        if (empObj.rutasAsignadas) zonasPermitidas = zonasPermitidas.concat(empObj.rutasAsignadas);
+        if (empObj.cobradoresAsignados) {
+          empObj.cobradoresAsignados.forEach(function(nomCob) {
+            var cobObj = cobradoresDB.find(function(co) { return co.nombre === nomCob; });
+            if(cobObj && cobObj.zonas) zonasPermitidas = zonasPermitidas.concat(cobObj.zonas);
+          });
         }
-
-        if (filtroClientesActual === 'todos') return true;
-
-        var prestamosC = prestamosDB.filter(function(p) { return p.clienteId == c.id && p.balancePendiente > 0; });
-        if (prestamosC.length === 0) return false;
-        var p = prestamosC[0];
-        var pagosP = cobrosDB.filter(function(cp) { return cp.prestamoId == p.id; });
-        var totalPagado = pagosP.reduce(function(acc, curr) { return acc + curr.monto; }, 0);
-        
-        var fechaInicioObj = new Date(p.fechaInicio + 'T00:00:00');
-        var diffDiasInicio = Math.floor((hoy - fechaInicioObj) / (1000 * 60 * 60 * 24));
-        var cuotasEsperadasTranscurridas = Math.floor(diffDiasInicio / 7) + 1;
-        if (cuotasEsperadasTranscurridas > p.numCuotas) cuotasEsperadasTranscurridas = p.numCuotas;
-
-        var cuotasPagadasEfectivas = Math.floor(totalPagado / p.valorCuota);
-        var cuotasDebidasReal = cuotasEsperadasTranscurridas - cuotasPagadasEfectivas;
-        var diffDiasUltimoPago = pagosP.length > 0 ? Math.floor((hoy - new Date(pagosP[pagosP.length - 1].fecha)) / (1000 * 60 * 60 * 24)) : diffDiasInicio;
-        
-        var fechaTerminoObj = null;
-        if (p.fechaTermino) {
-          var partes = p.fechaTermino.split('/');
-          if (partes.length === 3) fechaTerminoObj = new Date(partes[2], partes[1] - 1, partes[0]);
-          else fechaTerminoObj = new Date(p.fechaTermino);
-        }
-        var estaVencidoPorFecha = fechaTerminoObj ? (hoy > fechaTerminoObj) : (diffDiasInicio > (p.numCuotas * 7));
-
-        if (filtroClientesActual === 'vencidos') return estaVencidoPorFecha;
-        if (filtroClientesActual === 'salientes') return (!estaVencidoPorFecha && (cuotasPagadasEfectivas >= 10 || diffDiasInicio >= 70));
-        if (filtroClientesActual === 'atrasados') return (!estaVencidoPorFecha && (diffDiasUltimoPago >= 14 || cuotasDebidasReal > 0));
-        if (filtroClientesActual === 'activos') return (!estaVencidoPorFecha && diffDiasUltimoPago < 14 && cuotasDebidasReal <= 0);
-
-        return true;
-      });
-
-      if (filtrados.length === 0) {
-        contenedor.innerHTML = '<p style="font-size:0.85rem; color:#475569; text-align:center; padding:15px;">No hay clientes en esta seccion para el filtro o zona seleccionada.</p>';
-        return;
+        if(!zonasPermitidas.includes(c.zona)) return false;
       }
-
-      contenedor.innerHTML = filtrados.map(function(c) {
-        var avatarHtml = c.foto ? '<img src="' + c.foto + '" class="client-avatar">' : '<div class="client-avatar">👤</div>';
-        var apodoStr = c.apodo ? ' <span style="color:var(--primary); font-size:0.8rem;">("' + c.apodo + '")</span>' : '';
-        var riesgo = calcularRiesgoCliente(c.id);
-        var riesgoBadge = '';
-        if (riesgo.nivel !== 'sin_prestamo') {
-          riesgoBadge = '<span style="display:inline-block; margin-top:4px; font-size:0.7rem; font-weight:700; padding:2px 8px; border-radius:20px; background:' + riesgo.color + '18; color:' + riesgo.color + '; border:1px solid ' + riesgo.color + '40;">' +
-            riesgo.emoji + ' ' + riesgo.etiqueta + ' (' + riesgo.score + ')</span>';
-        }
-        return '<div class="client-card" onclick="verPerfilCreditoCliente(' + c.id + ', \'clientes\')" style="transition: var(--transition);">' +
-          avatarHtml +
-          '<div class="client-info">' +
-            '<div class="client-header">' + c.nombre + apodoStr + ' <span style="font-size:0.7rem; color:var(--accent);">[' + (c.zona || 'General') + ']</span></div>' +
-            '<div class="client-address">📍 ' + (c.direccion || 'N/A') + '</div>' +
-            '<div class="client-phone">📞 ' + c.telefono + ' — Cedula: ' + c.cedula + '</div>' +
-            riesgoBadge +
-          '</div>' +
-        '</div>';
-      }).join('');
     }
 
+    if (filtroClientesActual === 'todos') return true;
+
+    var prestamosC = prestamosDB.filter(function(p) { return p.clienteId == c.id && p.balancePendiente > 0; });
+    if (prestamosC.length === 0) return false;
+    var p = prestamosC[0];
+    var pagosP = cobrosDB.filter(function(cp) { return cp.prestamoId == p.id; });
+    var totalPagado = pagosP.reduce(function(acc, curr) { return acc + curr.monto; }, 0);
+    
+    var fechaInicioObj = new Date(p.fechaInicio + 'T00:00:00');
+    var diffDiasInicio = Math.floor((hoy - fechaInicioObj) / (1000 * 60 * 60 * 24));
+    var cuotasEsperadasTranscurridas = Math.floor(diffDiasInicio / 7) + 1;
+    if (cuotasEsperadasTranscurridas > p.numCuotas) cuotasEsperadasTranscurridas = p.numCuotas;
+
+    var cuotasPagadasEfectivas = Math.floor(totalPagado / p.valorCuota);
+    var cuotasDebidasReal = cuotasEsperadasTranscurridas - cuotasPagadasEfectivas;
+    var diffDiasUltimoPago = pagosP.length > 0 ? Math.floor((hoy - new Date(pagosP[pagosP.length - 1].fecha)) / (1000 * 60 * 60 * 24)) : diffDiasInicio;
+    
+    var fechaTerminoObj = null;
+    if (p.fechaTermino) {
+      var partes = p.fechaTermino.split('/');
+      if (partes.length === 3) fechaTerminoObj = new Date(partes[2], partes[1] - 1, partes[0]);
+      else fechaTerminoObj = new Date(p.fechaTermino);
+    }
+    var estaVencidoPorFecha = fechaTerminoObj ? (hoy > fechaTerminoObj) : (diffDiasInicio > (p.numCuotas * 7));
+
+    if (filtroClientesActual === 'vencidos') return estaVencidoPorFecha;
+    if (filtroClientesActual === 'salientes') return (!estaVencidoPorFecha && (cuotasPagadasEfectivas >= 10 || diffDiasInicio >= 70));
+    if (filtroClientesActual === 'atrasados') return (!estaVencidoPorFecha && (diffDiasUltimoPago >= 14 || cuotasDebidasReal > 0));
+    if (filtroClientesActual === 'activos') return (!estaVencidoPorFecha && diffDiasUltimoPago < 14 && cuotasDebidasReal <= 0);
+
+    return true;
+  });
+
+  if (filtrados.length === 0) {
+    contenedor.innerHTML = '<p style="font-size:0.85rem; color:#475569; text-align:center; padding:15px;">No hay clientes en esta seccion para el filtro o zona seleccionada.</p>';
+    return;
+  }
+
+  contenedor.innerHTML = filtrados.map(function(c) {
+    var avatarHtml = c.foto ? '<img src="' + c.foto + '" class="client-avatar">' : '<div class="client-avatar">👤</div>';
+    var apodoStr = c.apodo ? ' <span style="color:var(--primary); font-size:0.8rem;">("' + c.apodo + '")</span>' : '';
+    var riesgo = calcularRiesgoCliente(c.id);
+    var riesgoBadge = '';
+    if (riesgo.nivel !== 'sin_prestamo') {
+      riesgoBadge = '<span style="display:inline-block; margin-top:4px; font-size:0.7rem; font-weight:700; padding:2px 8px; border-radius:20px; background:' + riesgo.color + '18; color:' + riesgo.color + '; border:1px solid ' + riesgo.color + '40;">' +
+        riesgo.emoji + ' ' + riesgo.etiqueta + ' (' + riesgo.score + ')</span>';
+    }
+    
+    // --- AQUÍ ESTÁ EL ARREGLO DE LAS COMILLAS ---
+    return '<div class="client-card" onclick="verPerfilCreditoCliente(' + c.id + ', \'clientes\')" style="transition: var(--transition);">' +
+      avatarHtml +
+      '<div class="client-info">' +
+        '<div class="client-header">' + c.nombre + apodoStr + ' <span style="font-size:0.7rem; color:var(--accent);">[' + (c.zona || 'General') + ']</span></div>' +
+        '<div class="client-address">📍 ' + (c.direccion || 'N/A') + '</div>' +
+        '<div class="client-phone">📞 ' + c.telefono + ' — Cedula: ' + c.cedula + '</div>' +
+        riesgoBadge +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+    
+    
+    
     function exportarExcelClientes() {
       var csv = "ID,Nombre,Apodo,Cedula,Telefono,Zona,Direccion\n";
       clientesDB.forEach(function(c) {
