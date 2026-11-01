@@ -1574,17 +1574,6 @@ function redondear(num) {
           <div style="display:flex; gap:8px; margin-bottom:15px; flex-wrap:wrap;">
   <button class="btn btn-success" style="flex:1;" onclick="mostrarFormularioCliente()">➕ Registrar Nuevo Cliente</button>
   <button class="btn btn-secondary btn-sm" onclick="exportarExcelClientes()" style="background:var(--success);">📊 Exportar Excel</button>
-  
-  
-  
-  
-  <!-- BOTÓN NUEVO DE IMPORTAR -->
-  <button class="btn btn-warning btn-sm" onclick="document.getElementById('inputCSVImportar').click()">📥 Importar CSV</button>
-  <input type="file" id="inputCSVImportar" accept="*/*" style="display:none;" onchange="importarClientesCSV(event)">
-  
-  
-  <button class="btn btn-warning btn-sm" onclick="abrirModalImportarTexto()" style="background:#8b5cf6; color: white;">📋 Pegar Datos</button>
-  
 </div>
 
 
@@ -2253,13 +2242,13 @@ function redondear(num) {
         <div class="form-group">
           <label>Selecciona Opción Predeterminada</label>
           <select id="notaSelect">
-            <option value="Para la próxima">Para la próxima</option>
+            <option value="Pagara la próxima semana">Pagara la próxima semana</option>
+            <option value="No tiene dinero">No tiene dinero</option>
             <option value="Va a depositar">Va a depositar</option>
-            <option value="Quincenal">Quincenal</option>
             <option value="Está enfermo">Está enfermo</option>
-            <option value="No contesta llamadas">No contesta llamadas</option>
-            <option value="No está en casa">No está en casa</option>
-            <option value="Llamado previo (Aviso de pago)">Llamado previo (Aviso de pago)</option>
+            <option value="Está para el medio">Está para el medio</option>
+            <option value="No contesta el teléfono">No contesta el teléfono</option>
+            <option value="Cliente no localizado">Cliente no localizado</option>
           </select>
         </div>
         <div class="form-group">
@@ -2537,23 +2526,30 @@ async function sincronizarConNube() {
       supabase.from('inversionistas').select('*').eq('empresa_id', empresaIdActual)
     ]);
 
-    // ✅ CAMBIO CLAVE: solo sobrescribe si Supabase trae datos.
-    if (clientes && clientes.length > 0) clientesDB = clientes;
-    if (prestamos && prestamos.length > 0) prestamosDB = prestamos;
-    if (cobros && cobros.length > 0) cobrosDB = cobros;
-    if (gastos && gastos.length > 0) gastosDB = gastos;
-    if (rutas && rutas.length > 0) rutasDB = rutas;
-    if (empleados && empleados.length > 0) empleadosDB = empleados;
-    if (cobradores && cobradores.length > 0) cobradoresDB = cobradores;
-    if (notas && notas.length > 0) notasDB = notas;
-    if (notificaciones && notificaciones.length > 0) notificacionesDB = notificaciones;
-    if (inversionistas && inversionistas.length > 0) inversionistasDB = inversionistas;
+    // Fuente de verdad = Supabase. Siempre reemplaza (aunque venga vacío).
+    clientesDB = Array.isArray(clientes) ? clientes : [];
+    prestamosDB = Array.isArray(prestamos) ? prestamos : [];
+    cobrosDB = Array.isArray(cobros) ? cobros : [];
+    gastosDB = Array.isArray(gastos) ? gastos : [];
+    rutasDB = Array.isArray(rutas) ? rutas : [];
+    empleadosDB = Array.isArray(empleados) ? empleados : [];
+    cobradoresDB = Array.isArray(cobradores) ? cobradores : [];
+    notasDB = Array.isArray(notas) ? notas : [];
+    notificacionesDB = Array.isArray(notificaciones) ? notificaciones : [];
+    inversionistasDB = Array.isArray(inversionistas) ? inversionistas : [];
 
     if (control && control.length > 0) {
       controlDiaDB = control[0];
+    } else {
+      controlDiaDB = { abierto: false, fondoInicial: 0, fecha: '', empleado: '', zona: '' };
     }
 
-    console.log('✅ Datos sincronizados desde Supabase');
+    // Guardar en local solo como caché offline (después de la nube)
+    try {
+      if (typeof guardarEnLocalStorageLocal === 'function') guardarEnLocalStorageLocal();
+    } catch (eCache) {}
+
+    console.log('✅ Datos sincronizados desde Supabase (fuente de verdad)');
 
     if (typeof renderClientes === 'function') renderClientes();
     if (typeof actualizarMetricas === 'function') actualizarMetricas();
@@ -2616,17 +2612,18 @@ if (rolActualLogin) {
       } catch(e) {}
       return defVal;
     }
+    // Zonas: se permite default local; el resto arranca VACÍO y solo llena Supabase
     zonasDB = _loadLocal('zonas', [{"id":1,"numero":"1","nombre":"Zona Principal","dia":"Lunes"}]);
-    clientesDB = _loadLocal('clientes', []);
-    prestamosDB = _loadLocal('prestamos', []);
-    cobrosDB = _loadLocal('cobros', []);
-    notasDB = _loadLocal('notas', []);
-    notificacionesDB = _loadLocal('notificaciones', []);
-    gastosDB = _loadLocal('gastos', []);
-    inversionistasDB = _loadLocal('inversionistas', []);
-    cobradoresDB = _loadLocal('cobradores', []);
-    empleadosDB = _loadLocal('empleados', []);
-    controlDiaDB = _loadLocal('controldia', {abierto: false, fondoInicial: 0, fecha: "", empleado: "", zona: ""});
+    clientesDB = [];
+    prestamosDB = [];
+    cobrosDB = [];
+    notasDB = [];
+    notificacionesDB = [];
+    gastosDB = [];
+    inversionistasDB = [];
+    cobradoresDB = [];
+    empleadosDB = [];
+    controlDiaDB = { abierto: false, fondoInicial: 0, fecha: "", empleado: "", zona: "" };
     
     filtroClientesActual = 'todos';
     fotoBase64Temporal = "";
@@ -5508,6 +5505,10 @@ if (tabId === 'resumen') {
       var estadoPrestamoColor = p.balancePendiente === 0 ? 'var(--success)' : 'var(--danger)';
       var estadoPrestamoTexto = p.balancePendiente === 0 ? 'SALDADO / FINALIZADO' : 'ACTIVO';
 
+      // Info extra para la tarjeta del cliente
+      var ultimoPagoFecha = pagosP.length > 0 ? pagosP[pagosP.length - 1].fecha : 'Sin pagos';
+      var prestamosAnterioresCount = prestamosCliente.filter(function(pp){ return pp.id !== p.id; }).length;
+
       var pagosHtml = pagosP.length === 0 ? '<p style="font-size:0.80rem; color:#475569;">No hay pagos registrados.</p>' :
         pagosP.map(function(pa) {
           var btnBorrarPagoHtml = verificarPermisoEdicion() ? 
@@ -5543,22 +5544,28 @@ if (tabId === 'resumen') {
         '</div>' +
 
         '<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap:6px; margin-bottom:12px;">' +
-          '<button class="btn btn-success btn-sm" onclick="abrirModalCobro(' + p.id + ', ' + valorCuotaReal + ', ' + moraCalculada + ', ' + numCuotaActual + ', ' + totalNumCuotas + ')">💵 Cobrar Cuota</button>' +
+          '<button class="btn btn-success btn-sm" onclick="abrirModalCobro(' + p.id + ', ' + valorCuotaReal + ', ' + moraCalculada + ', ' + numCuotaActual + ', ' + totalNumCuotas + ')">💵 Cobrar</button>' +
           '<button class="btn btn-warning btn-sm" onclick="abrirModalNota(' + p.id + ')">📝 Crear Nota</button>' +
           '<button class="btn btn-secondary btn-sm" style="background:var(--accent);" onclick="abrirModalRenovacion(' + p.id + ')">🔄 Renovar</button>' +
+          (verificarPermisoEdicion() ? '<button class="btn btn-sm" style="background:#7c3aed; color:white;" onclick="editarCliente(' + cliente.id + ')">✏️ Editar</button>' : '') +
           (verificarPermisoEdicion() ? '<button class="btn btn-danger btn-sm" onclick="abrirModalMora(' + p.id + ')">⚖️ Editar Mora</button>' : '') +
         '</div>' +
 
         '<div class="loan-grid-table">' +
           '<div class="loan-grid-row"><div class="loan-grid-label">MODALIDAD</div><div class="loan-grid-val">' + p.plazo.replace('_', ' ').toUpperCase() + '</div></div>' +
           '<div class="loan-grid-row"><div class="loan-grid-label">CAPITAL $</div><div class="loan-grid-val">' + capitalPrestado.toFixed(2) + '</div></div>' +
+          '<div class="loan-grid-row"><div class="loan-grid-label">TOTAL PAGADO $</div><div class="loan-grid-val" style="color:var(--success); font-weight:700;">' + totalPagado.toFixed(2) + '</div></div>' +
+          '<div class="loan-grid-row"><div class="loan-grid-label">BALANCE PEND. $</div><div class="loan-grid-val" style="color:var(--danger); font-weight:700;">' + balanceRealPendiente.toFixed(2) + '</div></div>' +
+          '<div class="loan-grid-row"><div class="loan-grid-label">MORA $</div><div class="loan-grid-val" style="color:var(--danger); font-weight:700;">' + moraCalculada.toFixed(2) + '</div></div>' +
+          '<div class="loan-grid-row"><div class="loan-grid-label">CUOTA ACTUAL</div><div class="loan-grid-val" style="color:var(--primary); font-weight:700;">' + numCuotaActual + ' de ' + totalNumCuotas + '</div></div>' +
           '<div class="loan-grid-row"><div class="loan-grid-label">SEM. PAGADAS</div><div class="loan-grid-val" style="color:var(--success); font-weight:700;">' + cuotasPagadasEfectivas + ' / ' + totalNumCuotas + ' sem.</div></div>' +
           '<div class="loan-grid-row"><div class="loan-grid-label">MONTO CUOTA $</div><div class="loan-grid-val" style="color:var(--primary); font-weight:700;">' + valorCuotaReal.toFixed(2) + '</div></div>' +
           '<div class="loan-grid-row" style="border:2px solid var(--danger);"><div class="loan-grid-label" style="background:var(--danger);">MONTO EN ATRASO $</div><div class="loan-grid-val" style="color:var(--danger); font-size:0.95rem; font-weight:800;">' + montoEnAtrasoActual.toFixed(2) + '</div></div>' +
-          '<div class="loan-grid-row"><div class="loan-grid-label">BALANCE PEND. $</div><div class="loan-grid-val" style="color:var(--danger); font-weight:700;">' + balanceRealPendiente.toFixed(2) + '</div></div>' +
-          '<div class="loan-grid-row"><div class="loan-grid-label">SEMANAS ATRASO</div><div class="loan-grid-val" style="color:var(--danger); font-weight:700;">' + semanasAtrasoCliente + ' sem. (Mora: $' + moraCalculada.toFixed(2) + ')</div></div>' +
+          '<div class="loan-grid-row"><div class="loan-grid-label">SEMANAS ATRASO</div><div class="loan-grid-val" style="color:var(--danger); font-weight:700;">' + semanasAtrasoCliente + ' sem.</div></div>' +
+          '<div class="loan-grid-row"><div class="loan-grid-label">ÚLTIMO PAGO</div><div class="loan-grid-val">' + ultimoPagoFecha + '</div></div>' +
           '<div class="loan-grid-row"><div class="loan-grid-label">FECHA INICIO</div><div class="loan-grid-val">' + p.fechaInicio + '</div></div>' +
           '<div class="loan-grid-row"><div class="loan-grid-label">FECHA TERMINO</div><div class="loan-grid-val" style="color:var(--accent); font-weight:700;">' + (p.fechaTermino || 'N/A') + '</div></div>' +
+          '<div class="loan-grid-row"><div class="loan-grid-label">HISTORIAL</div><div class="loan-grid-val">' + prestamosAnterioresCount + ' préstamo(s) anterior(es)</div></div>' +
         '</div>' +
 
         '<div class="card" style="margin-top: 15px;">' +
@@ -5950,7 +5957,7 @@ if (tabId === 'resumen') {
 
     function abrirModalNota(prestamoId) {
       prestamoActualId = prestamoId;
-      document.getElementById('notaSelect').value = 'Para la próxima';
+      document.getElementById('notaSelect').value = 'Pagara la próxima semana';
       document.getElementById('notaPersonalizada').value = '';
       document.getElementById('modalNotaBox').style.display = 'flex';
     }
@@ -6172,6 +6179,17 @@ if (tabId === 'resumen') {
       document.getElementById('previewFotoConfirmacion').style.display = 'none';
       fotoConfirmacionTemporal = "";
       calcularCuotaPreview();
+
+      // Abrir automáticamente la tarjeta del cliente con el préstamo nuevo
+      alert('✅ Préstamo registrado con éxito. Abriendo ficha del cliente...');
+      try {
+        showTab('clientes', document.querySelector('nav button[onclick*="clientes"]') || null);
+      } catch (eTab) {}
+      setTimeout(function() {
+        if (typeof verPerfilCreditoCliente === 'function') {
+          verPerfilCreditoCliente(cliente.id, 'clientes');
+        }
+      }, 350);
     }
 
     function imprimirContratoDetalle(p) {
@@ -7032,17 +7050,18 @@ if (tabId === 'resumen') {
         } catch(e) {}
         return defVal;
       }
+      // Solo zonas desde local; el resto vacío → Supabase es la fuente de verdad
       zonasDB = _load('zonas', [{"id":1,"numero":"1","nombre":"Zona Principal","dia":"Lunes"}]);
-      clientesDB = _load('clientes', []);
-      prestamosDB = _load('prestamos', []);
-      cobrosDB = _load('cobros', []);
-      notasDB = _load('notas', []);
-      notificacionesDB = _load('notificaciones', []);
-      gastosDB = _load('gastos', []);
-      inversionistasDB = _load('inversionistas', []);
-      cobradoresDB = _load('cobradores', []);
-      empleadosDB = _load('empleados', []);
-      controlDiaDB = _load('controldia', {abierto: false, fondoInicial: 0, fecha: "", empleado: "", zona: ""});
+      clientesDB = [];
+      prestamosDB = [];
+      cobrosDB = [];
+      notasDB = [];
+      notificacionesDB = [];
+      gastosDB = [];
+      inversionistasDB = [];
+      cobradoresDB = [];
+      empleadosDB = [];
+      controlDiaDB = { abierto: false, fondoInicial: 0, fecha: "", empleado: "", zona: "" };
     }
 
     function cambiarEmpresaActiva(nombreEmpresa) {
@@ -7296,96 +7315,6 @@ function toggleLoginPassword(e) {
   }
 }
 
-     
-        // Insertar en Supabase
-        if (typeof supabase !== 'undefined' && empresaIdActual) {
-          await supabase.from('clientes').insert([{
-            empresa_id: empresaIdActual,
-            nombre: nuevoCliente.nombre,
-            apodo: nuevoCliente.apodo,
-            cedula: nuevoCliente.cedula,
-            telefono: nuevoCliente.telefono,
-            zona: nuevoCliente.zona,
-            direccion: nuevoCliente.direccion,
-            estado: 'Activo'
-          }]);
-        }
-        importados++;
-      }
-    }
-    alert(`✅ Se importaron ${importados} clientes exitosamente.`);
-    if (typeof sincronizarConNube === 'function') sincronizarConNube();
-  };
-  reader.readAsText(file);
-}
-
-// ========== IMPORTAR CLIENTES DESDE CSV ==========
-
-
-function importarClientesCSV(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  
-  if (!confirm("¿Estás seguro de importar este archivo? Se agregarán a los clientes actuales.")) {
-    event.target.value = ''; 
-    return;
-  }
-
-  const reader = new FileReader();
-  reader.onload = async function(e) {
-    try {
-      const text = e.target.result;
-      const lines = text.split('\n');
-      let importados = 0;
-      
-      for (let i = 1; i < lines.length; i++) {
-        const line = lines[i].trim();
-        if (!line) continue;
-        
-        // ESTA ES LA MAGIA: Un lector que respeta las comas dentro de las comillas
-        const cols = line.match(/(".*?"|[^,]+)(?=\s*,|\s*$)/g) || [];
-        const clean = cols.map(c => c.replace(/^"|"$/g, '').trim());
-        
-        // Formato: 0=ID, 1=Nombre, 2=Apodo, 3=Cedula, 4=Telefono, 5=Zona, 6=Direccion
-        if (clean.length >= 5) {
-          const nuevoCliente = {
-            id: Date.now() + i,
-            nombre: clean[1] || 'Sin Nombre',
-            apodo: clean[2] || '',
-            cedula: clean[3] || '000-0000000-0',
-            telefono: clean[4] || '',
-            zona: clean[5] || 'Zona Principal',
-            direccion: clean[6] || 'N/A',
-            estado: 'Activo'
-          };
-          
-          if (typeof supabase !== 'undefined' && empresaIdActual) {
-            await supabase.from('clientes').insert([{
-              empresa_id: empresaIdActual,
-              nombre: nuevoCliente.nombre,
-              apodo: nuevoCliente.apodo,
-              cedula: nuevoCliente.cedula,
-              telefono: nuevoCliente.telefono,
-              zona: nuevoCliente.zona,
-              direccion: nuevoCliente.direccion,
-              estado: 'Activo'
-            }]);
-          }
-          importados++;
-        }
-      }
-      alert(`✅ ¡Éxito! Se importaron ${importados} clientes correctamente.`);
-      if (typeof sincronizarConNube === 'function') sincronizarConNube();
-      event.target.value = ''; 
-    } catch (err) {
-      alert("Error al leer el archivo: " + err.message);
-    }
-  };
-  reader.readAsText(file);
-}
-
-
-
 // ========== FASE 2: SEGURIDAD BANCARIA Y AUDITORÍA ==========
 
 // 1. Obtener la IP pública del usuario para el registro de auditoría
@@ -7628,76 +7557,6 @@ function cancelar2FAJornada() {
 }
 </script>
 
-<!-- MODAL PARA PEGAR TEXTO -->
-<div id="modalImportarTexto" class="modal-overlay" style="z-index: 10005;">
-  <div class="modal-box" style="max-width: 500px;">
-    <h3 style="color:var(--primary); margin-bottom:10px;">📋 Importar Pegando Texto</h3>
-    <p style="font-size:0.85rem; color:#475569; margin-bottom:10px;">
-      Abre tu Excel o archivo de texto, copia las filas y pégalas aquí abajo. Formato: <br>
-      <strong>Nombre, Apodo, Cédula, Teléfono, Zona, Dirección</strong> (separados por comas).
-    </p>
-    <textarea id="textoImportar" rows="8" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:6px; font-family:monospace;" placeholder="Juan Perez,,001-0000000-1,8095551234,Zona Norte,Calle 1"></textarea>
-    
-    <div style="display:flex; gap:10px; margin-top:15px;">
-      <button type="button" class="btn btn-secondary" onclick="document.getElementById('modalImportarTexto').style.display='none'">Cancelar</button>
-      <button type="button" class="btn btn-success" onclick="procesarTextoImportado()">✅ Importar Clientes</button>
-    </div>
-  </div>
-</div>
-
-<script>
-function abrirModalImportarTexto() {
-  document.getElementById('modalImportarTexto').style.display = 'flex';
-  document.getElementById('textoImportar').value = '';
-}
-
-async function procesarTextoImportado() {
-  const texto = document.getElementById('textoImportar').value;
-  if (!texto) return alert('Pega algunos datos primero.');
-  
-  const lineas = texto.split('\n');
-  let importados = 0;
-  
-  for (let i = 0; i < lineas.length; i++) {
-    const linea = lineas[i].trim();
-    if (!linea) continue;
-    
-    const separador = linea.includes(';') ? ';' : ',';
-    const cols = linea.match(/(".*?"|[^,]+)(?=\s*,|\s*$)/g) || [];
-    const columnas = cols.map(c => c.replace(/^"|"$/g, '').trim());
-    
-    if (columnas.length >= 2) {
-      // Si el texto empieza con "ID," lo saltamos porque es el encabezado
-      if (i === 0 && (columnas[0].toUpperCase() === 'ID' || columnas[0].toUpperCase() === 'NOMBRE')) continue;
-
-      const nuevoCliente = {
-        id: Date.now() + i,
-        nombre: columnas[1] || columnas[0] || 'Sin Nombre', // Ajuste por si no hay columna ID
-        apodo: columnas[2] || columnas[1] || '',
-        cedula: columnas[3] || columnas[2] || '000-0000000-0',
-        telefono: columnas[4] || columnas[3] || '',
-        zona: columnas[5] || columnas[4] || 'Zona Principal',
-        direccion: columnas[6] || columnas[5] || 'N/A',
-        estado: 'Activo'
-      };
-      
-      if (typeof supabase !== 'undefined' && empresaIdActual) {
-        await supabase.from('clientes').insert([{
-          empresa_id: empresaIdActual, nombre: nuevoCliente.nombre, apodo: nuevoCliente.apodo,
-          cedula: nuevoCliente.cedula, telefono: nuevoCliente.telefono, zona: nuevoCliente.zona, direccion: nuevoCliente.direccion, estado: 'Activo'
-        }]);
-      }
-      importados++;
-    }
-  }
-  
-  alert(`✅ Se importaron ${importados} clientes con éxito.`);
-  document.getElementById('modalImportarTexto').style.display = 'none';
-  if (typeof sincronizarConNube === 'function') sincronizarConNube();
-}
-</script>
-
-
 <script>
 // ==========================================
 // INTELIGENCIA DE NEGOCIOS (BI)
@@ -7850,5 +7709,3 @@ function renderBusinessIntelligence() {
 
 </body>
 </html>
-
-
