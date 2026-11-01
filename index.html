@@ -4925,94 +4925,99 @@ if (tabId === 'resumen') {
       }
     }
 
+    
     function actualizarClienteForm(e) {
-      e.preventDefault();
-      var id = parseInt(document.getElementById('editCliId').value);
-      var c = clientesDB.find(function(item) { return item.id === id; });
-      if(c) {
-        c.nombre = document.getElementById('editCliNombre').value;
-        c.apodo = document.getElementById('editCliApodo').value;
-        c.cedula = document.getElementById('editCliCedula').value;
-        c.telefono = document.getElementById('editCliTelefono').value;
+  e.preventDefault();
+  var id = parseInt(document.getElementById('editCliId').value);
+  var c = clientesDB.find(function(item) { return item.id === id; });
+  
+  if(c) {
+    c.nombre = document.getElementById('editCliNombre').value;
+    c.apodo = document.getElementById('editCliApodo').value;
+    c.cedula = document.getElementById('editCliCedula').value;
+    c.telefono = document.getElementById('editCliTelefono').value;
 
-        c.provincia = document.getElementById('editCliProvincia').value;
-        c.ciudad = document.getElementById('editCliCiudad').value;
-        c.sector = document.getElementById('editCliSector').value;
-        c.calle = document.getElementById('editCliCalle').value;
-        c.numCasa = document.getElementById('editCliNumCasa').value;
-        c.direccion = c.calle + " #" + c.numCasa + ", " + c.sector + ", " + c.ciudad + " (" + c.provincia + ")";
-        c.zona = document.getElementById('editCliZona').value;
+    c.provincia = document.getElementById('editCliProvincia').value;
+    c.ciudad = document.getElementById('editCliCiudad').value;
+    c.sector = document.getElementById('editCliSector').value;
+    c.calle = document.getElementById('editCliCalle').value;
+    c.numCasa = document.getElementById('editCliNumCasa').value;
+    c.direccion = c.calle + " #" + c.numCasa + ", " + c.sector + ", " + c.ciudad + " (" + c.provincia + ")";
+    c.zona = document.getElementById('editCliZona').value;
 
-        var prestamo = prestamosDB.find(function(p) { return p.clienteId == id && p.balancePendiente > 0; });
-        if (prestamo) {
-          prestamo.clienteNombre = c.nombre;
-          prestamo.cedula = c.cedula;
-          prestamo.telefono = c.telefono;
-          prestamo.direccion = c.direccion;
-          prestamo.monto = parseFloat(document.getElementById('editPrestamoMonto').value) || prestamo.monto;
-          prestamo.gastoCierre = parseFloat(document.getElementById('editPrestamoGasto').value) || 0;
-          prestamo.montoNeto = prestamo.monto - prestamo.gastoCierre;
-          prestamo.fechaInicio = document.getElementById('editPrestamoFecha').value || prestamo.fechaInicio;
-          prestamo.plazo = document.getElementById('editPrestamoPlazo').value || prestamo.plazo;
+    var prestamo = prestamosDB.find(function(p) { return p.clienteId == id && p.balancePendiente > 0; });
+    if (prestamo) {
+      prestamo.clienteNombre = c.nombre;
+      prestamo.cedula = c.cedula;
+      prestamo.telefono = c.telefono;
+      prestamo.direccion = c.direccion;
+      prestamo.monto = parseFloat(document.getElementById('editPrestamoMonto').value) || prestamo.monto;
+      prestamo.gastoCierre = parseFloat(document.getElementById('editPrestamoGasto').value) || 0;
+      prestamo.montoNeto = prestamo.monto - prestamo.gastoCierre;
+      prestamo.fechaInicio = document.getElementById('editPrestamoFecha').value || prestamo.fechaInicio;
+      prestamo.plazo = document.getElementById('editPrestamoPlazo').value || prestamo.plazo;
 
-          if (prestamo.plazo === 'diario') {
-            prestamo.numCuotas = 30;
-            prestamo.totalPagar = prestamo.monto + (prestamo.monto * ((prestamo.tasa || 30) / 100));
-            prestamo.valorCuota = prestamo.totalPagar / prestamo.numCuotas;
-          } else if (prestamo.plazo === '10_semanas') {
-            prestamo.numCuotas = 10;
-            prestamo.totalPagar = prestamo.monto + (prestamo.monto * ((prestamo.tasa || 30) / 100));
-            prestamo.valorCuota = prestamo.totalPagar / prestamo.numCuotas;
-          } else if (prestamo.plazo === 'quincenal') {
-            prestamo.numCuotas = 6;
-            prestamo.totalPagar = prestamo.monto + (prestamo.monto * ((prestamo.tasa || 30) / 100));
-            prestamo.valorCuota = prestamo.totalPagar / prestamo.numCuotas;
-          } else if (prestamo.plazo === 'mensual') {
-            prestamo.numCuotas = 3;
-            prestamo.totalPagar = prestamo.monto + (prestamo.monto * ((prestamo.tasa || 30) / 100));
-            prestamo.valorCuota = prestamo.totalPagar / prestamo.numCuotas;
-          } else if (prestamo.plazo === 'capital_final') {
-            prestamo.numCuotas = 1;
-            prestamo.totalPagar = prestamo.monto + (prestamo.monto * ((prestamo.tasa || 30) / 100));
-            prestamo.valorCuota = prestamo.totalPagar;
-          } else if (prestamo.plazo === 'personalizado') {
-            prestamo.numCuotas = parseInt(document.getElementById('editPlazoSemanasCustom').value) || 1;
-            prestamo.valorCuota = parseFloat(document.getElementById('editPlazoCuotaCustom').value) || 0;
-            prestamo.totalPagar = prestamo.valorCuota * prestamo.numCuotas;
-          } else {
-            prestamo.numCuotas = 13;
-            prestamo.totalPagar = prestamo.monto + (prestamo.monto * ((prestamo.tasa || 30) / 100));
-            prestamo.valorCuota = prestamo.totalPagar / prestamo.numCuotas;
-          }
-
-          var fechaObj = new Date(prestamo.fechaInicio + 'T00:00:00');
-          if (prestamo.plazo === 'diario') {
-            fechaObj.setDate(fechaObj.getDate() + prestamo.numCuotas);
-          } else if (prestamo.plazo === 'quincenal') {
-            fechaObj.setDate(fechaObj.getDate() + (prestamo.numCuotas * 15));
-          } else if (prestamo.plazo === 'mensual') {
-            fechaObj.setMonth(fechaObj.getMonth() + prestamo.numCuotas);
-          } else {
-            fechaObj.setDate(fechaObj.getDate() + (prestamo.numCuotas * 7));
-          }
-          prestamo.fechaTermino = fechaObj.toLocaleDateString();
-        }
-
-        guardarDatosEnNube();
-        alert('✅ Información actualizada correctamente (sin recargar).');
-        // Se queda en el perfil actualizado sin saltar al Tablero
-        if (typeof verPerfilCreditoCliente === 'function') {
-          verPerfilCreditoCliente(id, 'clientes');
-        } else {
-          document.getElementById('seccionEditarCliente').style.display = 'none';
-          document.getElementById('perfilClienteDetalle').style.display = 'block';
-        }
-        // Actualizar listas en caliente
-        if (typeof renderClientes === 'function') renderClientes();
-        if (typeof actualizarMetricas === 'function') actualizarMetricas();
+      if (prestamo.plazo === 'diario') {
+        prestamo.numCuotas = 30;
+        prestamo.totalPagar = prestamo.monto + (prestamo.monto * ((prestamo.tasa || 30) / 100));
+        prestamo.valorCuota = prestamo.totalPagar / prestamo.numCuotas;
+      } else if (prestamo.plazo === '10_semanas') {
+        prestamo.numCuotas = 10;
+        prestamo.totalPagar = prestamo.monto + (prestamo.monto * ((prestamo.tasa || 30) / 100));
+        prestamo.valorCuota = prestamo.totalPagar / prestamo.numCuotas;
+      } else if (prestamo.plazo === 'quincenal') {
+        prestamo.numCuotas = 6;
+        prestamo.totalPagar = prestamo.monto + (prestamo.monto * ((prestamo.tasa || 30) / 100));
+        prestamo.valorCuota = prestamo.totalPagar / prestamo.numCuotas;
+      } else if (prestamo.plazo === 'mensual') {
+        prestamo.numCuotas = 3;
+        prestamo.totalPagar = prestamo.monto + (prestamo.monto * ((prestamo.tasa || 30) / 100));
+        prestamo.valorCuota = prestamo.totalPagar / prestamo.numCuotas;
+      } else if (prestamo.plazo === 'capital_final') {
+        prestamo.numCuotas = 1;
+        prestamo.totalPagar = prestamo.monto + (prestamo.monto * ((prestamo.tasa || 30) / 100));
+        prestamo.valorCuota = prestamo.totalPagar;
+      } else if (prestamo.plazo === 'personalizado') {
+        prestamo.numCuotas = parseInt(document.getElementById('editPlazoSemanasCustom').value) || 1;
+        prestamo.valorCuota = parseFloat(document.getElementById('editPlazoCuotaCustom').value) || 0;
+        prestamo.totalPagar = prestamo.valorCuota * prestamo.numCuotas;
+      } else {
+        prestamo.numCuotas = 13;
+        prestamo.totalPagar = prestamo.monto + (prestamo.monto * ((prestamo.tasa || 30) / 100));
+        prestamo.valorCuota = prestamo.totalPagar / prestamo.numCuotas;
       }
+
+      var fechaObj = new Date(prestamo.fechaInicio + 'T00:00:00');
+      if (prestamo.plazo === 'diario') {
+        fechaObj.setDate(fechaObj.getDate() + prestamo.numCuotas);
+      } else if (prestamo.plazo === 'quincenal') {
+        fechaObj.setDate(fechaObj.getDate() + (prestamo.numCuotas * 15));
+      } else if (prestamo.plazo === 'mensual') {
+        fechaObj.setMonth(fechaObj.getMonth() + prestamo.numCuotas);
+      } else {
+        fechaObj.setDate(fechaObj.getDate() + (prestamo.numCuotas * 7));
+      }
+      prestamo.fechaTermino = fechaObj.toLocaleDateString();
     }
 
+    guardarDatosEnNube();
+    alert('✅ Información actualizada correctamente (sin recargar).');
+    
+    // Se queda en el perfil actualizado sin saltar al Tablero
+    document.getElementById('seccionEditarCliente').style.display = 'none';
+    if (typeof verPerfilCreditoCliente === 'function') {
+      verPerfilCreditoCliente(id, 'clientes');
+    }
+    
+    // Actualizar listas en caliente
+    if (typeof renderClientes === 'function') renderClientes();
+    if (typeof actualizarMetricas === 'function') actualizarMetricas();
+  }
+}
+    
+    
+    
+    
     function filtrarClientesPorEstado(estado, btn) {
       filtroClientesActual = estado;
       document.querySelectorAll('#clientes .client-subtab-btn').forEach(function(b) { b.classList.remove('active'); });
@@ -7691,6 +7696,7 @@ async function procesarTextoImportado() {
 var chartRiesgoBIInstance = null;
 var chartProyeccionBIInstance = null;
 
+
 function renderBusinessIntelligence() {
   if (typeof Chart === 'undefined') return;
 
@@ -7862,23 +7868,26 @@ function renderBusinessIntelligence() {
     if (top10.length === 0) {
       cont.innerHTML = '<p style="color:var(--success); text-align:center; padding:15px;">✅ No hay clientes en riesgo alto o medio actualmente.</p>';
     } else {
+      // Usamos comillas invertidas (template literals) aquí para evitar el error de sintaxis
       cont.innerHTML = top10.map(function(item, idx) {
         const c = item.cliente;
         const r = item.riesgo;
-        return '<div onclick="verPerfilCreditoCliente(' + c.id + ', \'clientes\')" style="display:flex; justify-content:space-between; align-items:center; padding:10px 12px; margin-bottom:6px; background:var(--bg); border-left:4px solid ' + r.color + '; border-radius:8px; cursor:pointer;">' +
-          '<div style="flex:1;">' +
-            '<strong>#' + (idx+1) + ' ' + c.nombre + '</strong> <span style="font-size:0.75rem; color:var(--accent);">[' + (c.zona||'') + ']</span><br>' +
-            '<small style="color:var(--text-muted); font-size:0.75rem;">' + r.detalle + '</small>' +
-          '</div>' +
-          '<div style="text-align:right;">' +
-            '<div style="font-size:1.1rem; font-weight:800; color:' + r.color + ';">' + r.score + '/100</div>' +
-            '<small style="color:' + r.color + '; font-weight:700;">' + r.emoji + ' ' + r.etiqueta + '</small>' +
-          '</div>' +
-        '</div>';
+        return `<div onclick="verPerfilCreditoCliente(${c.id}, 'clientes')" style="display:flex; justify-content:space-between; align-items:center; padding:10px 12px; margin-bottom:6px; background:var(--bg); border-left:4px solid ${r.color}; border-radius:8px; cursor:pointer;">
+          <div style="flex:1;">
+            <strong>#${idx+1} ${c.nombre}</strong> <span style="font-size:0.75rem; color:var(--accent);">[${c.zona||''}]</span><br>
+            <small style="color:var(--text-muted); font-size:0.75rem;">${r.detalle}</small>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:1.1rem; font-weight:800; color:${r.color};">${r.score}/100</div>
+            <small style="color:${r.color}; font-weight:700;">${r.emoji} ${r.etiqueta}</small>
+          </div>
+        </div>`;
       }).join('');
     }
   }
 }
+
+
 </script>
 
 </body>
