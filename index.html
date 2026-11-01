@@ -2925,38 +2925,50 @@ if (rolActualLogin) {
         .replace(/¡/g, '').replace(/¿/g, '');
     }
 
+    
     async function enviarComandosBluetooth(texto) {
-      if (!bluetoothCharacteristic) {
-        alert("Primero debes conectar una impresora termica por Bluetooth.");
-        abrirModalImpresoraBluetooth();
-        return;
-      }
-      try {
-        const initCommand = new Uint8Array([0x1B, 0x40]);
-        await bluetoothCharacteristic.writeValue(initCommand);
+  if (!bluetoothCharacteristic) {
+    alert("Primero debes conectar una impresora termica por Bluetooth.");
+    abrirModalImpresoraBluetooth();
+    return;
+  }
+  try {
+    // 1. Comando de inicialización (ESC @)
+    const initCommand = new Uint8Array([0x1B, 0x40]);
+    await bluetoothCharacteristic.writeValue(initCommand);
+    
+    // Pequeña pausa para que la impresora procese la inicialización
+    await new Promise(r => setTimeout(r, 50));
 
-        const textoLimpio = limpiarTextoParaImpresora(texto);
-        const lineas = textoLimpio.split('\n');
-        
-        const encoder = new TextEncoder();
+    const textoLimpio = limpiarTextoParaImpresora(texto);
+    const lineas = textoLimpio.split('\n');
+    const encoder = new TextEncoder();
 
-        for (let i = 0; i < lineas.length; i++) {
-          let lineaCompleta = lineas[i] + "\n";
-          let data = encoder.encode(lineaCompleta);
-          await bluetoothCharacteristic.writeValue(data);
-          await new Promise(r => setTimeout(r, 40));
-        }
-
-        let avanceFinal = encoder.encode("\n\n\n\n\n");
-        await bluetoothCharacteristic.writeValue(avanceFinal);
-
-        alert("Impresion enviada correctamente!");
-      } catch (error) {
-        console.error(error);
-        alert("Error al imprimir por Bluetooth: " + error.message);
-      }
+    // 2. Enviar línea por línea ESPERANDO a que se complete cada escritura
+    for (let i = 0; i < lineas.length; i++) {
+      let lineaCompleta = lineas[i] + "\n";
+      let data = encoder.encode(lineaCompleta);
+      
+      // AQUÍ ESTÁ LA CLAVE: await espera a que la impresora reciba el dato
+      await bluetoothCharacteristic.writeValue(data);
+      
+      // Una pausa de 60ms es más segura para impresoras térmicas lentas
+      await new Promise(r => setTimeout(r, 60)); 
     }
 
+    // 3. Avance de papel final
+    let avanceFinal = encoder.encode("\n\n\n\n\n");
+    await bluetoothCharacteristic.writeValue(avanceFinal);
+
+    alert("Impresion enviada correctamente!");
+  } catch (error) {
+    console.error(error);
+    alert("Error al imprimir por Bluetooth: " + error.message);
+  }
+}
+    
+    
+    
     function probarImpresionBluetooth() {
       var ticketPrueba = 
         "PERDOMO SOVEREIGN CAPITAL\n" +
@@ -7871,9 +7883,4 @@ function renderBusinessIntelligence() {
 
 </body>
 </html>
-
-
-
-
-
 
