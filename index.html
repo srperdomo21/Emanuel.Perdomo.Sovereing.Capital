@@ -1865,7 +1865,7 @@ async function sincronizarConNube() {
       sb.from('prestamos').select('*').eq('empresa_id', empresaIdActual),
       sb.from('cobros').select('*').eq('empresa_id', empresaIdActual),
       sb.from('gastos').select('*').eq('empresa_id', empresaIdActual),
-      sb.from('rutas').select('*').eq('empresa_id', empresaIdActual),
+     
       sb.from('empleados').select('*').eq('empresa_id', empresaIdActual),
       sb.from('cobradores').select('*').eq('empresa_id', empresaIdActual),
       sb.from('notas').select('*').eq('empresa_id', empresaIdActual),
@@ -1875,16 +1875,16 @@ async function sincronizarConNube() {
     ]);
 
     clientesDB = (resultados[0].data || []).map(mapClienteFromSB);
-    prestamosDB = (resultados[1].data || []).map(mapPrestamoFromSB);
-    cobrosDB = (resultados[2].data || []).map(mapCobroFromSB);
-    gastosDB = resultados[3].data || [];
-    rutasDB = resultados[4].data || [];
-    empleadosDB = resultados[5].data || [];
-    cobradoresDB = resultados[6].data || [];
-    notasDB = resultados[7].data || [];
-    notificacionesDB = resultados[8].data || [];
-    var control = resultados[9].data;
-    inversionistasDB = resultados[10].data || [];
+prestamosDB = (resultados[1].data || []).map(mapPrestamoFromSB);
+cobrosDB = (resultados[2].data || []).map(mapCobroFromSB);
+gastosDB = resultados[3].data || [];
+
+empleadosDB = resultados[4].data || []; 
+cobradoresDB = resultados[5].data || [];
+notasDB = resultados[6].data || [];
+notificacionesDB = resultados[7].data || [];
+var control = resultados[8].data;
+inversionistasDB = resultados[9].data || [];
 
     if (control && control.length > 0) {
       var cd = control[0];
@@ -1912,10 +1912,7 @@ async function sincronizarConNube() {
 
   } catch (error) {
     console.warn('Error sincronizando, usando datos locales:', error);
-  }
-}
-
-window.addEventListener('DOMContentLoaded', function() {
+ window.addEventListener('DOMContentLoaded', function() {
   // 1. Verificamos si el usuario ya tenía una sesión activa guardada
   var sesionActiva = localStorage.getItem('psc_sesion_activa');
   
@@ -1956,6 +1953,7 @@ window.addEventListener('DOMContentLoaded', function() {
   if (typeof calcularCuotaPreview === 'function') calcularCuotaPreview();
   if (typeof renderEmpresasAisladasList === 'function') renderEmpresasAisladasList();
   if (typeof actualizarSelectsLoginEmpresa === 'function') actualizarSelectsLoginEmpresa();
+}););
 });
 
 
