@@ -5,23 +5,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Perdomo Sovereign Capital - Sistema Maestro Empresarial</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<!-- SUPABASE: UMD explícito para que createClient exista en el navegador -->
+<!-- SUPABASE: UMD explícito -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.1/dist/umd/supabase.js"></script>
 
 <script>
+  // IMPORTANTE: guardar la librería del CDN ANTES de declarar cualquier variable llamada "supabase"
+  // (si hacemos "var supabase = null" se borra window.supabase del CDN)
+  var __supabaseLib = window.supabase;
   const SUPABASE_URL = 'https://quspjrizkyhowquonyum.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_2CFYvUocRvSErAAmRfDSMw_NbI_Gejt';
-  var supabase = null;
+  window.supabaseClient = null;
 
   function iniciarClienteSupabase() {
     try {
-      var lib = window.supabase || null;
-      var createClient = null;
-      if (lib && typeof lib.createClient === 'function') createClient = lib.createClient;
-      else if (lib && lib.default && typeof lib.default.createClient === 'function') createClient = lib.default.createClient;
-      if (typeof createClient === 'function') {
-        supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        window.supabaseClient = supabase;
+      var lib = __supabaseLib || null;
+      var createClientFn = null;
+      if (lib && typeof lib.createClient === 'function') createClientFn = lib.createClient;
+      else if (lib && lib.default && typeof lib.default.createClient === 'function') createClientFn = lib.default.createClient;
+      if (typeof createClientFn === 'function') {
+        window.supabaseClient = createClientFn(SUPABASE_URL, SUPABASE_ANON_KEY);
         console.log('✅ Cliente Supabase listo');
         return true;
       }
@@ -33,25 +35,21 @@
     }
   }
 
-  if (!iniciarClienteSupabase()) {
-    window.addEventListener('load', function() {
-      if (!window.supabaseClient) iniciarClienteSupabase();
-    });
-  }
+  iniciarClienteSupabase();
 </script>
 
 <style>
   :root {
-    ...      --primary: #1e3a8a;       
+      --primary: #1e3a8a;
       --primary-dark: #1e40af;
       --accent: #2563eb;
       --success: #16a34a;
       --warning: #d97706;
-      --danger: #dc2626;        
+      --danger: #dc2626;
       --bg: #f8fafc;
       --card: #ffffff;
       --border: #cbd5e1;
-      --text-main: #000000;     
+      --text-main: #000000;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; color: var(--text-main); }
@@ -5275,4 +5273,4 @@ actualizarSelectsLoginEmpresa();
     }
   </script>
 </body>
-</html>PLACEHOLDER
+</html>
