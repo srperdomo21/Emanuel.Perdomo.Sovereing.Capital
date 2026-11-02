@@ -11,10 +11,16 @@
 <script>
   var SUPABASE_URL = 'https://vzzfslsosmbgmlyvzyis.supabase.co';
   var SUPABASE_ANON_KEY = 'sb_publishable_2CFYvUocRvSErAAmRfDSMw_NbI_Gejt';
+  
   var supabase = (window.supabase && window.supabase.createClient)
     ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
     : null;
+    
+  // ESTA ES LA LÍNEA QUE FALTABA PARA CONECTAR A LA NUBE:
+  window.supabaseClient = supabase; 
 </script>
+
+
 
 <style>
   :root {
@@ -1949,7 +1955,8 @@ window.addEventListener('DOMContentLoaded', function() {
   if (fechaInput) try { fechaInput.valueAsDate = new Date(); } catch(e){}
   if (typeof calcularCuotaPreview === 'function') calcularCuotaPreview();
   if (typeof renderEmpresasAisladasList === 'function') renderEmpresasAisladasList();
-  if (typeof actualizarSelectsLoginEmpresa === 'function') actualizarSelectsLoginEmpresa();
+  if (typeof actualizarSelectsLoginEmpresa === 'function') actualizarSelectsLoginEmpresa()
+  
 });
 
 
@@ -5681,7 +5688,18 @@ actualizarSelectsLoginEmpresa();
         showTab('resumen', null);
       }
     }
-    
+
+
+
+
+
+
+
+
+
+
+
+
 
     function actualizarSelectsLoginEmpresa() {
       var selectLogin = document.getElementById('loginEmpresaSelect');
