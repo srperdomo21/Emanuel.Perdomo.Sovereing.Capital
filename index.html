@@ -3948,7 +3948,7 @@ actualizarSelectsLoginEmpresa();
         var matchTexto = c.nombre.toLowerCase().indexOf(busqueda) !== -1 || apodoText.indexOf(busqueda) !== -1 || c.cedula.indexOf(busqueda) !== -1;
         if (!matchTexto) return false;
 
-        if (filtroZonaSel !== 'TODAS' && c.zona !== filtroZonaSel) return false;
+        if (filtroZonaSel !== 'TODAS' && c.zona !== filtroZonaSel && c.zona !== '' && c.zona !== undefined) return false;
 
         if (rolUsuarioActual === 'cobrador' && c.zona !== zonaUsuarioActual) return false;
 
