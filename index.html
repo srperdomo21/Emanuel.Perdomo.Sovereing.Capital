@@ -5,10 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#1e3a8a">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Perdomo Sovereign Capital v2 Secure</title>
 
-  <!-- CDNs -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/bcryptjs/2.4.3/bcrypt.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -60,7 +58,10 @@
       position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     }
     header h1 { font-size: 1rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
-    .header-logo { width: 28px; height: 28px; border-radius: 4px; background: white; color: var(--primary); display: inline-flex; align-items: center; justify-content: center; font-weight: 800; }
+    .header-logo {
+      width: 28px; height: 28px; border-radius: 4px; background: white; color: var(--primary);
+      display: inline-flex; align-items: center; justify-content: center; font-weight: 800;
+    }
 
     #sidebarOverlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1500; }
     #sidebarMenu {
@@ -167,19 +168,17 @@
     .modal-overlay.show { display: flex !important; }
     .modal-box {
       background: var(--card); border-radius: 14px; padding: 22px;
-      width: 100%; max-width: 440px; box-shadow: 0 20px 40px rgba(0,0,0,0.3);
-      max-height: 90vh; overflow-y: auto; animation: fadeIn 0.25s ease;
+      width: 100%; max-width: 480px; box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+      max-height: 90vh; overflow-y: auto;
     }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-    /* 2FA ALERT */
+    /* 2FA */
     #alerta2FA {
       display: none; position: fixed; top: 20px; right: 20px; z-index: 10000;
       background: #0f172a; color: white; padding: 16px 20px; border-radius: 12px;
       box-shadow: 0 10px 30px rgba(0,0,0,0.4); max-width: 320px;
-      border-left: 5px solid #25d366; animation: slideIn 0.3s ease;
+      border-left: 5px solid #25d366;
     }
-    @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
     #alerta2FA .codigo { font-size: 1.8rem; font-weight: 800; letter-spacing: 4px; margin: 8px 0; color: #25d366; }
 
     /* CHARTS */
@@ -200,29 +199,16 @@
     .badge-warning { background: #fef3c7; color: #92400e; }
     .badge-primary { background: #dbeafe; color: #1e40af; }
 
-    /* TOAST */
     .toast {
       position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
       background: #0f172a; color: white; padding: 12px 20px; border-radius: 10px;
       font-size: 0.9rem; z-index: 9999; box-shadow: 0 8px 24px rgba(0,0,0,0.3);
-      animation: slideUp 0.3s ease;
     }
-    @keyframes slideUp { from { opacity: 0; transform: translate(-50%, 20px); } to { opacity: 1; transform: translate(-50%, 0); } }
 
-    /* UTILITIES */
-    .hidden { display: none !important; }
     .text-muted { color: var(--text-muted); }
     .text-danger { color: var(--danger); }
     .text-success { color: var(--success); }
     .printable { display: none; }
-
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 3px; }
-
-    [data-theme="dark"] .client-card,
-    [data-theme="dark"] .metric-card,
-    [data-theme="dark"] .sidebar-btn { background: #1e293b; }
 
     @media (min-width: 768px) {
       body { padding-bottom: 20px; }
@@ -241,17 +227,17 @@
 
   <!-- ALERTA 2FA -->
   <div id="alerta2FA">
-    <div style="font-size:0.85rem; opacity:0.9;">🔐 Código de Jornada para Cobrador</div>
+    <div style="font-size:0.85rem; opacity:0.9;">🔐 Código de Jornada</div>
     <div class="codigo" id="codigo2FAValor">------</div>
     <div style="font-size:0.8rem;" id="codigo2FAInfo">Cobrador: ---</div>
-    <button class="btn btn-sm btn-success" style="margin-top:10px; width:auto;" onclick="document.getElementById('alerta2FA').style.display='none'">Entendido</button>
+    <button class="btn btn-sm btn-success" style="margin-top:10px;width:auto;" onclick="document.getElementById('alerta2FA').style.display='none'">Entendido</button>
   </div>
 
-  <!-- BLOQUEO POR IMPAGO -->
-  <div id="pantallaBloqueoImpago" style="display:none; position:fixed; inset:0; background:var(--danger); z-index:99998; align-items:center; justify-content:center; padding:20px; text-align:center;">
-    <div style="background:white; color:#0f172a; padding:30px; border-radius:14px; max-width:420px; width:100%;">
-      <h2 style="color:var(--danger); margin-bottom:12px;">🚫 ACCESO SUSPENDIDO</h2>
-      <p style="font-size:0.95rem; color:#475569; margin-bottom:20px;">Tu suscripción ha vencido o hay un pago pendiente. Contacta al Super Admin para reactivar el servicio.</p>
+  <!-- BLOQUEO -->
+  <div id="pantallaBloqueoImpago" style="display:none;position:fixed;inset:0;background:var(--danger);z-index:99998;align-items:center;justify-content:center;padding:20px;text-align:center;">
+    <div style="background:white;color:#0f172a;padding:30px;border-radius:14px;max-width:420px;width:100%;">
+      <h2 style="color:var(--danger);margin-bottom:12px;">🚫 ACCESO SUSPENDIDO</h2>
+      <p style="font-size:0.95rem;color:#475569;margin-bottom:20px;">Tu suscripción ha vencido. Contacta al Super Admin.</p>
       <button class="btn btn-secondary" onclick="cerrarSesion()">Cerrar Sesión</button>
     </div>
   </div>
@@ -259,7 +245,7 @@
   <!-- LOGIN -->
   <div id="loginScreen">
     <div class="login-card">
-      <div style="font-size:2.5rem; margin-bottom:8px;">💰</div>
+      <div style="font-size:2.5rem;margin-bottom:8px;">💰</div>
       <h2>PERDOMO SOVEREIGN CAPITAL</h2>
       <p class="login-subtitle">v2 Secure · Multi-Empresa · RBAC + 2FA</p>
       
@@ -288,12 +274,12 @@
         </div>
         <div class="form-group">
           <label>Contraseña</label>
-          <div style="display:flex; gap:8px;">
+          <div style="display:flex;gap:8px;">
             <input type="password" id="loginPassword" required placeholder="••••••••" style="flex:1;">
-            <button type="button" class="btn btn-secondary btn-sm" style="width:48px; margin:0;" onclick="togglePassword()">👁️</button>
+            <button type="button" class="btn btn-secondary btn-sm" style="width:48px;margin:0;" onclick="togglePassword()">👁️</button>
           </div>
         </div>
-        <button type="submit" class="btn" id="btnLogin" style="margin-top:16px;">Entrar al Sistema</button>
+        <button type="submit" class="btn" style="margin-top:16px;">Entrar al Sistema</button>
       </form>
     </div>
   </div>
@@ -301,10 +287,10 @@
   <!-- MODAL 2FA -->
   <div id="modal2FA" class="modal-overlay">
     <div class="modal-box" style="text-align:center;">
-      <h3 style="color:var(--primary); margin-bottom:8px;">🔐 Verificación 2FA</h3>
-      <p style="font-size:0.9rem; color:var(--text-muted); margin-bottom:16px;">Ingresa el código de 6 dígitos que se envió a la oficina.</p>
-      <input type="text" id="inputCodigo2FA" maxlength="6" placeholder="000000" style="font-size:1.6rem; letter-spacing:8px; text-align:center; font-weight:700; padding:14px; width:100%; border:2px solid var(--primary); border-radius:10px;">
-      <div style="display:flex; gap:10px; margin-top:18px;">
+      <h3 style="color:var(--primary);margin-bottom:8px;">🔐 Verificación 2FA</h3>
+      <p style="font-size:0.9rem;color:var(--text-muted);margin-bottom:16px;">Ingresa el código de 6 dígitos</p>
+      <input type="text" id="inputCodigo2FA" maxlength="6" placeholder="000000" style="font-size:1.6rem;letter-spacing:8px;text-align:center;font-weight:700;padding:14px;width:100%;border:2px solid var(--primary);border-radius:10px;">
+      <div style="display:flex;gap:10px;margin-top:18px;">
         <button class="btn btn-secondary" onclick="cancelar2FA()">Cancelar</button>
         <button class="btn btn-success" onclick="verificarCodigo2FA()">Verificar</button>
       </div>
@@ -315,8 +301,8 @@
   <div id="sidebarOverlay" onclick="toggleSidebar()"></div>
   <div id="sidebarMenu">
     <div class="sidebar-header">
-      <h3 style="color:white; font-size:1rem;">⚙️ Menú Maestro</h3>
-      <button class="btn btn-secondary btn-sm" onclick="toggleSidebar()" style="margin:0; padding:4px 10px;">✕</button>
+      <h3 style="color:white;font-size:1rem;">⚙️ Menú Maestro</h3>
+      <button class="btn btn-secondary btn-sm" onclick="toggleSidebar()" style="margin:0;padding:4px 10px;">✕</button>
     </div>
     <div class="sidebar-content">
       <button class="sidebar-btn solo-super" onclick="showTabFromMenu('empresasTab')">🏢 Empresas</button>
@@ -329,28 +315,27 @@
       <button class="sidebar-btn solo-admin" onclick="showTabFromMenu('transferenciaTab')">🔀 Pasar Cliente de Ruta</button>
       <button class="sidebar-btn solo-admin" onclick="showTabFromMenu('recordatoriosTab')">🔔 Recordatorios WA</button>
       <button class="sidebar-btn" onclick="showTabFromMenu('auditoriaTab')">📋 Auditoría</button>
-      <hr style="border:0; border-top:1px solid var(--border); margin:8px 0;">
+      <hr style="border:0;border-top:1px solid var(--border);margin:8px 0;">
       <button class="sidebar-btn" onclick="toggleDarkMode()">🌙 Modo Oscuro</button>
-      <button class="sidebar-btn" onclick="abrirConfig2FA()" style="background:#0f172a; color:white;">📱 Config 2FA / WhatsApp Oficina</button>
+      <button class="sidebar-btn" onclick="abrirConfig2FA()" style="background:#0f172a;color:white;">📱 Config 2FA</button>
       <button class="sidebar-btn btn-whatsapp" onclick="abrirSoporteWA()">🆘 Soporte WhatsApp</button>
-      <button class="sidebar-btn" onclick="conectarImpresoraBluetooth()">🖨️ Conectar Impresora BT</button>
       <button class="sidebar-btn btn-danger solo-admin" onclick="confirmarBorrarTodo()">🗑️ Borrar Datos Locales</button>
     </div>
   </div>
 
   <!-- HEADER -->
   <header class="no-print" id="mainHeader" style="display:none;">
-    <div style="display:flex; align-items:center; gap:10px;">
-      <button class="btn btn-secondary btn-sm" onclick="toggleSidebar()" style="margin:0; padding:6px 10px;">☰</button>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <button class="btn btn-secondary btn-sm" onclick="toggleSidebar()" style="margin:0;padding:6px 10px;">☰</button>
       <h1><span class="header-logo">P</span> PERDOMO SC</h1>
     </div>
-    <div style="display:flex; align-items:center; gap:8px;">
+    <div style="display:flex;align-items:center;gap:8px;">
       <span id="badgeRol" class="badge badge-primary" style="font-size:0.65rem;">—</span>
-      <button class="btn btn-danger btn-sm" onclick="cerrarSesion()" style="margin:0; padding:5px 10px; font-size:0.75rem;">Salir</button>
+      <button class="btn btn-danger btn-sm" onclick="cerrarSesion()" style="margin:0;padding:5px 10px;font-size:0.75rem;">Salir</button>
     </div>
   </header>
 
-  <!-- BOTTOM NAV -->
+  <!-- NAV -->
   <nav class="no-print" id="mainNav" style="display:none;">
     <button class="active" onclick="showTab('resumen', this)"><span>📊</span>Tablero</button>
     <button onclick="showTab('clientes', this)"><span>🗂️</span>Clientes</button>
@@ -358,10 +343,10 @@
     <button onclick="showTab('cobros', this)"><span>💵</span>Cobros</button>
   </nav>
 
-  <!-- CONTENIDO PRINCIPAL -->
+  <!-- CONTENIDO -->
   <div class="container no-print" id="mainContainer" style="display:none;">
 
-    <!-- TAB: RESUMEN -->
+    <!-- RESUMEN -->
     <div id="resumen" class="tab-content active">
       <div class="metrics-grid">
         <div class="metric-card"><span class="label">Capital Activo</span><span class="value" id="kpiCapitalActivo">$0.00</span></div>
@@ -375,14 +360,14 @@
         <div class="card"><h3>Capital Activo vs Vencido</h3><div class="chart-container"><canvas id="chartDonaCapital"></canvas></div></div>
         <div class="card"><h3>Cobros Semana Actual vs Anterior</h3><div class="chart-container"><canvas id="chartBarrasCobros"></canvas></div></div>
         <div class="card"><h3>Tendencia 14 días</h3><div class="chart-container"><canvas id="chartLineasTendencia"></canvas></div></div>
-        <div class="card"><h3>Riesgo de Clientes (Scoring)</h3><div class="chart-container"><canvas id="chartDonaRiesgo"></canvas></div></div>
+        <div class="card"><h3>Riesgo de Clientes</h3><div class="chart-container"><canvas id="chartDonaRiesgo"></canvas></div></div>
       </div>
     </div>
 
-    <!-- TAB: CLIENTES -->
+    <!-- CLIENTES -->
     <div id="clientes" class="tab-content">
       <div class="card">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
           <h3 style="margin:0;">Clientes</h3>
           <button class="btn btn-success btn-sm" onclick="mostrarFormCliente()">➕ Nuevo Cliente</button>
         </div>
@@ -412,20 +397,20 @@
             <div class="form-group"><label>Calle</label><input type="text" id="cliCalle"></div>
           </div>
           <div class="form-row">
-            <div class="form-group"><label>Número Casa</label><input type="text" id="cliNumCasa"></div>
+            <div class="form-group"><label>Nº Casa</label><input type="text" id="cliNumCasa"></div>
             <div class="form-group"><label>Zona / Ruta *</label><select id="cliZona" required></select></div>
           </div>
           <div class="form-group">
-            <label>Foto del Cliente</label>
-            <input type="file" id="cliFoto" accept="image/*" onchange="previewFoto(this, 'previewCliFoto')">
-            <img id="previewCliFoto" style="display:none; max-height:120px; margin-top:8px; border-radius:8px;">
+            <label>Foto</label>
+            <input type="file" id="cliFoto" accept="image/*" onchange="previewFoto(this,'previewCliFoto')">
+            <img id="previewCliFoto" style="display:none;max-height:120px;margin-top:8px;border-radius:8px;">
           </div>
           <div class="form-group">
-            <label>Firma del Cliente</label>
+            <label>Firma</label>
             <div class="signature-pad-container"><canvas id="canvasFirma" width="400" height="140"></canvas></div>
             <button type="button" class="btn btn-secondary btn-sm" onclick="limpiarFirma()" style="margin-top:6px;">Limpiar Firma</button>
           </div>
-          <div style="display:flex; gap:10px;">
+          <div style="display:flex;gap:10px;">
             <button type="button" class="btn btn-secondary" onclick="ocultarFormCliente()">Cancelar</button>
             <button type="submit" class="btn btn-success">Guardar Cliente</button>
           </div>
@@ -433,29 +418,26 @@
       </div>
     </div>
 
-    <!-- TAB: NUEVO PRÉSTAMO -->
+    <!-- NUEVO PRÉSTAMO -->
     <div id="nuevoPrestamo" class="tab-content">
       <div class="card">
         <h3>Nuevo Préstamo</h3>
         <form onsubmit="guardarPrestamo(event)">
-          <div class="form-group">
-            <label>Cliente *</label>
-            <select id="pCliente" required></select>
-          </div>
+          <div class="form-group"><label>Cliente *</label><select id="pCliente" required></select></div>
           <div class="form-row">
-            <div class="form-group"><label>Monto del Préstamo *</label><input type="number" id="pMonto" step="0.01" min="1" required oninput="calcularCuota()"></div>
+            <div class="form-group"><label>Monto *</label><input type="number" id="pMonto" step="0.01" min="1" required oninput="calcularCuota()"></div>
             <div class="form-group"><label>Gasto de Cierre</label><input type="number" id="pGastoCierre" step="0.01" value="0" oninput="calcularCuota()"></div>
           </div>
           <div class="form-row">
-            <div class="form-group"><label>Tasa de Interés (%)</label><input type="number" id="pTasa" step="0.1" value="30" oninput="calcularCuota()"></div>
+            <div class="form-group"><label>Tasa (%)</label><input type="number" id="pTasa" step="0.1" value="30" oninput="calcularCuota()"></div>
             <div class="form-group">
-              <label>Tipo de Plazo *</label>
+              <label>Plazo *</label>
               <select id="pPlazo" required onchange="calcularCuota()">
                 <option value="diario">Diario (30 días)</option>
                 <option value="13_semanas" selected>13 Semanas</option>
                 <option value="10_semanas">10 Semanas</option>
-                <option value="quincenal">Quincenal (6 cuotas)</option>
-                <option value="mensual">Mensual (3 cuotas)</option>
+                <option value="quincenal">Quincenal</option>
+                <option value="mensual">Mensual</option>
                 <option value="capital_final">Capital Final</option>
                 <option value="personalizado">Personalizado</option>
               </select>
@@ -463,36 +445,33 @@
           </div>
           <div id="camposPersonalizado" style="display:none;">
             <div class="form-row">
-              <div class="form-group"><label>Número de Cuotas</label><input type="number" id="pNumCuotasCustom" min="1" value="10" oninput="calcularCuota()"></div>
-              <div class="form-group"><label>Valor Cuota Fija</label><input type="number" id="pCuotaCustom" step="0.01" oninput="calcularCuota()"></div>
+              <div class="form-group"><label>Nº Cuotas</label><input type="number" id="pNumCuotasCustom" min="1" value="10" oninput="calcularCuota()"></div>
+              <div class="form-group"><label>Valor Cuota</label><input type="number" id="pCuotaCustom" step="0.01" oninput="calcularCuota()"></div>
             </div>
           </div>
-          <div class="form-group"><label>Fecha de Inicio *</label><input type="date" id="pFechaInicio" required onchange="calcularCuota()"></div>
-          <div class="card" style="background:var(--bg); margin-top:12px;">
-            <div style="display:flex; justify-content:space-between; font-size:0.9rem;"><span>Total a Pagar:</span><strong id="previewTotal">$0.00</strong></div>
-            <div style="display:flex; justify-content:space-between; font-size:0.9rem; margin-top:6px;"><span>Valor Cuota:</span><strong id="previewCuota">$0.00</strong></div>
-            <div style="display:flex; justify-content:space-between; font-size:0.9rem; margin-top:6px;"><span>Monto Neto a Entregar:</span><strong id="previewNeto">$0.00</strong></div>
+          <div class="form-group"><label>Fecha Inicio *</label><input type="date" id="pFechaInicio" required></div>
+          <div class="card" style="background:var(--bg);margin-top:12px;">
+            <div style="display:flex;justify-content:space-between;"><span>Total a Pagar:</span><strong id="previewTotal">$0.00</strong></div>
+            <div style="display:flex;justify-content:space-between;margin-top:6px;"><span>Valor Cuota:</span><strong id="previewCuota">$0.00</strong></div>
+            <div style="display:flex;justify-content:space-between;margin-top:6px;"><span>Neto a Entregar:</span><strong id="previewNeto">$0.00</strong></div>
           </div>
-          <button type="submit" class="btn btn-success" style="margin-top:16px;">Crear Préstamo + Generar Contrato</button>
+          <button type="submit" class="btn btn-success" style="margin-top:16px;">Crear Préstamo + Contrato</button>
         </form>
       </div>
     </div>
 
-    <!-- TAB: COBROS -->
+    <!-- COBROS -->
     <div id="cobros" class="tab-content">
       <div class="card">
         <h3>Registrar Abono / Cobro</h3>
         <form onsubmit="guardarCobro(event)">
-          <div class="form-group">
-            <label>Préstamo / Cliente *</label>
-            <select id="cobPrestamo" required onchange="cargarInfoPrestamoCobro()"></select>
-          </div>
-          <div id="infoPrestamoCobro" class="card" style="background:var(--bg); display:none; margin-bottom:12px;">
+          <div class="form-group"><label>Préstamo / Cliente *</label><select id="cobPrestamo" required onchange="cargarInfoPrestamoCobro()"></select></div>
+          <div id="infoPrestamoCobro" class="card" style="background:var(--bg);display:none;margin-bottom:12px;">
             <div style="font-size:0.85rem;">
               <div>Balance Pendiente: <strong id="infoBalance">$0.00</strong></div>
               <div>Cuota: <strong id="infoCuota">$0.00</strong></div>
               <div>Días sin pagar: <strong id="infoDiasSinPagar">0</strong></div>
-              <div>Mora calculada: <strong id="infoMora" class="text-danger">$0.00</strong></div>
+              <div>Mora: <strong id="infoMora" class="text-danger">$0.00</strong></div>
             </div>
           </div>
           <div class="form-row">
@@ -508,8 +487,8 @@
             </div>
           </div>
           <div class="form-group"><label>Fecha del Cobro</label><input type="date" id="cobFecha"></div>
-          <div class="form-group"><label>Nota / Observación</label><textarea id="cobNota" rows="2"></textarea></div>
-          <button type="submit" class="btn btn-success">Registrar Cobro + Generar Recibo</button>
+          <div class="form-group"><label>Nota</label><textarea id="cobNota" rows="2"></textarea></div>
+          <button type="submit" class="btn btn-success">Registrar Cobro + Recibo</button>
         </form>
       </div>
       <div class="card">
@@ -518,7 +497,7 @@
       </div>
     </div>
 
-    <!-- TABS ADMINISTRATIVOS -->
+    <!-- TABS ADMIN -->
     <div id="empresasTab" class="tab-content"></div>
     <div id="zonasTab" class="tab-content"></div>
     <div id="empleadosTab" class="tab-content"></div>
@@ -532,27 +511,24 @@
   </div>
 
   <!-- RECIBO -->
-  <div id="printRecibo" class="printable" style="font-family:monospace; max-width:300px; margin:0 auto; padding:10px; font-size:12px;">
-    <div style="text-align:center; border-bottom:1px dashed #000; padding-bottom:8px; margin-bottom:8px;">
-      <strong id="recEmpresa">PERDOMO SOVEREIGN CAPITAL</strong><br>
-      <span id="recDireccion">San Francisco de Macorís</span>
+  <div id="printRecibo" class="printable" style="font-family:monospace;max-width:300px;margin:0 auto;padding:10px;font-size:12px;">
+    <div style="text-align:center;border-bottom:1px dashed #000;padding-bottom:8px;margin-bottom:8px;">
+      <strong id="recEmpresa">PERDOMO SOVEREIGN CAPITAL</strong>
     </div>
     <div>Cliente: <span id="recCliente"></span></div>
     <div>Cédula: <span id="recCedula"></span></div>
     <div>Fecha: <span id="recFecha"></span></div>
     <div>Cobrador: <span id="recCobrador"></span></div>
-    <div style="border-top:1px dashed #000; margin:8px 0; padding-top:8px;">
+    <div style="border-top:1px dashed #000;margin:8px 0;padding-top:8px;">
       <div>Monto Pagado: $<span id="recMonto"></span></div>
       <div>Mora: $<span id="recMora"></span></div>
       <div>Balance Restante: $<span id="recBalance"></span></div>
     </div>
-    <div style="text-align:center; margin-top:12px; font-size:10px;">
-      ¡Gracias por su pago!<br>No somos responsables de dinero entregado sin recibo.
-    </div>
+    <div style="text-align:center;margin-top:12px;font-size:10px;">¡Gracias por su pago!</div>
   </div>
 
   <!-- CONTRATO -->
-  <div id="printContrato" class="printable" style="max-width:700px; margin:20px auto; padding:30px; font-family:serif; line-height:1.5;">
+  <div id="printContrato" class="printable" style="max-width:700px;margin:20px auto;padding:30px;font-family:serif;line-height:1.5;">
     <h2 style="text-align:center;">CONTRATO DE PRÉSTAMO</h2>
     <p><strong>Empresa:</strong> <span id="conEmpresa"></span></p>
     <p><strong>Cliente / Deudor:</strong> <span id="conCliente"></span></p>
@@ -563,18 +539,11 @@
     <p><strong>Valor de cada Cuota:</strong> $<span id="conValorCuota"></span></p>
     <p><strong>Fecha de Inicio:</strong> <span id="conFechaInicio"></span></p>
     <p><strong>Fecha de Término:</strong> <span id="conFechaTermino"></span></p>
-    <br>
-    <p>El deudor se compromete a pagar las cuotas en las fechas establecidas. En caso de mora se aplicarán los cargos correspondientes según las políticas de la empresa.</p>
-    <br><br>
-    <div style="display:flex; justify-content:space-between;">
-      <div style="text-align:center;"><div style="border-top:1px solid #000; width:180px; margin:0 auto;"></div><small>Firma Deudor</small></div>
-      <div style="text-align:center;"><div style="border-top:1px solid #000; width:180px; margin:0 auto;"></div><small>Firma Empresa</small></div>
-    </div>
   </div>
 
   <script>
     // =====================================================
-    // CONFIGURACIÓN
+    // CONFIGURACIÓN Y ESTADO GLOBAL
     // =====================================================
     const SUPABASE_URL = 'https://vzzfslsosmbgmlyvzyis.supabase.co';
     const SUPABASE_KEY = 'sb_publishable__tBf4S2mIqfMXluRwkyNHg_pIXWarbJ';
@@ -586,12 +555,11 @@
       console.error('Error inicializando Supabase:', e);
     }
 
-    // ESTADO GLOBAL
     let empresaActual = null;
     let usuarioActual = null;
     let rolActual = null;
     let zonaActual = null;
-    
+
     let empresasDB = [];
     let clientesDB = [];
     let prestamosDB = [];
@@ -685,7 +653,7 @@
     }
 
     // =====================================================
-    // SINCRONIZACIÓN
+    // SINCRONIZACIÓN SUPABASE
     // =====================================================
     async function sincronizarConNube() {
       if (!supabase || !empresaActual) return;
@@ -775,12 +743,20 @@
     function guardarLocal() {
       const key = 'psc_v2_' + (empresaActual?.id || 'global');
       const data = {
-        empresas: empresasDB, clientes: clientesDB, prestamos: prestamosDB,
-        cobros: cobrosDB, notas: notasDB, rutas: rutasDB,
-        empleados: empleadosDB, cobradores: cobradoresDB,
-        controlDia: controlDiaDB, codigosJornada: codigosJornadaDB,
-        config2fa: config2faDB, auditoria: auditoriaLogsDB,
-        inversionistas: inversionistasDB, gastos: gastosDB
+        empresas: empresasDB,
+        clientes: clientesDB,
+        prestamos: prestamosDB,
+        cobros: cobrosDB,
+        notas: notasDB,
+        rutas: rutasDB,
+        empleados: empleadosDB,
+        cobradores: cobradoresDB,
+        controlDia: controlDiaDB,
+        codigosJornada: codigosJornadaDB,
+        config2fa: config2faDB,
+        auditoria: auditoriaLogsDB,
+        inversionistas: inversionistasDB,
+        gastos: gastosDB
       };
       try {
         localStorage.setItem(key, JSON.stringify(data));
@@ -823,41 +799,103 @@
         ctxFirma.strokeStyle = '#000';
         ctxFirma.lineWidth = 2;
         ctxFirma.lineCap = 'round';
-        canvasFirma.addEventListener('mousedown', iniciarDibujo);
-        canvasFirma.addEventListener('mousemove', dibujar);
-        canvasFirma.addEventListener('mouseup', detenerDibujo);
-        canvasFirma.addEventListener('mouseout', detenerDibujo);
-        canvasFirma.addEventListener('touchstart', e => { e.preventDefault(); iniciarDibujo(e.touches[0]); });
-        canvasFirma.addEventListener('touchmove', e => { e.preventDefault(); dibujar(e.touches[0]); });
-        canvasFirma.addEventListener('touchend', detenerDibujo);
+
+        const start = (e) => {
+          dibujando = true;
+          const rect = canvasFirma.getBoundingClientRect();
+          const clientX = e.clientX || e.touches[0].clientX;
+          const clientY = e.clientY || e.touches[0].clientY;
+          ctxFirma.beginPath();
+          ctxFirma.moveTo(clientX - rect.left, clientY - rect.top);
+        };
+        const move = (e) => {
+          if (!dibujando) return;
+          e.preventDefault();
+          const rect = canvasFirma.getBoundingClientRect();
+          const clientX = e.clientX || e.touches[0].clientX;
+          const clientY = e.clientY || e.touches[0].clientY;
+          ctxFirma.lineTo(clientX - rect.left, clientY - rect.top);
+          ctxFirma.stroke();
+        };
+        const end = () => { dibujando = false; };
+
+        canvasFirma.addEventListener('mousedown', start);
+        canvasFirma.addEventListener('mousemove', move);
+        canvasFirma.addEventListener('mouseup', end);
+        canvasFirma.addEventListener('mouseout', end);
+        canvasFirma.addEventListener('touchstart', start, {passive: false});
+        canvasFirma.addEventListener('touchmove', move, {passive: false});
+        canvasFirma.addEventListener('touchend', end);
       }
-      const fechaInput = document.getElementById('pFechaInicio');
-      if (fechaInput) fechaInput.value = hoyStr();
-      const cobFecha = document.getElementById('cobFecha');
-      if (cobFecha) cobFecha.value = hoyStr();
+
+      document.getElementById('pFechaInicio').value = hoyStr();
+      document.getElementById('cobFecha').value = hoyStr();
       await cargarEmpresasLogin();
     });
 
+    // =====================================================
+    // CARGAR EMPRESAS (VERSIÓN CORREGIDA)
+    // =====================================================
     async function cargarEmpresasLogin() {
       const select = document.getElementById('loginEmpresaSelect');
       if (!select) return;
+
       if (supabase) {
         try {
           const { data, error } = await supabase.from('empresas').select('*');
-          if (!error && data && data.length) empresasDB = toCamel(data);
-        } catch (e) {}
+          if (!error && data && data.length > 0) {
+            empresasDB = toCamel(data);
+          }
+        } catch (e) {
+          console.warn('No se pudo cargar empresas desde Supabase:', e);
+        }
       }
-      if (!empresasDB.length) {
+
+      if (!empresasDB || empresasDB.length === 0) {
         empresasDB = [
-          { id: generarUUID(), nombre: 'Perdomo Sovereign Capital S.A.', estado: 'activa', requierePago: false, colorPrimario: '#1e3a8a', usuarioAdmin: 'admin', passwordAdmin: 'admin123' },
-          { id: generarUUID(), nombre: 'Financiera Norestana', estado: 'activa', requierePago: true, colorPrimario: '#1e3a8a' },
-          { id: generarUUID(), nombre: 'Inversiones Cibao Express', estado: 'activa', requierePago: true, colorPrimario: '#1e3a8a' }
+          {
+            id: generarUUID(),
+            nombre: 'Perdomo Sovereign Capital S.A.',
+            estado: 'activa',
+            requierePago: false,
+            colorPrimario: '#1e3a8a',
+            usuarioAdmin: 'admin',
+            passwordAdmin: 'admin123'
+          },
+          {
+            id: generarUUID(),
+            nombre: 'Financiera Norestana',
+            estado: 'activa',
+            requierePago: true,
+            colorPrimario: '#1e3a8a',
+            usuarioAdmin: 'admin',
+            passwordAdmin: 'admin123'
+          },
+          {
+            id: generarUUID(),
+            nombre: 'Inversiones Cibao Express',
+            estado: 'activa',
+            requierePago: true,
+            colorPrimario: '#1e3a8a',
+            usuarioAdmin: 'admin',
+            passwordAdmin: 'admin123'
+          }
         ];
       }
-      select.innerHTML = empresasDB.map(e => `<option value="${e.id}">🏢 ${e.nombre}</option>`).join('');
+
+      select.innerHTML = empresasDB.map(e => 
+        `<option value="${e.id}">🏢 ${e.nombre}</option>`
+      ).join('');
+
+      if (select.options.length > 0) {
+        select.selectedIndex = 0;
+      }
     }
 
-    // =====================================================
+    // FIN DE LA PARTE 1
+    // Continúa en la PARTE 2...
+
+// =====================================================
     // LOGIN + RBAC + 2FA
     // =====================================================
     function togglePassword() {
@@ -870,14 +908,18 @@
       const divUser = document.getElementById('divUsuarioLogin');
       const divZona = document.getElementById('divZonaLogin');
       const lbl = document.getElementById('lblUsuarioLogin');
+
       divUser.style.display = 'none';
       divZona.style.display = 'none';
+
       if (rol === 'Empleado' || rol === 'Cobrador') {
         divUser.style.display = 'block';
         lbl.textContent = rol === 'Cobrador' ? 'Cobrador' : 'Empleado';
         cargarUsuariosEmpresa();
       }
-      if (rol === 'Cobrador') divZona.style.display = 'block';
+      if (rol === 'Cobrador') {
+        divZona.style.display = 'block';
+      }
     }
 
     async function cargarUsuariosEmpresa() {
@@ -888,42 +930,23 @@
       if (!empId) return;
 
       let rutas = rutasDB.filter(r => r.empresaId === empId);
-      if (!rutas.length && supabase) {
-        try {
-          const { data } = await supabase.from('rutas').select('*').eq('empresa_id', empId);
-          rutas = toCamel(data || []);
-          rutasDB = [...rutasDB.filter(r => r.empresaId !== empId), ...rutas];
-        } catch(e) {}
-      }
       if (!rutas.length) {
         rutas = [{ id: generarUUID(), numero: '1', nombre: 'Zona Principal', dia: 'Lunes', empresaId: empId }];
         rutasDB.push(rutas[0]);
       }
       if (zonaSelect) {
-        zonaSelect.innerHTML = rutas.map(r => `<option value="\( {r.id}"> \){r.numero} - ${r.nombre}</option>`).join('');
+        zonaSelect.innerHTML = rutas.map(r => 
+          `<option value="\( {r.id}"> \){r.numero} - ${r.nombre}</option>`
+        ).join('');
       }
 
       if (rol === 'Cobrador') {
-        let lista = cobradoresDB.filter(c => c.empresaId === empId);
-        if (!lista.length && supabase) {
-          try {
-            const { data } = await supabase.from('cobradores').select('*').eq('empresa_id', empId);
-            lista = toCamel(data || []);
-            cobradoresDB = [...cobradoresDB.filter(c => c.empresaId !== empId), ...lista];
-          } catch(e) {}
-        }
+        const lista = cobradoresDB.filter(c => c.empresaId === empId);
         select.innerHTML = lista.length 
           ? lista.map(c => `<option value="\( {c.id}"> \){c.nombre}</option>`).join('')
           : '<option value="">-- Sin cobradores --</option>';
       } else if (rol === 'Empleado') {
-        let lista = empleadosDB.filter(e => e.empresaId === empId);
-        if (!lista.length && supabase) {
-          try {
-            const { data } = await supabase.from('empleados').select('*').eq('empresa_id', empId);
-            lista = toCamel(data || []);
-            empleadosDB = [...empleadosDB.filter(e => e.empresaId !== empId), ...lista];
-          } catch(e) {}
-        }
+        const lista = empleadosDB.filter(e => e.empresaId === empId);
         select.innerHTML = lista.length 
           ? lista.map(e => `<option value="\( {e.id}"> \){e.nombre}</option>`).join('')
           : '<option value="">-- Sin empleados --</option>';
@@ -939,10 +962,11 @@
       const zonaId = document.getElementById('loginZonaSelect')?.value;
 
       if (!rol) return alert('Selecciona un rol');
+
       empresaActual = empresasDB.find(e => e.id === empId);
       if (!empresaActual) return alert('Empresa no encontrada');
 
-      if (empresaActual.estado === 'bloqueada' || (empresaActual.requierePago && estaVencida(empresaActual))) {
+      if (empresaActual.estado === 'bloqueada') {
         document.getElementById('pantallaBloqueoImpago').style.display = 'flex';
         return;
       }
@@ -952,7 +976,8 @@
       if (rol === 'SuperAdmin') {
         if (pass !== 'SuperAdmin2026!') return alert('Contraseña incorrecta');
         usuario = { id: 'super', nombre: 'Super Admin', rol: 'SuperAdmin' };
-      } else if (rol === 'Administrador') {
+      } 
+      else if (rol === 'Administrador') {
         const hashGuardado = empresaActual.passwordHash || empresaActual.passwordAdmin;
         if (hashGuardado && hashGuardado.startsWith('$2')) {
           const ok = await bcrypt.compare(pass, hashGuardado);
@@ -960,37 +985,42 @@
         } else if (pass !== (empresaActual.passwordAdmin || 'admin123')) {
           return alert('Contraseña incorrecta');
         }
-        usuario = { id: empresaActual.id, nombre: empresaActual.usuarioAdmin || 'Administrador', rol: 'Administrador' };
-      } else if (rol === 'Empleado') {
-        usuario = empleadosDB.find(e => e.id === userId);
-        if (!usuario) return alert('Empleado no encontrado');
-        const ok = await verificarPassword(pass, usuario.passwordHash || usuario.password);
-        if (!ok) return alert('Contraseña incorrecta');
-      } else if (rol === 'Cobrador') {
-        usuario = cobradoresDB.find(c => c.id === userId);
-        if (!usuario) return alert('Cobrador no encontrado');
+        usuario = { 
+          id: empresaActual.id, 
+          nombre: empresaActual.usuarioAdmin || 'Administrador', 
+          rol: 'Administrador' 
+        };
+      } 
+      else if (rol === 'Empleado' || rol === 'Cobrador') {
+        const lista = rol === 'Cobrador' ? cobradoresDB : empleadosDB;
+        usuario = lista.find(u => u.id === userId);
+        if (!usuario) return alert('Usuario no encontrado');
+
         const ok = await verificarPassword(pass, usuario.passwordHash || usuario.password);
         if (!ok) return alert('Contraseña incorrecta');
 
-        const codigo = String(Math.floor(100000 + Math.random() * 900000));
-        const codigoObj = {
-          id: generarUUID(),
-          empresaId: empresaActual.id,
-          cobradorId: usuario.id,
-          cobradorNombre: usuario.nombre,
-          codigo: codigo,
-          usado: false,
-          creadoEn: new Date().toISOString(),
-          expiraEn: new Date(Date.now() + 10 * 60 * 1000).toISOString()
-        };
-        codigosJornadaDB.push(codigoObj);
-        await guardarDatosEnNube(['codigos_jornada']);
-        window._loginPendiente = { usuario, rol, zonaId, codigoObj };
-        document.getElementById('modal2FA').classList.add('show');
-        document.getElementById('inputCodigo2FA').value = '';
-        document.getElementById('inputCodigo2FA').focus();
-        iniciarPolling2FAOficina();
-        return;
+        if (rol === 'Cobrador') {
+          const codigo = String(Math.floor(100000 + Math.random() * 900000));
+          const codigoObj = {
+            id: generarUUID(),
+            empresaId: empresaActual.id,
+            cobradorId: usuario.id,
+            cobradorNombre: usuario.nombre,
+            codigo: codigo,
+            usado: false,
+            creadoEn: new Date().toISOString(),
+            expiraEn: new Date(Date.now() + 10 * 60 * 1000).toISOString()
+          };
+          codigosJornadaDB.push(codigoObj);
+          await guardarDatosEnNube(['codigos_jornada']);
+
+          window._loginPendiente = { usuario, rol, zonaId, codigoObj };
+          document.getElementById('modal2FA').classList.add('show');
+          document.getElementById('inputCodigo2FA').value = '';
+          document.getElementById('inputCodigo2FA').focus();
+          iniciarPolling2FAOficina();
+          return;
+        }
       }
 
       finalizarLogin(usuario, rol, zonaId);
@@ -1011,10 +1041,12 @@
       const codigoIngresado = document.getElementById('inputCodigo2FA').value.trim();
       const pendiente = window._loginPendiente;
       if (!pendiente) return;
+
       const codigoObj = pendiente.codigoObj;
       if (codigoObj.usado) return alert('Este código ya fue utilizado');
-      if (new Date() > new Date(codigoObj.expiraEn)) return alert('Código expirado. Vuelve a iniciar sesión.');
+      if (new Date() > new Date(codigoObj.expiraEn)) return alert('Código expirado');
       if (codigoIngresado !== codigoObj.codigo) return alert('Código incorrecto');
+
       codigoObj.usado = true;
       await guardarDatosEnNube(['codigos_jornada']);
       document.getElementById('modal2FA').classList.remove('show');
@@ -1041,7 +1073,7 @@
         el.style.display = (rol === 'SuperAdmin') ? '' : 'none';
       });
       document.querySelectorAll('.solo-admin').forEach(el => {
-        el.style.display = (rol === 'SuperAdmin' || rol === 'Administrador' || rol === 'Empleado') ? '' : 'none';
+        el.style.display = (['SuperAdmin', 'Administrador', 'Empleado'].includes(rol)) ? '' : 'none';
       });
 
       sincronizarConNube().then(() => {
@@ -1050,10 +1082,9 @@
         cargarSelectsPrestamo();
         cargarSelectsCobro();
         logAuditoria('LOGIN', `\( {usuario.nombre} ( \){rol}) inició sesión`);
-        verificarVencimientoSuscripcion();
       });
 
-      if (rol === 'Administrador' || rol === 'Empleado' || rol === 'SuperAdmin') {
+      if (['Administrador', 'Empleado', 'SuperAdmin'].includes(rol)) {
         iniciarPolling2FAOficina();
       }
     }
@@ -1070,15 +1101,17 @@
             .eq('usado', false)
             .order('creado_en', { ascending: false })
             .limit(5);
+
           const codigos = toCamel(data || []);
           const nuevo = codigos.find(c => c.id !== ultimoCodigoVisto && new Date(c.expiraEn) > new Date());
           if (nuevo) {
             ultimoCodigoVisto = nuevo.id;
-            const alerta = document.getElementById('alerta2FA');
             document.getElementById('codigo2FAValor').textContent = nuevo.codigo;
             document.getElementById('codigo2FAInfo').textContent = `Cobrador: ${nuevo.cobradorNombre || '—'}`;
-            alerta.style.display = 'block';
-            setTimeout(() => { alerta.style.display = 'none'; }, 60000);
+            document.getElementById('alerta2FA').style.display = 'block';
+            setTimeout(() => {
+              document.getElementById('alerta2FA').style.display = 'none';
+            }, 60000);
           }
         } catch (e) {}
       }, 5000);
@@ -1098,38 +1131,6 @@
       document.getElementById('loginPassword').value = '';
     }
 
-    function estaVencida(emp) {
-      if (!emp.fechaPago) return false;
-      return new Date() > new Date(emp.fechaPago);
-    }
-
-    function verificarVencimientoSuscripcion() {
-      if (!empresaActual || !empresaActual.requierePago || !empresaActual.fechaPago) return;
-      const hoy = new Date();
-      const venc = new Date(empresaActual.fechaPago);
-      const diffDias = Math.ceil((venc - hoy) / 86400000);
-      let banner = document.getElementById('bannerAlertaPago');
-      if (!banner) {
-        banner = document.createElement('div');
-        banner.id = 'bannerAlertaPago';
-        banner.style.cssText = 'display:none; background:var(--warning); color:#000; padding:10px 15px; text-align:center; font-weight:700; font-size:0.85rem; position:relative; z-index:2100;';
-        document.body.prepend(banner);
-      }
-      if (diffDias <= 5 && diffDias >= 0) {
-        banner.style.display = 'block';
-        banner.innerHTML = `⚠️ Tu suscripción vence en <strong>\( {diffDias}</strong> día(s) ( \){empresaActual.fechaPago}). Realiza el pago para evitar la suspensión.`;
-      } else if (diffDias < 0) {
-        banner.style.display = 'none';
-        if (empresaActual.estado !== 'bloqueada') {
-          empresaActual.estado = 'bloqueada';
-          guardarDatosEnNube(['empresas']);
-        }
-        document.getElementById('pantallaBloqueoImpago').style.display = 'flex';
-      } else {
-        banner.style.display = 'none';
-      }
-    }
-
     // =====================================================
     // NAVEGACIÓN
     // =====================================================
@@ -1139,6 +1140,7 @@
       const tab = document.getElementById(id);
       if (tab) tab.classList.add('active');
       if (btn) btn.classList.add('active');
+
       if (id === 'resumen') actualizarDashboard();
       if (id === 'clientes') renderClientes();
       if (id === 'nuevoPrestamo') cargarSelectsPrestamo();
@@ -1169,8 +1171,7 @@
 
     function toggleDarkMode() {
       const html = document.documentElement;
-      const actual = html.getAttribute('data-theme');
-      html.setAttribute('data-theme', actual === 'dark' ? '' : 'dark');
+      html.setAttribute('data-theme', html.getAttribute('data-theme') === 'dark' ? '' : 'dark');
     }
 
     // =====================================================
@@ -1190,8 +1191,6 @@
 
     function ocultarFormCliente() {
       document.getElementById('formClienteCard').style.display = 'none';
-      const form = document.querySelector('#formClienteCard form');
-      if (form) form.onsubmit = guardarCliente;
     }
 
     function previewFoto(input, previewId) {
@@ -1207,19 +1206,6 @@
       }
     }
 
-    function iniciarDibujo(e) {
-      dibujando = true;
-      const rect = canvasFirma.getBoundingClientRect();
-      ctxFirma.beginPath();
-      ctxFirma.moveTo(e.clientX - rect.left, e.clientY - rect.top);
-    }
-    function dibujar(e) {
-      if (!dibujando) return;
-      const rect = canvasFirma.getBoundingClientRect();
-      ctxFirma.lineTo(e.clientX - rect.left, e.clientY - rect.top);
-      ctxFirma.stroke();
-    }
-    function detenerDibujo() { dibujando = false; }
     function limpiarFirma() {
       if (ctxFirma) ctxFirma.clearRect(0, 0, canvasFirma.width, canvasFirma.height);
     }
@@ -1229,6 +1215,7 @@
       const firma = canvasFirma ? canvasFirma.toDataURL('image/png') : '';
       const zonaId = document.getElementById('cliZona').value;
       const zona = rutasDB.find(r => r.id === zonaId);
+
       const cliente = {
         id: generarUUID(),
         empresaId: empresaActual.id,
@@ -1248,12 +1235,14 @@
         estado: 'Activo',
         creadoEn: new Date().toISOString()
       };
+
       clientesDB.push(cliente);
       await guardarDatosEnNube(['clientes']);
       logAuditoria('CREAR_CLIENTE', cliente.nombre);
+
       alert('Cliente registrado correctamente');
       ocultarFormCliente();
-      document.getElementById('formClienteCard').querySelector('form').reset();
+      e.target.reset();
       renderClientes();
       cargarSelectsPrestamo();
     }
@@ -1261,10 +1250,12 @@
     function renderClientes() {
       const cont = document.getElementById('listaClientes');
       if (!cont) return;
+
       let lista = clientesDB.filter(c => c.empresaId === empresaActual?.id);
       if (rolActual === 'Cobrador' && zonaActual) {
         lista = lista.filter(c => c.zonaId === zonaActual.id);
       }
+
       const q = (document.getElementById('buscarCliente')?.value || '').toLowerCase();
       if (q) {
         lista = lista.filter(c => 
@@ -1274,10 +1265,12 @@
           (c.apodo || '').toLowerCase().includes(q)
         );
       }
+
       if (!lista.length) {
-        cont.innerHTML = '<p class="text-muted" style="padding:20px; text-align:center;">No hay clientes registrados.</p>';
+        cont.innerHTML = '<p class="text-muted" style="padding:20px;text-align:center;">No hay clientes registrados.</p>';
         return;
       }
+
       cont.innerHTML = lista.map(c => {
         const avatar = c.foto ? `<img src="${c.foto}" alt="">` : '👤';
         const scoring = calcularScoringCliente(c.id);
@@ -1287,8 +1280,8 @@
             <div class="client-avatar">${avatar}</div>
             <div style="flex:1;">
               <div style="font-weight:700;">\( {c.nombre} \){c.apodo ? ' (“' + c.apodo + '”)' : ''}</div>
-              <div style="font-size:0.8rem; color:var(--text-muted);">${c.cedula || '—'} · ${c.telefono || '—'}</div>
-              <div style="font-size:0.75rem; color:var(--text-muted);">📍 ${c.zonaNombre || 'Sin zona'}</div>
+              <div style="font-size:0.8rem;color:var(--text-muted);">${c.cedula || '—'} · ${c.telefono || '—'}</div>
+              <div style="font-size:0.75rem;color:var(--text-muted);">📍 ${c.zonaNombre || 'Sin zona'}</div>
             </div>
             <span class="badge \( {badgeRiesgo}"> \){scoring} pts</span>
           </div>`;
@@ -1300,253 +1293,42 @@
     function calcularScoringCliente(clienteId) {
       const prestamos = prestamosDB.filter(p => p.clienteId === clienteId);
       if (!prestamos.length) return 80;
+
       let score = 100;
       const hoy = new Date();
+
       prestamos.forEach(p => {
         const cobros = cobrosDB.filter(c => c.prestamoId === p.id);
         const ultimoCobro = cobros.sort((a,b) => new Date(b.fecha) - new Date(a.fecha))[0];
         const diasSinPagar = ultimoCobro 
           ? Math.floor((hoy - new Date(ultimoCobro.fecha)) / 86400000)
           : Math.floor((hoy - new Date(p.fechaInicio)) / 86400000);
+
         if (diasSinPagar > 30) score -= 40;
         else if (diasSinPagar > 14) score -= 25;
         else if (diasSinPagar > 7) score -= 10;
-        if (p.balancePendiente > 0 && p.fechaTermino && new Date(p.fechaTermino) < hoy) score -= 20;
+
+        if (p.balancePendiente > 0 && p.fechaTermino && new Date(p.fechaTermino) < hoy) {
+          score -= 20;
+        }
       });
+
       return Math.max(0, Math.min(100, score));
     }
 
-    // PERFIL CLIENTE
     function verCliente(id) {
       const c = clientesDB.find(x => x.id === id);
       if (!c) return;
       const prestamos = prestamosDB.filter(p => p.clienteId === id);
-      const cobros = cobrosDB.filter(co => prestamos.some(p => p.id === co.prestamoId));
       const scoring = calcularScoringCliente(id);
 
-      let modal = document.getElementById('modalPerfilCliente');
-      if (!modal) {
-        modal = document.createElement('div');
-        modal.id = 'modalPerfilCliente';
-        modal.className = 'modal-overlay';
-        document.body.appendChild(modal);
-      }
-
-      const avatar = c.foto 
-        ? `<img src="${c.foto}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid var(--primary);">`
-        : `<div style="width:80px;height:80px;border-radius:50%;background:#e2e8f0;display:flex;align-items:center;justify-content:center;font-size:2rem;">👤</div>`;
-
-      const badgeRiesgo = scoring >= 70 
-        ? '<span class="badge badge-success">Bajo Riesgo</span>' 
-        : scoring >= 40 
-          ? '<span class="badge badge-warning">Riesgo Medio</span>' 
-          : '<span class="badge badge-danger">Alto Riesgo</span>';
-
-      let prestamosHtml = prestamos.length === 0 
-        ? '<p class="text-muted">Sin préstamos registrados.</p>'
-        : prestamos.map(p => {
-            const estadoColor = p.balancePendiente <= 0 ? 'badge-success' : (p.fechaTermino && new Date(p.fechaTermino) < new Date() ? 'badge-danger' : 'badge-primary');
-            const estadoTxt = p.balancePendiente <= 0 ? 'Pagado' : (p.fechaTermino && new Date(p.fechaTermino) < new Date() ? 'Vencido' : 'Activo');
-            return `
-              <div style="background:var(--bg);padding:12px;border-radius:8px;margin-bottom:8px;border:1px solid var(--border);">
-                <div style="display:flex;justify-content:space-between;align-items:center;">
-                  <strong>${formatMoney(p.monto)}</strong>
-                  <span class="badge \( {estadoColor}"> \){estadoTxt}</span>
-                </div>
-                <div style="font-size:0.82rem;color:var(--text-muted);margin-top:4px;">
-                  Cuota: \( {formatMoney(p.valorCuota)} · Balance: <strong> \){formatMoney(p.balancePendiente)}</strong><br>
-                  ${p.fechaInicio} → ${p.fechaTermino || '—'} · ${p.plazo.replace('_',' ')}
-                </div>
-                <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
-                  <button class="btn btn-sm btn-success" onclick="abrirModalCobroRapido('${p.id}')">💵 Cobrar</button>
-                  <button class="btn btn-sm btn-secondary" onclick="abrirModalNota('${p.id}')">📝 Nota</button>
-                  \( {rolActual !== 'Cobrador' ? `<button class="btn btn-sm btn-danger" onclick="eliminarPrestamo(' \){p.id}')">🗑️</button>` : ''}
-                </div>
-              </div>`;
-          }).join('');
-
-      let cobrosHtml = cobros.length === 0
-        ? '<p class="text-muted">Sin cobros.</p>'
-        : cobros.sort((a,b) => new Date(b.fecha) - new Date(a.fecha)).slice(0, 10).map(co => `
-            <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:0.85rem;">
-              <span>${co.fecha} · ${co.metodoPago || 'Efectivo'}</span>
-              <strong class="text-success">+${formatMoney(co.monto)}</strong>
-            </div>`).join('');
-
-      modal.innerHTML = `
-        <div class="modal-box" style="max-width:520px;">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">
-            <div style="display:flex;gap:14px;align-items:center;">
-              ${avatar}
-              <div>
-                <h3 style="margin:0;color:var(--primary);">${c.nombre}</h3>
-                \( {c.apodo ? `<div style="font-size:0.9rem;color:var(--text-muted);">“ \){c.apodo}”</div>` : ''}
-                <div style="margin-top:4px;">\( {badgeRiesgo} <span class="badge badge-primary"> \){scoring} pts</span></div>
-              </div>
-            </div>
-            <button class="btn btn-secondary btn-sm" onclick="cerrarModalPerfil()" style="margin:0;">✕</button>
-          </div>
-          <div style="font-size:0.88rem;line-height:1.6;margin-bottom:16px;">
-            <div>🆔 <strong>${c.cedula || '—'}</strong></div>
-            <div>📞 ${c.telefono || '—'}</div>
-            <div>📍 ${c.zonaNombre || 'Sin zona'}</div>
-            <div style="color:var(--text-muted);font-size:0.8rem;">
-              ${[c.calle, c.numCasa, c.sector, c.ciudad, c.provincia].filter(Boolean).join(', ') || 'Sin dirección'}
-            </div>
-          </div>
-          <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
-            <button class="btn btn-sm btn-secondary" onclick="editarCliente('${c.id}')">✏️ Editar</button>
-            <button class="btn btn-sm btn-whatsapp" onclick="contactarClienteWA('\( {c.telefono}',' \){c.nombre}')">📲 WhatsApp</button>
-            \( {rolActual !== 'Cobrador' ? `<button class="btn btn-sm btn-danger" onclick="eliminarCliente(' \){c.id}')">🗑️ Eliminar</button>` : ''}
-          </div>
-          <h4 style="font-size:0.95rem;margin-bottom:8px;">Préstamos</h4>
-          ${prestamosHtml}
-          <h4 style="font-size:0.95rem;margin:16px 0 8px;">Últimos Cobros</h4>
-          ${cobrosHtml}
-        </div>`;
-      modal.classList.add('show');
-    }
-
-    function cerrarModalPerfil() {
-      const modal = document.getElementById('modalPerfilCliente');
-      if (modal) modal.classList.remove('show');
-    }
-
-    function contactarClienteWA(tel, nombre) {
-      const t = (tel || '').replace(/\D/g, '');
-      if (!t) return alert('Sin teléfono');
-      window.open(`https://wa.me/\( {t}?text= \){encodeURIComponent('Hola ' + nombre + ', le escribimos de ' + (empresaActual?.nombre || 'la financiera') + '.')}`, '_blank');
-    }
-
-    function editarCliente(id) {
-      const c = clientesDB.find(x => x.id === id);
-      if (!c) return;
-      cerrarModalPerfil();
-      mostrarFormCliente();
-      document.getElementById('cliNombre').value = c.nombre || '';
-      document.getElementById('cliApodo').value = c.apodo || '';
-      document.getElementById('cliCedula').value = c.cedula || '';
-      document.getElementById('cliTelefono').value = c.telefono || '';
-      document.getElementById('cliProvincia').value = c.provincia || '';
-      document.getElementById('cliCiudad').value = c.ciudad || '';
-      document.getElementById('cliSector').value = c.sector || '';
-      document.getElementById('cliCalle').value = c.calle || '';
-      document.getElementById('cliNumCasa').value = c.numCasa || '';
-      if (c.zonaId) document.getElementById('cliZona').value = c.zonaId;
-      if (c.foto) {
-        fotoClienteBase64 = c.foto;
-        const img = document.getElementById('previewCliFoto');
-        img.src = c.foto;
-        img.style.display = 'block';
-      }
-      const form = document.querySelector('#formClienteCard form');
-      form.onsubmit = async function(e) {
-        e.preventDefault();
-        c.nombre = document.getElementById('cliNombre').value.trim();
-        c.apodo = document.getElementById('cliApodo').value.trim();
-        c.cedula = document.getElementById('cliCedula').value.trim();
-        c.telefono = document.getElementById('cliTelefono').value.trim();
-        c.provincia = document.getElementById('cliProvincia').value.trim();
-        c.ciudad = document.getElementById('cliCiudad').value.trim();
-        c.sector = document.getElementById('cliSector').value.trim();
-        c.calle = document.getElementById('cliCalle').value.trim();
-        c.numCasa = document.getElementById('cliNumCasa').value.trim();
-        c.zonaId = document.getElementById('cliZona').value;
-        const zona = rutasDB.find(r => r.id === c.zonaId);
-        c.zonaNombre = zona ? zona.nombre : '';
-        if (fotoClienteBase64) c.foto = fotoClienteBase64;
-        if (canvasFirma) {
-          const firma = canvasFirma.toDataURL('image/png');
-          if (firma.length > 100) c.firma = firma;
-        }
-        await guardarDatosEnNube(['clientes']);
-        logAuditoria('EDITAR_CLIENTE', c.nombre);
-        alert('Cliente actualizado');
-        ocultarFormCliente();
-        form.onsubmit = guardarCliente;
-        renderClientes();
-      };
-    }
-
-    async function eliminarCliente(id) {
-      if (!confirm('¿Eliminar este cliente y todos sus préstamos/cobros asociados?')) return;
-      clientesDB = clientesDB.filter(c => c.id !== id);
-      const prestamosIds = prestamosDB.filter(p => p.clienteId === id).map(p => p.id);
-      prestamosDB = prestamosDB.filter(p => p.clienteId !== id);
-      cobrosDB = cobrosDB.filter(c => !prestamosIds.includes(c.prestamoId));
-      notasDB = notasDB.filter(n => !prestamosIds.includes(n.prestamoId));
-      await guardarDatosEnNube(['clientes', 'prestamos', 'cobros', 'notas']);
-      logAuditoria('ELIMINAR_CLIENTE', id);
-      cerrarModalPerfil();
-      renderClientes();
-      alert('Cliente eliminado');
-    }
-
-    async function eliminarPrestamo(id) {
-      if (!confirm('¿Eliminar este préstamo y sus cobros?')) return;
-      prestamosDB = prestamosDB.filter(p => p.id !== id);
-      cobrosDB = cobrosDB.filter(c => c.prestamoId !== id);
-      notasDB = notasDB.filter(n => n.prestamoId !== id);
-      await guardarDatosEnNube(['prestamos', 'cobros', 'notas']);
-      logAuditoria('ELIMINAR_PRESTAMO', id);
-      cerrarModalPerfil();
-      actualizarDashboard();
-      alert('Préstamo eliminado');
-    }
-
-    function abrirModalNota(prestamoId) {
-      let modal = document.getElementById('modalNota');
-      if (!modal) {
-        modal = document.createElement('div');
-        modal.id = 'modalNota';
-        modal.className = 'modal-overlay';
-        document.body.appendChild(modal);
-      }
-      modal.innerHTML = `
-        <div class="modal-box">
-          <h3 style="color:var(--primary);margin-bottom:12px;">📝 Agregar Nota</h3>
-          <form onsubmit="guardarNota(event, '${prestamoId}')">
-            <div class="form-group">
-              <label>Nota</label>
-              <textarea id="notaTexto" rows="3" required placeholder="Ej. Cliente prometió pagar el viernes..."></textarea>
-            </div>
-            <div style="display:flex;gap:10px;">
-              <button type="button" class="btn btn-secondary" onclick="document.getElementById('modalNota').classList.remove('show')">Cancelar</button>
-              <button type="submit" class="btn btn-success">Guardar Nota</button>
-            </div>
-          </form>
-        </div>`;
-      modal.classList.add('show');
-    }
-
-    async function guardarNota(e, prestamoId) {
-      e.preventDefault();
-      const texto = document.getElementById('notaTexto').value.trim();
-      const nota = {
-        id: generarUUID(),
-        empresaId: empresaActual.id,
-        prestamoId,
-        texto: `[${usuarioActual?.nombre || 'Usuario'}] ${texto}`,
-        fecha: hoyStr(),
-        creadoEn: new Date().toISOString()
-      };
-      notasDB.push(nota);
-      await guardarDatosEnNube(['notas']);
-      logAuditoria('NOTA', texto.substring(0, 40));
-      document.getElementById('modalNota').classList.remove('show');
-      alert('Nota guardada');
-    }
-
-    function abrirModalCobroRapido(prestamoId) {
-      cerrarModalPerfil();
-      showTab('cobros', document.querySelector('nav button:nth-child(4)'));
-      setTimeout(() => {
-        const select = document.getElementById('cobPrestamo');
-        if (select) {
-          select.value = prestamoId;
-          cargarInfoPrestamoCobro();
-        }
-      }, 200);
+      let html = `👤 ${c.nombre}\n`;
+      html += `Cédula: ${c.cedula || '—'}\n`;
+      html += `Teléfono: ${c.telefono || '—'}\n`;
+      html += `Zona: ${c.zonaNombre || '—'}\n`;
+      html += `Scoring: ${scoring} pts\n\n`;
+      html += `Préstamos activos: ${prestamos.filter(p => p.balancePendiente > 0).length}`;
+      alert(html);
     }
 
     // =====================================================
@@ -1568,8 +1350,13 @@
       const gasto = parseFloat(document.getElementById('pGastoCierre').value) || 0;
       const tasa = parseFloat(document.getElementById('pTasa').value) || 30;
       const plazo = document.getElementById('pPlazo').value;
-      let numCuotas = 13, total = 0, cuota = 0;
+
       document.getElementById('camposPersonalizado').style.display = plazo === 'personalizado' ? 'block' : 'none';
+
+      let numCuotas = 13;
+      let total = 0;
+      let cuota = 0;
+
       if (plazo === 'diario') numCuotas = 30;
       else if (plazo === '10_semanas') numCuotas = 10;
       else if (plazo === 'quincenal') numCuotas = 6;
@@ -1579,11 +1366,13 @@
         numCuotas = parseInt(document.getElementById('pNumCuotasCustom').value) || 1;
         cuota = parseFloat(document.getElementById('pCuotaCustom').value) || 0;
         total = cuota * numCuotas;
-      } else numCuotas = 13;
+      }
+
       if (plazo !== 'personalizado') {
         total = monto + (monto * (tasa / 100));
         cuota = total / numCuotas;
       }
+
       document.getElementById('previewTotal').textContent = formatMoney(total);
       document.getElementById('previewCuota').textContent = formatMoney(cuota);
       document.getElementById('previewNeto').textContent = formatMoney(monto - gasto);
@@ -1594,12 +1383,15 @@
       const clienteId = document.getElementById('pCliente').value;
       const cliente = clientesDB.find(c => c.id === clienteId);
       if (!cliente) return alert('Selecciona un cliente válido');
+
       const monto = parseFloat(document.getElementById('pMonto').value);
       const gasto = parseFloat(document.getElementById('pGastoCierre').value) || 0;
       const tasa = parseFloat(document.getElementById('pTasa').value) || 30;
       const plazo = document.getElementById('pPlazo').value;
       const fechaInicio = document.getElementById('pFechaInicio').value;
+
       let numCuotas = 13, total = 0, cuota = 0;
+
       if (plazo === 'diario') numCuotas = 30;
       else if (plazo === '10_semanas') numCuotas = 10;
       else if (plazo === 'quincenal') numCuotas = 6;
@@ -1610,10 +1402,12 @@
         cuota = parseFloat(document.getElementById('pCuotaCustom').value) || 0;
         total = cuota * numCuotas;
       }
+
       if (plazo !== 'personalizado') {
         total = monto + (monto * (tasa / 100));
         cuota = total / numCuotas;
       }
+
       const fi = new Date(fechaInicio + 'T00:00:00');
       let ft = new Date(fi);
       if (plazo === 'diario') ft.setDate(ft.getDate() + numCuotas);
@@ -1628,38 +1422,46 @@
         clienteNombre: cliente.nombre,
         cedula: cliente.cedula,
         telefono: cliente.telefono,
-        monto, gastoCierre: gasto, montoNeto: monto - gasto,
-        tasa, plazo, numCuotas, valorCuota: cuota, totalPagar: total,
+        monto: monto,
+        gastoCierre: gasto,
+        montoNeto: monto - gasto,
+        tasa: tasa,
+        plazo: plazo,
+        numCuotas: numCuotas,
+        valorCuota: cuota,
+        totalPagar: total,
         balancePendiente: total,
-        fechaInicio, fechaTermino: ft.toISOString().slice(0, 10),
+        fechaInicio: fechaInicio,
+        fechaTermino: ft.toISOString().slice(0, 10),
         estado: 'Activo',
         creadoPor: usuarioActual?.nombre || '',
         creadoEn: new Date().toISOString()
       };
+
       prestamosDB.push(prestamo);
       await guardarDatosEnNube(['prestamos']);
       logAuditoria('CREAR_PRESTAMO', `${cliente.nombre} - ${formatMoney(monto)}`);
-      generarContrato(prestamo, cliente);
+
+      // Generar contrato
+      document.getElementById('conEmpresa').textContent = empresaActual.nombre;
+      document.getElementById('conCliente').textContent = cliente.nombre;
+      document.getElementById('conCedula').textContent = cliente.cedula || '';
+      document.getElementById('conMonto').textContent = prestamo.monto.toFixed(2);
+      document.getElementById('conTotal').textContent = prestamo.totalPagar.toFixed(2);
+      document.getElementById('conCuotas').textContent = prestamo.numCuotas;
+      document.getElementById('conValorCuota').textContent = prestamo.valorCuota.toFixed(2);
+      document.getElementById('conFechaInicio').textContent = prestamo.fechaInicio;
+      document.getElementById('conFechaTermino').textContent = prestamo.fechaTermino;
+
+      document.getElementById('printContrato').style.display = 'block';
+      setTimeout(() => window.print(), 400);
+      setTimeout(() => { document.getElementById('printContrato').style.display = 'none'; }, 1000);
+
       alert('Préstamo creado correctamente');
       e.target.reset();
       document.getElementById('pFechaInicio').value = hoyStr();
       calcularCuota();
       actualizarDashboard();
-    }
-
-    function generarContrato(p, c) {
-      document.getElementById('conEmpresa').textContent = empresaActual.nombre;
-      document.getElementById('conCliente').textContent = c.nombre;
-      document.getElementById('conCedula').textContent = c.cedula;
-      document.getElementById('conMonto').textContent = p.monto.toFixed(2);
-      document.getElementById('conTotal').textContent = p.totalPagar.toFixed(2);
-      document.getElementById('conCuotas').textContent = p.numCuotas;
-      document.getElementById('conValorCuota').textContent = p.valorCuota.toFixed(2);
-      document.getElementById('conFechaInicio').textContent = p.fechaInicio;
-      document.getElementById('conFechaTermino').textContent = p.fechaTermino;
-      document.getElementById('printContrato').style.display = 'block';
-      setTimeout(() => window.print(), 300);
-      setTimeout(() => { document.getElementById('printContrato').style.display = 'none'; }, 1000);
     }
 
     // =====================================================
@@ -1684,12 +1486,15 @@
       const p = prestamosDB.find(x => x.id === id);
       const box = document.getElementById('infoPrestamoCobro');
       if (!p) { box.style.display = 'none'; return; }
+
       const cobros = cobrosDB.filter(c => c.prestamoId === id);
       const ultimo = cobros.sort((a,b) => new Date(b.fecha) - new Date(a.fecha))[0];
       const dias = ultimo 
         ? Math.floor((new Date() - new Date(ultimo.fecha)) / 86400000)
         : Math.floor((new Date() - new Date(p.fechaInicio)) / 86400000);
+
       const mora = calcularMora(p, dias);
+
       document.getElementById('infoBalance').textContent = formatMoney(p.balancePendiente);
       document.getElementById('infoCuota').textContent = formatMoney(p.valorCuota);
       document.getElementById('infoDiasSinPagar').textContent = dias;
@@ -1709,46 +1514,46 @@
       const prestamoId = document.getElementById('cobPrestamo').value;
       const prestamo = prestamosDB.find(p => p.id === prestamoId);
       if (!prestamo) return alert('Selecciona un préstamo');
+
       const monto = parseFloat(document.getElementById('cobMonto').value);
       const metodo = document.getElementById('cobMetodo').value;
       const fecha = document.getElementById('cobFecha').value || hoyStr();
       const nota = document.getElementById('cobNota').value.trim();
+
       const cobrosPrevios = cobrosDB.filter(c => c.prestamoId === prestamoId);
       const ultimo = cobrosPrevios.sort((a,b) => new Date(b.fecha) - new Date(a.fecha))[0];
       const dias = ultimo 
         ? Math.floor((new Date(fecha) - new Date(ultimo.fecha)) / 86400000)
         : Math.floor((new Date(fecha) - new Date(prestamo.fechaInicio)) / 86400000);
       const mora = calcularMora(prestamo, dias);
+
       const nuevoBalance = Math.max(0, prestamo.balancePendiente - monto);
+
       const cobro = {
         id: generarUUID(),
         empresaId: empresaActual.id,
         prestamoId: prestamo.id,
         clienteId: prestamo.clienteId,
         clienteNombre: prestamo.clienteNombre,
-        monto, mora, metodoPago: metodo, fecha,
+        monto: monto,
+        mora: mora,
+        metodoPago: metodo,
+        fecha: fecha,
         nota: nota || 'Abono normal',
         balanceRestante: nuevoBalance,
         cobrador: usuarioActual?.nombre || '',
         zona: zonaActual?.nombre || '',
         creadoEn: new Date().toISOString()
       };
+
       prestamo.balancePendiente = nuevoBalance;
       if (nuevoBalance <= 0) prestamo.estado = 'Pagado';
+
       cobrosDB.push(cobro);
       await guardarDatosEnNube(['cobros', 'prestamos']);
       logAuditoria('COBRO', `${prestamo.clienteNombre} - ${formatMoney(monto)}`);
-      generarRecibo(cobro, prestamo);
-      alert('Cobro registrado correctamente');
-      e.target.reset();
-      document.getElementById('cobFecha').value = hoyStr();
-      document.getElementById('infoPrestamoCobro').style.display = 'none';
-      cargarSelectsCobro();
-      renderUltimosCobros();
-      actualizarDashboard();
-    }
 
-    function generarRecibo(cobro, prestamo) {
+      // Generar recibo
       document.getElementById('recEmpresa').textContent = empresaActual.nombre;
       document.getElementById('recCliente').textContent = cobro.clienteNombre;
       document.getElementById('recCedula').textContent = prestamo.cedula || '—';
@@ -1757,9 +1562,10 @@
       document.getElementById('recMonto').textContent = cobro.monto.toFixed(2);
       document.getElementById('recMora').textContent = cobro.mora.toFixed(2);
       document.getElementById('recBalance').textContent = cobro.balanceRestante.toFixed(2);
-      if (confirm('¿Deseas imprimir el recibo ahora?\n(Cancelar = descargar imagen)')) {
+
+      if (confirm('¿Imprimir recibo ahora?\n(Cancelar = descargar imagen)')) {
         document.getElementById('printRecibo').style.display = 'block';
-        setTimeout(() => window.print(), 200);
+        setTimeout(() => window.print(), 300);
         setTimeout(() => { document.getElementById('printRecibo').style.display = 'none'; }, 800);
       } else {
         const el = document.getElementById('printRecibo');
@@ -1772,27 +1578,39 @@
           el.style.display = 'none';
         });
       }
+
+      alert('Cobro registrado correctamente');
+      e.target.reset();
+      document.getElementById('cobFecha').value = hoyStr();
+      document.getElementById('infoPrestamoCobro').style.display = 'none';
+      cargarSelectsCobro();
+      renderUltimosCobros();
+      actualizarDashboard();
     }
 
     function renderUltimosCobros() {
       const cont = document.getElementById('listaUltimosCobros');
       if (!cont) return;
+
       let lista = cobrosDB
         .filter(c => c.empresaId === empresaActual?.id)
         .sort((a,b) => new Date(b.fecha) - new Date(a.fecha))
-        .slice(0, 15);
+        .slice(0, 20);
+
       if (rolActual === 'Cobrador' && zonaActual) {
         lista = lista.filter(c => c.zona === zonaActual.nombre);
       }
+
       if (!lista.length) {
         cont.innerHTML = '<p class="text-muted">No hay cobros registrados.</p>';
         return;
       }
+
       cont.innerHTML = lista.map(c => `
-        <div style="padding:10px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+        <div style="padding:10px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
           <div>
             <strong>${c.clienteNombre}</strong><br>
-            <span style="font-size:0.8rem; color:var(--text-muted);">${c.fecha} · ${c.metodoPago}</span>
+            <span style="font-size:0.8rem;color:var(--text-muted);">${c.fecha} · ${c.metodoPago || 'Efectivo'}</span>
           </div>
           <div style="text-align:right;">
             <strong class="text-success">+${formatMoney(c.monto)}</strong><br>
@@ -1807,8 +1625,10 @@
     // =====================================================
     function actualizarDashboard() {
       if (!empresaActual) return;
+
       let prestamos = prestamosDB.filter(p => p.empresaId === empresaActual.id && p.balancePendiente > 0);
       let cobros = cobrosDB.filter(c => c.empresaId === empresaActual.id);
+
       if (rolActual === 'Cobrador' && zonaActual) {
         prestamos = prestamos.filter(p => {
           const c = clientesDB.find(cl => cl.id === p.clienteId);
@@ -1816,13 +1636,16 @@
         });
         cobros = cobros.filter(c => c.zona === zonaActual.nombre);
       }
+
       const hoy = hoyStr();
       let capitalActivo = 0, capitalVencido = 0;
+
       prestamos.forEach(p => {
         const vencido = p.fechaTermino && new Date(p.fechaTermino) < new Date();
         if (vencido) capitalVencido += p.balancePendiente;
         else capitalActivo += p.balancePendiente;
       });
+
       const cobradoHoy = cobros.filter(c => c.fecha === hoy).reduce((s,c) => s + c.monto, 0);
       const totalPrestado = prestamosDB.filter(p => p.empresaId === empresaActual.id).reduce((s,p) => s + p.monto, 0);
       const totalCobrado = cobros.reduce((s,c) => s + c.monto, 0);
@@ -1836,19 +1659,26 @@
       document.getElementById('kpiTasaRecuperacion').textContent = tasaRec + '%';
       document.getElementById('kpiTasaMora').textContent = tasaMora + '%';
       document.getElementById('kpiTicketPromedio').textContent = formatMoney(ticket);
+
       renderCharts(capitalActivo, capitalVencido, cobros);
     }
 
     function renderCharts(activo, vencido, cobros) {
+      // Dona Capital
       const ctx1 = document.getElementById('chartDonaCapital');
       if (ctx1) {
         if (chartDonaCapital) chartDonaCapital.destroy();
         chartDonaCapital = new Chart(ctx1, {
           type: 'doughnut',
-          data: { labels: ['Activo', 'Vencido'], datasets: [{ data: [activo, vencido], backgroundColor: ['#16a34a', '#dc2626'] }] },
+          data: {
+            labels: ['Activo', 'Vencido'],
+            datasets: [{ data: [activo, vencido], backgroundColor: ['#16a34a', '#dc2626'] }]
+          },
           options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
         });
       }
+
+      // Barras
       const ahora = Date.now();
       const semanaMs = 7 * 86400000;
       const estaSemana = cobros.filter(c => (ahora - new Date(c.fecha).getTime()) <= semanaMs).reduce((s,c) => s + c.monto, 0);
@@ -1856,16 +1686,23 @@
         const d = ahora - new Date(c.fecha).getTime();
         return d > semanaMs && d <= semanaMs * 2;
       }).reduce((s,c) => s + c.monto, 0);
+
       const ctx2 = document.getElementById('chartBarrasCobros');
       if (ctx2) {
         if (chartBarrasCobros) chartBarrasCobros.destroy();
         chartBarrasCobros = new Chart(ctx2, {
           type: 'bar',
-          data: { labels: ['Semana Anterior', 'Semana Actual'], datasets: [{ label: 'Cobrado', data: [semAnterior, estaSemana], backgroundColor: ['#94a3b8', '#2563eb'] }] },
+          data: {
+            labels: ['Semana Anterior', 'Semana Actual'],
+            datasets: [{ label: 'Cobrado', data: [semAnterior, estaSemana], backgroundColor: ['#94a3b8', '#2563eb'] }]
+          },
           options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
         });
       }
-      const dias = [], montos = [];
+
+      // Tendencia 14 días
+      const dias = [];
+      const montos = [];
       for (let i = 13; i >= 0; i--) {
         const d = new Date();
         d.setDate(d.getDate() - i);
@@ -1878,49 +1715,69 @@
         if (chartLineasTendencia) chartLineasTendencia.destroy();
         chartLineasTendencia = new Chart(ctx3, {
           type: 'line',
-          data: { labels: dias, datasets: [{ label: 'Cobrado', data: montos, borderColor: '#1e3a8a', tension: 0.3, fill: false }] },
+          data: {
+            labels: dias,
+            datasets: [{ label: 'Cobrado', data: montos, borderColor: '#1e3a8a', tension: 0.3, fill: false }]
+          },
           options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
         });
       }
+
+      // Riesgo
       let bajo = 0, medio = 0, alto = 0;
       clientesDB.filter(c => c.empresaId === empresaActual?.id).forEach(c => {
         const sc = calcularScoringCliente(c.id);
-        if (sc >= 70) bajo++; else if (sc >= 40) medio++; else alto++;
+        if (sc >= 70) bajo++;
+        else if (sc >= 40) medio++;
+        else alto++;
       });
       const ctx4 = document.getElementById('chartDonaRiesgo');
       if (ctx4) {
         if (chartDonaRiesgo) chartDonaRiesgo.destroy();
         chartDonaRiesgo = new Chart(ctx4, {
           type: 'doughnut',
-          data: { labels: ['Bajo Riesgo', 'Medio', 'Alto Riesgo'], datasets: [{ data: [bajo, medio, alto], backgroundColor: ['#16a34a', '#d97706', '#dc2626'] }] },
+          data: {
+            labels: ['Bajo Riesgo', 'Medio', 'Alto Riesgo'],
+            datasets: [{ data: [bajo, medio, alto], backgroundColor: ['#16a34a', '#d97706', '#dc2626'] }]
+          },
           options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
         });
       }
     }
 
+    // FIN DE LA PARTE 2
+    // Continúa en la PARTE 3...
+// =====================================================
+    // MÓDULOS ADMINISTRATIVOS COMPLETOS
     // =====================================================
-    // MÓDULOS ADMINISTRATIVOS
-    // =====================================================
+
+    // ---------- EMPRESAS (Super Admin) ----------
     function renderEmpresas() {
       const cont = document.getElementById('empresasTab');
       if (!cont) return;
+
       cont.innerHTML = `
         <div class="card">
           <h3>🏢 Gestión de Empresas (Super Admin)</h3>
-          <form onsubmit="guardarNuevaEmpresa(event)" style="background:var(--bg); padding:16px; border-radius:10px; margin-bottom:20px;">
+          <p class="text-muted" style="margin-bottom:14px;font-size:0.85rem;">Crea y administra empresas aisladas.</p>
+
+          <form onsubmit="guardarNuevaEmpresa(event)" style="background:var(--bg);padding:16px;border-radius:10px;margin-bottom:20px;">
             <div class="form-row">
               <div class="form-group"><label>Nombre de la Empresa *</label><input type="text" id="empNuevaNombre" required></div>
               <div class="form-group"><label>RNC</label><input type="text" id="empNuevaRNC"></div>
             </div>
             <div class="form-row">
               <div class="form-group"><label>Usuario Administrador *</label><input type="text" id="empNuevaAdmin" required></div>
-              <div class="form-group"><label>Contraseña Inicial *</label><input type="password" id="empNuevaPass" required></div>
+              <div class="form-group"><label>Contraseña *</label><input type="password" id="empNuevaPass" required></div>
             </div>
             <div class="form-row">
               <div class="form-group"><label>Fecha de Corte</label><input type="date" id="empNuevaFechaPago"></div>
               <div class="form-group">
                 <label>¿Requiere pago?</label>
-                <select id="empNuevaRequierePago"><option value="true">Sí</option><option value="false" selected>No</option></select>
+                <select id="empNuevaRequierePago">
+                  <option value="true">Sí</option>
+                  <option value="false" selected>No</option>
+                </select>
               </div>
             </div>
             <div class="form-row">
@@ -1936,21 +1793,28 @@
             </div>
             <button type="submit" class="btn btn-success">➕ Crear Empresa</button>
           </form>
+
           <h4 style="margin-bottom:10px;">Empresas Registradas</h4>
           <div id="listaEmpresasAdmin"></div>
         </div>`;
+
       const lista = document.getElementById('listaEmpresasAdmin');
       lista.innerHTML = empresasDB.map(emp => {
-        const estado = emp.estado === 'bloqueada' ? '<span class="badge badge-danger">🔒 Bloqueada</span>' : '<span class="badge badge-success">✅ Activa</span>';
-        const pago = emp.requierePago ? '<span class="badge badge-warning">💳 Paga</span>' : '<span class="badge badge-primary">🆓 Gratis</span>';
+        const estado = emp.estado === 'bloqueada' 
+          ? '<span class="badge badge-danger">🔒 Bloqueada</span>' 
+          : '<span class="badge badge-success">✅ Activa</span>';
+        const pago = emp.requierePago 
+          ? '<span class="badge badge-warning">💳 Paga</span>' 
+          : '<span class="badge badge-primary">🆓 Gratis</span>';
+
         return `
-          <div style="background:var(--bg); padding:12px; border-radius:8px; margin-bottom:8px; border:1px solid var(--border);">
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; flex-wrap:wrap;">
+          <div style="background:var(--bg);padding:12px;border-radius:8px;margin-bottom:8px;border:1px solid var(--border);">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;">
               <div>
                 <strong>${emp.nombre}</strong> ${estado} ${pago}<br>
                 <small class="text-muted">Admin: ${emp.usuarioAdmin || '—'} · Pago: ${emp.fechaPago || 'Sin fecha'}</small>
               </div>
-              <div style="display:flex; gap:6px; flex-wrap:wrap;">
+              <div style="display:flex;gap:6px;flex-wrap:wrap;">
                 <button class="btn btn-sm btn-secondary" onclick="cambiarEmpresaActiva('${emp.id}')">Usar</button>
                 ${emp.estado === 'bloqueada'
                   ? `<button class="btn btn-sm btn-success" onclick="cambiarEstadoEmpresa('${emp.id}','activa')">Reactivar</button>`
@@ -1964,11 +1828,16 @@
     async function guardarNuevaEmpresa(e) {
       e.preventDefault();
       const nombre = document.getElementById('empNuevaNombre').value.trim();
-      if (empresasDB.some(x => x.nombre.toLowerCase() === nombre.toLowerCase())) return alert('Ya existe una empresa con ese nombre');
+      if (empresasDB.some(x => x.nombre.toLowerCase() === nombre.toLowerCase())) {
+        return alert('Ya existe una empresa con ese nombre');
+      }
+
       const pass = document.getElementById('empNuevaPass').value;
       const hash = await bcrypt.hash(pass, 10);
+
       const nueva = {
-        id: generarUUID(), nombre,
+        id: generarUUID(),
+        nombre,
         rnc: document.getElementById('empNuevaRNC').value.trim(),
         usuarioAdmin: document.getElementById('empNuevaAdmin').value.trim(),
         passwordHash: hash,
@@ -1976,8 +1845,10 @@
         requierePago: document.getElementById('empNuevaRequierePago').value === 'true',
         colorPrimario: document.getElementById('empNuevaColor').value,
         plan: document.getElementById('empNuevaPlan').value,
-        estado: 'activa', creadoEn: new Date().toISOString()
+        estado: 'activa',
+        creadoEn: new Date().toISOString()
       };
+
       empresasDB.push(nueva);
       await guardarDatosEnNube(['empresas']);
       logAuditoria('CREAR_EMPRESA', nombre);
@@ -2010,9 +1881,11 @@
       });
     }
 
+    // ---------- ZONAS ----------
     function renderZonas() {
       const cont = document.getElementById('zonasTab');
       if (!cont) return;
+
       cont.innerHTML = `
         <div class="card">
           <h3>🗺️ Gestión de Zonas / Rutas</h3>
@@ -2032,10 +1905,11 @@
           </form>
           <div id="listaZonas" style="margin-top:16px;"></div>
         </div>`;
+
       const lista = rutasDB.filter(r => r.empresaId === empresaActual?.id);
-      document.getElementById('listaZonas').innerHTML = lista.map(r => 
-        `<div style="padding:8px; border-bottom:1px solid var(--border);">${r.numero} - \( {r.nombre} ( \){r.dia})</div>`
-      ).join('') || '<p class="text-muted">Sin zonas</p>';
+      document.getElementById('listaZonas').innerHTML = lista.length
+        ? lista.map(r => `<div style="padding:8px;border-bottom:1px solid var(--border);">${r.numero} - \( {r.nombre} ( \){r.dia})</div>`).join('')
+        : '<p class="text-muted">Sin zonas registradas</p>';
     }
 
     async function guardarZona(e) {
@@ -2049,15 +1923,17 @@
       };
       rutasDB.push(zona);
       await guardarDatosEnNube(['rutas']);
+      logAuditoria('CREAR_ZONA', zona.nombre);
       alert('Zona creada');
       renderZonas();
     }
 
+    // ---------- EMPLEADOS ----------
     function renderEmpleados() {
       const cont = document.getElementById('empleadosTab');
       cont.innerHTML = `
         <div class="card">
-          <h3>👥 Empleados</h3>
+          <h3>👥 Empleados de Oficina</h3>
           <form onsubmit="guardarEmpleado(event)">
             <div class="form-group"><label>Nombre</label><input id="empNom" required></div>
             <div class="form-group"><label>Contraseña</label><input type="password" id="empPass" required></div>
@@ -2065,10 +1941,11 @@
           </form>
           <div id="listaEmpleados" style="margin-top:16px;"></div>
         </div>`;
+
       const lista = empleadosDB.filter(e => e.empresaId === empresaActual?.id);
-      document.getElementById('listaEmpleados').innerHTML = lista.map(e => 
-        `<div style="padding:8px; border-bottom:1px solid var(--border);">${e.nombre}</div>`
-      ).join('') || '<p class="text-muted">Sin empleados</p>';
+      document.getElementById('listaEmpleados').innerHTML = lista.length
+        ? lista.map(e => `<div style="padding:8px;border-bottom:1px solid var(--border);">${e.nombre}</div>`).join('')
+        : '<p class="text-muted">Sin empleados</p>';
     }
 
     async function guardarEmpleado(e) {
@@ -2083,15 +1960,17 @@
       };
       empleadosDB.push(emp);
       await guardarDatosEnNube(['empleados']);
+      logAuditoria('CREAR_EMPLEADO', emp.nombre);
       alert('Empleado creado');
       renderEmpleados();
     }
 
+    // ---------- COBRADORES ----------
     function renderCobradores() {
       const cont = document.getElementById('cobradoresTab');
       cont.innerHTML = `
         <div class="card">
-          <h3>🏍️ Cobradores</h3>
+          <h3>🏍️ Cobradores de Calle</h3>
           <form onsubmit="guardarCobrador(event)">
             <div class="form-group"><label>Nombre</label><input id="cobNom" required></div>
             <div class="form-group"><label>Contraseña</label><input type="password" id="cobPass" required></div>
@@ -2099,10 +1978,11 @@
           </form>
           <div id="listaCobradores" style="margin-top:16px;"></div>
         </div>`;
+
       const lista = cobradoresDB.filter(c => c.empresaId === empresaActual?.id);
-      document.getElementById('listaCobradores').innerHTML = lista.map(c => 
-        `<div style="padding:8px; border-bottom:1px solid var(--border);">${c.nombre}</div>`
-      ).join('') || '<p class="text-muted">Sin cobradores</p>';
+      document.getElementById('listaCobradores').innerHTML = lista.length
+        ? lista.map(c => `<div style="padding:8px;border-bottom:1px solid var(--border);">${c.nombre}</div>`).join('')
+        : '<p class="text-muted">Sin cobradores</p>';
     }
 
     async function guardarCobrador(e) {
@@ -2117,35 +1997,52 @@
       };
       cobradoresDB.push(cob);
       await guardarDatosEnNube(['cobradores']);
+      logAuditoria('CREAR_COBRADOR', cob.nombre);
       alert('Cobrador creado');
       renderCobradores();
     }
 
+    // ---------- APERTURA / CIERRE DE DÍA ----------
     function renderAperturaDia() {
       const cont = document.getElementById('aperturaDiaTab');
       if (!cont) return;
+
       const abierto = controlDiaDB.abierto;
       cont.innerHTML = `
         <div class="card">
           <h3>🔑 Apertura y Cierre de Día</h3>
           <div style="padding:16px;background:var(--bg);border-radius:10px;margin-bottom:16px;">
             <div style="font-size:1.1rem;font-weight:700;color:${abierto ? 'var(--success)' : 'var(--danger)'};">
-              Estado actual: ${abierto ? '🟢 DÍA ABIERTO' : '🔴 DÍA CERRADO'}
+              Estado: ${abierto ? '🟢 DÍA ABIERTO' : '🔴 DÍA CERRADO'}
             </div>
             <div style="font-size:0.85rem;color:var(--text-muted);margin-top:6px;">
-              Fondo: ${formatMoney(controlDiaDB.fondoInicial || 0)} · Fecha: ${controlDiaDB.fecha || '—'} · Responsable: ${controlDiaDB.empleado || '—'}
+              Fondo: ${formatMoney(controlDiaDB.fondoInicial || 0)} · 
+              Fecha: ${controlDiaDB.fecha || '—'} · 
+              Responsable: ${controlDiaDB.empleado || '—'}
             </div>
           </div>
+          
           ${!abierto ? `
-            <div class="form-group"><label>Fondo Inicial</label><input type="number" id="aperturaFondo" step="0.01" value="0"></div>
+            <div class="form-group">
+              <label>Fondo Inicial</label>
+              <input type="number" id="aperturaFondo" step="0.01" value="0">
+            </div>
             <button class="btn btn-success" onclick="abrirDia()">🟢 Abrir Día</button>
-          ` : `<button class="btn btn-danger" onclick="cerrarDia()">🔴 Cerrar Día</button>`}
+          ` : `
+            <button class="btn btn-danger" onclick="cerrarDia()">🔴 Cerrar Día</button>
+          `}
         </div>`;
     }
 
     async function abrirDia() {
       const fondo = parseFloat(document.getElementById('aperturaFondo')?.value) || 0;
-      controlDiaDB = { abierto: true, fondoInicial: fondo, fecha: hoyStr(), empleado: usuarioActual?.nombre || '', zona: zonaActual?.nombre || '' };
+      controlDiaDB = {
+        abierto: true,
+        fondoInicial: fondo,
+        fecha: hoyStr(),
+        empleado: usuarioActual?.nombre || '',
+        zona: zonaActual?.nombre || ''
+      };
       await guardarDatosEnNube(['control_dia']);
       logAuditoria('ABRIR_DIA', `Fondo: ${formatMoney(fondo)}`);
       mostrarToast('Día abierto correctamente');
@@ -2161,9 +2058,11 @@
       renderAperturaDia();
     }
 
+    // ---------- CUADRE DE CAJA ----------
     function renderCajaAvanzada() {
       const cont = document.getElementById('cajaTab');
       if (!cont) return;
+
       const hoy = hoyStr();
       const cobrosHoy = cobrosDB.filter(c => c.empresaId === empresaActual?.id && c.fecha === hoy);
       const totalCobrado = cobrosHoy.reduce((s, c) => s + c.monto, 0);
@@ -2171,20 +2070,30 @@
       const totalGastos = gastosHoy.reduce((s, g) => s + g.monto, 0);
       const fondo = controlDiaDB.fondoInicial || 0;
       const teorico = fondo + totalCobrado - totalGastos;
+
       cont.innerHTML = `
         <div class="card">
           <h3>💵 Cuadre de Caja · ${hoy}</h3>
+
           <div class="metrics-grid" style="margin-bottom:16px;">
             <div class="metric-card"><span class="label">Fondo Inicial</span><span class="value">${formatMoney(fondo)}</span></div>
             <div class="metric-card success"><span class="label">Cobrado Hoy</span><span class="value">${formatMoney(totalCobrado)}</span></div>
             <div class="metric-card danger"><span class="label">Gastos</span><span class="value">${formatMoney(totalGastos)}</span></div>
             <div class="metric-card"><span class="label">Efectivo Teórico</span><span class="value">${formatMoney(teorico)}</span></div>
           </div>
+
           <div class="form-row">
-            <div class="form-group"><label>Fondo Inicial del Día</label><input type="number" id="cajaFondo" step="0.01" value="${fondo}"></div>
-            <div class="form-group" style="display:flex; align-items:flex-end;"><button class="btn btn-secondary" onclick="guardarFondoInicial()">Guardar Fondo</button></div>
+            <div class="form-group">
+              <label>Fondo Inicial del Día</label>
+              <input type="number" id="cajaFondo" step="0.01" value="${fondo}">
+            </div>
+            <div class="form-group" style="display:flex;align-items:flex-end;">
+              <button class="btn btn-secondary" onclick="guardarFondoInicial()">Guardar Fondo</button>
+            </div>
           </div>
-          <hr style="margin:16px 0; border:0; border-top:1px solid var(--border);">
+
+          <hr style="margin:16px 0;border:0;border-top:1px solid var(--border);">
+
           <h4 style="margin-bottom:10px;">Registrar Gasto</h4>
           <form onsubmit="guardarGasto(event)">
             <div class="form-row">
@@ -2193,13 +2102,20 @@
             </div>
             <button type="submit" class="btn btn-warning">➕ Agregar Gasto</button>
           </form>
+
           <div id="listaGastosCaja" style="margin-top:16px;"></div>
-          <hr style="margin:16px 0; border:0; border-top:1px solid var(--border);">
+
+          <hr style="margin:16px 0;border:0;border-top:1px solid var(--border);">
           <button class="btn btn-success" onclick="liquidarCaja()">✅ Liquidar / Cerrar Caja del Día</button>
         </div>`;
+
       const listaG = document.getElementById('listaGastosCaja');
       listaG.innerHTML = gastosHoy.length
-        ? gastosHoy.map(g => `<div style="display:flex; justify-content:space-between; padding:8px; border-bottom:1px solid var(--border); font-size:0.9rem;"><span>\( {g.descripcion}</span><strong class="text-danger">- \){formatMoney(g.monto)}</strong></div>`).join('')
+        ? gastosHoy.map(g => `
+            <div style="display:flex;justify-content:space-between;padding:8px;border-bottom:1px solid var(--border);font-size:0.9rem;">
+              <span>${g.descripcion}</span>
+              <strong class="text-danger">-${formatMoney(g.monto)}</strong>
+            </div>`).join('')
         : '<p class="text-muted">Sin gastos registrados hoy.</p>';
     }
 
@@ -2233,26 +2149,32 @@
 
     async function liquidarCaja() {
       if (!confirm('¿Confirmas la liquidación de caja del día?')) return;
+
       const hoy = hoyStr();
       const totalCobrado = cobrosDB.filter(c => c.empresaId === empresaActual?.id && c.fecha === hoy).reduce((s, c) => s + c.monto, 0);
       const totalGastos = gastosDB.filter(g => g.empresaId === empresaActual?.id && g.fecha === hoy).reduce((s, g) => s + g.monto, 0);
       const teorico = (controlDiaDB.fondoInicial || 0) + totalCobrado - totalGastos;
+
       controlDiaDB.abierto = false;
       controlDiaDB.liquidado = true;
       controlDiaDB.totalCobrado = totalCobrado;
       controlDiaDB.totalGastos = totalGastos;
       controlDiaDB.efectivoTeorico = teorico;
+
       await guardarDatosEnNube(['control_dia']);
       logAuditoria('LIQUIDAR_CAJA', `Cobrado: ${formatMoney(totalCobrado)} | Gastos: ${formatMoney(totalGastos)} | Teórico: ${formatMoney(teorico)}`);
       alert(`Caja liquidada.\nEfectivo teórico: ${formatMoney(teorico)}`);
       renderCajaAvanzada();
     }
 
+    // ---------- TRANSFERIR CLIENTE DE RUTA ----------
     function renderTransferencia() {
       const cont = document.getElementById('transferenciaTab');
       if (!cont) return;
+
       const clientes = clientesDB.filter(c => c.empresaId === empresaActual?.id);
       const zonas = rutasDB.filter(r => r.empresaId === empresaActual?.id);
+
       cont.innerHTML = `
         <div class="card">
           <h3>🔀 Pasar Cliente de Ruta</h3>
@@ -2283,9 +2205,11 @@
       const cliente = clientesDB.find(c => c.id === clienteId);
       const zona = rutasDB.find(r => r.id === zonaId);
       if (!cliente || !zona) return alert('Datos incompletos');
+
       const zonaAnterior = cliente.zonaNombre;
       cliente.zonaId = zona.id;
       cliente.zonaNombre = zona.nombre;
+
       await guardarDatosEnNube(['clientes']);
       logAuditoria('TRANSFERIR_RUTA', `${cliente.nombre}: ${zonaAnterior} → ${zona.nombre}`);
       alert(`Cliente transferido a ${zona.nombre}`);
@@ -2293,9 +2217,11 @@
       renderClientes();
     }
 
+    // ---------- INVERSIONISTAS ----------
     function renderInversionistas() {
       const cont = document.getElementById('inversionistasTab');
       if (!cont) return;
+
       cont.innerHTML = `
         <div class="card">
           <h3>💼 Módulo de Inversionistas</h3>
@@ -2312,17 +2238,20 @@
           </form>
           <div id="listaInversionistas"></div>
         </div>`;
+
       const lista = inversionistasDB.filter(i => i.empresaId === empresaActual?.id);
       const contLista = document.getElementById('listaInversionistas');
+
       if (!lista.length) {
         contLista.innerHTML = '<p class="text-muted">No hay inversionistas registrados.</p>';
         return;
       }
+
       contLista.innerHTML = lista.map(inv => {
         const meses = Math.max(0, Math.floor((new Date() - new Date(inv.fecha)) / (30 * 86400000)));
         const ganancia = inv.capital * (inv.rendimiento / 100) * meses;
         return `
-          <div style="background:var(--bg); padding:12px; border-radius:8px; margin-bottom:8px; border:1px solid var(--border);">
+          <div style="background:var(--bg);padding:12px;border-radius:8px;margin-bottom:8px;border:1px solid var(--border);">
             <strong>${inv.nombre}</strong><br>
             <span style="font-size:0.85rem;">Capital: ${formatMoney(inv.capital)} · ${inv.rendimiento}% mensual</span><br>
             <span style="font-size:0.85rem;">Meses: \( {meses} · Ganancia estimada: <strong class="text-success"> \){formatMoney(ganancia)}</strong></span>
@@ -2348,37 +2277,50 @@
       renderInversionistas();
     }
 
+    // ---------- RECORDATORIOS WHATSAPP ----------
     function renderRecordatorios() {
       const cont = document.getElementById('recordatoriosTab');
       if (!cont) return;
+
       const hoy = new Date();
       const clientesMorosos = [];
-      prestamosDB.filter(p => p.empresaId === empresaActual?.id && p.balancePendiente > 0).forEach(p => {
-        const cobros = cobrosDB.filter(c => c.prestamoId === p.id);
-        const ultimo = cobros.sort((a,b) => new Date(b.fecha) - new Date(a.fecha))[0];
-        const dias = ultimo ? Math.floor((hoy - new Date(ultimo.fecha)) / 86400000) : Math.floor((hoy - new Date(p.fechaInicio)) / 86400000);
-        if (dias >= 14) {
-          const cliente = clientesDB.find(c => c.id === p.clienteId);
-          if (cliente) clientesMorosos.push({ cliente, prestamo: p, dias });
-        }
-      });
+
+      prestamosDB
+        .filter(p => p.empresaId === empresaActual?.id && p.balancePendiente > 0)
+        .forEach(p => {
+          const cobros = cobrosDB.filter(c => c.prestamoId === p.id);
+          const ultimo = cobros.sort((a,b) => new Date(b.fecha) - new Date(a.fecha))[0];
+          const dias = ultimo
+            ? Math.floor((hoy - new Date(ultimo.fecha)) / 86400000)
+            : Math.floor((hoy - new Date(p.fechaInicio)) / 86400000);
+
+          if (dias >= 14) {
+            const cliente = clientesDB.find(c => c.id === p.clienteId);
+            if (cliente) clientesMorosos.push({ cliente, prestamo: p, dias });
+          }
+        });
+
       cont.innerHTML = `
         <div class="card">
           <h3>🔔 Recordatorios Automáticos (14+ días sin pagar)</h3>
-          <p class="text-muted" style="margin-bottom:14px; font-size:0.85rem;">Clientes con 14 o más días sin abonos.</p>
+          <p class="text-muted" style="margin-bottom:14px;font-size:0.85rem;">
+            Clientes con 14 o más días sin realizar abonos.
+          </p>
           <div id="listaRecordatorios"></div>
         </div>`;
+
       const lista = document.getElementById('listaRecordatorios');
       if (!clientesMorosos.length) {
         lista.innerHTML = '<p class="text-muted">No hay clientes con 14+ días de atraso.</p>';
         return;
       }
+
       lista.innerHTML = clientesMorosos.map(({ cliente, prestamo, dias }) => `
-        <div style="background:var(--bg); padding:12px; border-radius:8px; margin-bottom:8px; border-left:4px solid var(--danger);">
+        <div style="background:var(--bg);padding:12px;border-radius:8px;margin-bottom:8px;border-left:4px solid var(--danger);">
           <strong>${cliente.nombre}</strong> · ${cliente.telefono || 'Sin teléfono'}<br>
           <span style="font-size:0.85rem;">${dias} días sin pagar · Balance: ${formatMoney(prestamo.balancePendiente)}</span><br>
           <button class="btn btn-whatsapp btn-sm" style="margin-top:8px;"
-            onclick="enviarRecordatorioWA('\( {cliente.telefono}', ' \){cliente.nombre}', ${prestamo.balancePendiente}, ${dias})">
+            onclick="enviarRecordatorioWA('\( {cliente.telefono || ''}', ' \){cliente.nombre}', ${prestamo.balancePendiente}, ${dias})">
             📲 Enviar Recordatorio WhatsApp
           </button>
         </div>
@@ -2388,6 +2330,7 @@
     function enviarRecordatorioWA(telefono, nombre, balance, dias) {
       const tel = (telefono || '').replace(/\D/g, '');
       if (!tel) return alert('El cliente no tiene teléfono registrado');
+
       const texto = encodeURIComponent(
         `Hola ${nombre}, le escribimos de ${empresaActual.nombre}.\n\n` +
         `Lleva ${dias} días sin realizar abonos. Su balance pendiente es de ${formatMoney(balance)}.\n\n` +
@@ -2397,23 +2340,26 @@
       logAuditoria('RECORDATORIO_WA', `${nombre} - ${dias} días`);
     }
 
+    // ---------- AUDITORÍA ----------
     function renderAuditoria() {
       const cont = document.getElementById('auditoriaTab');
       const logs = auditoriaLogsDB
         .filter(l => l.empresaId === empresaActual?.id)
         .sort((a,b) => new Date(b.fecha) - new Date(a.fecha))
         .slice(0, 50);
+
       cont.innerHTML = `
         <div class="card">
-          <h3>📋 Auditoría</h3>
+          <h3>📋 Auditoría del Sistema</h3>
           ${logs.length ? logs.map(l => `
-            <div style="padding:8px; border-bottom:1px solid var(--border); font-size:0.85rem;">
+            <div style="padding:8px;border-bottom:1px solid var(--border);font-size:0.85rem;">
               <strong>${l.accion}</strong> · ${l.usuario} · ${new Date(l.fecha).toLocaleString()}<br>
               <span class="text-muted">${l.detalle || ''}</span>
-            </div>`).join('') : '<p class="text-muted">Sin registros</p>'}
+            </div>`).join('') : '<p class="text-muted">Sin registros de auditoría</p>'}
         </div>`;
     }
 
+    // ---------- CONFIG 2FA + SOPORTE ----------
     function abrirConfig2FA() {
       const tel = prompt('Número de WhatsApp de la oficina (solo dígitos, con código de país):', config2faDB.whatsappOficina || '');
       if (tel === null) return;
@@ -2432,38 +2378,33 @@
     }
 
     function confirmarBorrarTodo() {
-      if (confirm('¿Estás seguro de borrar todos los datos locales de esta empresa?')) {
+      if (confirm('¿Estás seguro de borrar todos los datos locales de esta empresa? Esta acción no se puede deshacer.')) {
         const key = 'psc_v2_' + (empresaActual?.id || 'global');
         localStorage.removeItem(key);
-        clientesDB = []; prestamosDB = []; cobrosDB = [];
-        alert('Datos locales borrados. Recarga la página.');
+        clientesDB = [];
+        prestamosDB = [];
+        cobrosDB = [];
+        alert('Datos locales borrados. La página se recargará.');
         location.reload();
       }
     }
 
-    async function conectarImpresoraBluetooth() {
-      try {
-        if (!navigator.bluetooth) return alert('Web Bluetooth no está disponible en este navegador/dispositivo.');
-        const device = await navigator.bluetooth.requestDevice({
-          acceptAllDevices: true,
-          optionalServices: ['000018f0-0000-1000-8000-00805f9b34fb']
-        });
-        await device.gatt.connect();
-        alert('Impresora conectada: ' + device.name);
-      } catch (err) {
-        alert('Error al conectar Bluetooth: ' + err.message);
-      }
-    }
-
-    // Service Worker básico
+    // =====================================================
+    // SERVICE WORKER BÁSICO (PWA)
+    // =====================================================
     if ('serviceWorker' in navigator) {
-      const swCode = `self.addEventListener('install', e => self.skipWaiting()); self.addEventListener('fetch', e => e.respondWith(fetch(e.request).catch(() => caches.match(e.request))));`;
+      const swCode = `
+        self.addEventListener('install', e => self.skipWaiting());
+        self.addEventListener('fetch', e => e.respondWith(fetch(e.request).catch(() => caches.match(e.request))));
+      `;
       const blob = new Blob([swCode], { type: 'application/javascript' });
       navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(() => {});
     }
 
     console.log('%cPerdomo Sovereign Capital v2 Secure', 'color:#1e3a8a;font-size:14px;font-weight:bold;');
-    console.log('%cSistema cargado correctamente', 'color:#16a34a;');
+    console.log('%cSistema cargado correctamente - Partes 1+2+3', 'color:#16a34a;');
   </script>
 </body>
 </html>
+    
+    
