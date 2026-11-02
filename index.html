@@ -1915,6 +1915,49 @@ async function sincronizarConNube() {
   }
 }
 
+window.addEventListener('DOMContentLoaded', function() {
+  // 1. Verificamos si el usuario ya tenía una sesión activa guardada
+  var sesionActiva = localStorage.getItem('psc_sesion_activa');
+  
+  if (sesionActiva === 'true') {
+    // Si hay sesión, recuperamos los datos del usuario
+    rolUsuarioActual = localStorage.getItem('psc_rol_activo') || '';
+    nombreUsuarioActual = localStorage.getItem('psc_nombre_usuario') || '';
+    zonaUsuarioActual = localStorage.getItem('psc_zona_usuario') || '';
+    empresaActual = localStorage.getItem('psc_empresa_activa') || 'Perdomo Sovereign Capital S.A.';
+    
+    // Ocultamos el login inmediatamente
+    var loginScreen = document.getElementById('loginScreen');
+    if (loginScreen) loginScreen.style.display = 'none';
+    
+    // Actualizamos la interfaz según el rol
+    if (typeof actualizarInterfazPorRol === 'function') actualizarInterfazPorRol();
+    if (typeof aplicarTemaEmpresa === 'function') aplicarTemaEmpresa();
+    
+    // Restauramos la última pestaña en la que estaba el usuario
+    var ultimaPestana = localStorage.getItem('psc_tab_activa') || 'resumen';
+    if (typeof showTab === 'function') showTab(ultimaPestana, null);
+    
+    // Sincronizamos con la nube en segundo plano
+    if (typeof sincronizarConNube === 'function') {
+      var r = sincronizarConNube();
+      if (r && typeof r.catch === 'function') r.catch(function(){});
+    }
+  }
+
+  // --- Inicializaciones normales del sistema ---
+  if (typeof iniciarGeolocalizacionSatelital === 'function') iniciarGeolocalizacionSatelital();
+  if (typeof corregirRegistrosExistentes === 'function') corregirRegistrosExistentes();
+  if (typeof verificarEstadoSuscripcionEmpresa === 'function') verificarEstadoSuscripcionEmpresa();
+  if (typeof iniciarPadFirma === 'function') iniciarPadFirma();
+  
+  var fechaInput = document.getElementById('pFechaInicio');
+  if (fechaInput) try { fechaInput.valueAsDate = new Date(); } catch(e){}
+  if (typeof calcularCuotaPreview === 'function') calcularCuotaPreview();
+  if (typeof renderEmpresasAisladasList === 'function') renderEmpresasAisladasList();
+  if (typeof actualizarSelectsLoginEmpresa === 'function') actualizarSelectsLoginEmpresa();
+});
+
 
 
 
