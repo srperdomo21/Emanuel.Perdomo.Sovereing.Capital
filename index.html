@@ -2769,6 +2769,16 @@ async function sincronizarConNube() {
     }
 
     console.log('✅ Datos sincronizados desde Supabase');
+    
+    // Forzar recarga de la pestaña activa para reflejar datos nuevos
+var pestanaActiva = localStorage.getItem('psc_ultima_pestana') || 'resumen';
+if (document.getElementById(pestanaActiva) && document.getElementById(pestanaActiva).classList.contains('active')) {
+    if (typeof actualizarMetricas === 'function') actualizarMetricas();
+    if (typeof renderCobrosHoyYSemana === 'function') renderCobrosHoyYSemana();
+    if (typeof renderNotificacionesAdmin === 'function') renderNotificacionesAdmin();
+}
+    
+     
 
     if (typeof renderClientes === 'function') renderClientes();
     if (typeof actualizarMetricas === 'function') actualizarMetricas();
@@ -6945,147 +6955,150 @@ if (tabId === 'resumen') {
       }
     }
 
-    function actualizarMetricas() {
-      var hoyObj = new Date();
-      hoyObj.setHours(0,0,0,0);
-      var hoyStr = hoyObj.toLocaleDateString();
 
-      var totalActivoCalle = 0;
-      var totalVencidoCalle = 0;
+function actualizarMetricas() {
+  try {
+    var hoyObj = new Date();
+    hoyObj.setHours(0,0,0,0);
+    var hoyStr = hoyObj.toLocaleDateString();
 
-      prestamosDB.forEach(function(p) {
-        var clienteObj = clientesDB.find(function(c) { return c.id == p.clienteId; });
-        var zonaCliente = clienteObj ? clienteObj.zona : '';
+    var totalActivoCalle = 0;
+    var totalVencidoCalle = 0;
 
-        if (rolUsuarioActual === 'cobrador' && zonaCliente !== zonaUsuarioActual) return;
+    (prestamosDB || []).forEach(function(p) {
+      var clienteObj = clientesDB.find(function(c) { return c.id == p.clienteId; });
+      var zonaCliente = clienteObj ? clienteObj.zona : '';
 
-        if (p.balancePendiente > 0) {
-          var fechaTerminoObj = null;
-          if (p.fechaTermino) {
-            var partes = p.fechaTermino.split('/');
-            if (partes.length === 3) fechaTerminoObj = new Date(partes[2], partes[1] - 1, partes[0]);
-            else fechaTerminoObj = new Date(p.fechaTermino);
-          }
-          
-          var diffDiasInicio = Math.floor((hoyObj - new Date(p.fechaInicio + 'T00:00:00')) / (1000 * 60 * 60 * 24));
-          var estaVencido = fechaTerminoObj ? (hoyObj > fechaTerminoObj) : (diffDiasInicio > (p.numCuotas * 7));
+      if (rolUsuarioActual === 'cobrador' && zonaCliente !== zonaUsuarioActual) return;
 
-          if (estaVencido) {
-            totalVencidoCalle += p.balancePendiente;
-          } else {
-            totalActivoCalle += p.balancePendiente;
-          }
+      var balance = parseFloat(p.balancePendiente) || 0;
+      if (balance > 0) {
+        var fechaTerminoObj = null;
+        if (p.fechaTermino) {
+          var partes = p.fechaTermino.split('/');
+          if (partes.length === 3) fechaTerminoObj = new Date(partes[2], partes[1] - 1, partes[0]);
+          else fechaTerminoObj = new Date(p.fechaTermino);
         }
-      });
+        
+        var diffDiasInicio = Math.floor((hoyObj - new Date(p.fechaInicio + 'T00:00:00')) / (1000 * 60 * 60 * 24));
+        var estaVencido = fechaTerminoObj ? (hoyObj > fechaTerminoObj) : (diffDiasInicio > (p.numCuotas * 7));
 
-      var totalCobrado = cobrosDB.reduce(function(acc, c) { return acc + c.monto; }, 0);
-      
-      var cuotaSemanalEsperada = prestamosDB.filter(function(p) {
-        var clienteObj = clientesDB.find(function(c) { return c.id == p.clienteId; });
-        var zonaCliente = clienteObj ? clienteObj.zona : '';
-        if (rolUsuarioActual === 'cobrador' && zonaCliente !== zonaUsuarioActual) return false;
-        return p.balancePendiente > 0;
-      }).reduce(function(acc, p) { return acc + (p.valorCuota || 0); }, 0);
-
-      var cobroEstimadoHoy = prestamosDB.filter(function(p) {
-        var clienteObj = clientesDB.find(function(c) { return c.id == p.clienteId; });
-        var zonaCliente = clienteObj ? clienteObj.zona : '';
-        if (rolUsuarioActual === 'cobrador' && zonaCliente !== zonaUsuarioActual) return false;
-
-        if (p.balancePendiente <= 0) return false;
-        var fechaInicioObj = new Date(p.fechaInicio + 'T00:00:00');
-        var diaSemanaInicio = fechaInicioObj.getDay();
-        var diaSemanaHoy = hoyObj.getDay();
-        return diaSemanaInicio === diaSemanaHoy;
-      }).reduce(function(acc, p) { return acc + (p.valorCuota || 0); }, 0);
-
-      var cobradoHoyRuta = cobrosDB.filter(function(c) {
-        if (c.fecha !== hoyStr) return false;
-        if (rolUsuarioActual === 'cobrador') {
-          var p = prestamosDB.find(function(item) { return item.id == c.prestamoId; });
-          var cli = clientesDB.find(function(item) { return item.id == (p ? p.clienteId : 0); });
-          return cli && cli.zona === zonaUsuarioActual;
-        }
-        return true;
-      }).reduce(function(acc, c) { return acc + c.monto; }, 0);
-
-      var ahora = Date.now();
-      var sieteDiasMs = 7 * 24 * 60 * 60 * 1000;
-      var catorceDiasMs = 14 * 24 * 60 * 60 * 1000;
-
-      var cobrosEstaSemana = cobrosDB.filter(function(c) {
-        var t = c.timestamp || c.id;
-        return (ahora - t) <= sieteDiasMs;
-      }).reduce(function(acc, c) { return acc + c.monto; }, 0);
-
-      var cobrosSemanaAnterior = cobrosDB.filter(function(c) {
-        var t = c.timestamp || c.id;
-        var diff = ahora - t;
-        return diff > sieteDiasMs && diff <= catorceDiasMs;
-      }).reduce(function(acc, c) { return acc + c.monto; }, 0);
-
-      document.getElementById('mPrestado').innerText = '$' + totalActivoCalle.toFixed(2);
-      document.getElementById('mCapitalVencido').innerText = '$' + totalVencidoCalle.toFixed(2);
-      
-      var elCobHist = document.getElementById('mCobradoTotal');
-      if(elCobHist) elCobHist.innerText = '$' + totalCobrado.toFixed(2);
-      
-      document.getElementById('mCuotaSemanalEsperada').innerText = '$' + cuotaSemanalEsperada.toFixed(2);
-      document.getElementById('mCobroHoy').innerText = '$' + cobroEstimadoHoy.toFixed(2);
-      document.getElementById('mCobradoHoyRuta').innerText = '$' + cobradoHoyRuta.toFixed(2);
-
-      var infoAnterior = document.getElementById('infoCobroAnterior');
-      if (infoAnterior) {
-        var mensajeTendencia = "";
-        if (cobrosEstaSemana > cobrosSemanaAnterior) {
-          mensajeTendencia = '🚀 <strong>¡El negocio va subiendo!</strong> Has cobrado <strong>+$' + (cobrosEstaSemana - cobrosSemanaAnterior).toFixed(2) + '</strong> más que la semana anterior.';
-        } else if (cobrosEstaSemana < cobrosSemanaAnterior) {
-          mensajeTendencia = '📉 <strong>El cobro ha bajado.</strong> Has cobrado <strong>-$' + (cobrosSemanaAnterior - cobrosEstaSemana).toFixed(2) + '</strong> menos que la semana pasada.';
+        if (estaVencido) {
+          totalVencidoCalle += balance;
         } else {
-          mensajeTendencia = '➖ <strong>El rendimiento se mantiene estable</strong> respecto a la semana pasada.';
+          totalActivoCalle += balance;
         }
-
-        infoAnterior.innerHTML = '<div style="line-height: 1.6;">' +
-          '📆 <strong>Recaudado Semana Pasada:</strong> $' + cobrosSemanaAnterior.toFixed(2) + '<br>' +
-          '📅 <strong>Recaudado Semana Actual:</strong> <span style="color:var(--primary); font-weight:700;">$' + cobrosEstaSemana.toFixed(2) + '</span><br>' +
-          '<hr style="margin: 8px 0; border:0; border-top:1px solid var(--border);">' +
-          '<div style="font-weight: 700;">' + mensajeTendencia + '</div>' +
-        '</div>';
       }
+    });
 
-      // Renderizar gráficos del dashboard
-      try {
-        renderDashboardCharts(totalActivoCalle, totalVencidoCalle, cobrosEstaSemana, cobrosSemanaAnterior);
-      } catch (errChart) {
-        console.warn('Error renderizando gráficos:', errChart);
+    var totalCobrado = (cobrosDB || []).reduce(function(acc, c) { return acc + (parseFloat(c.monto) || 0); }, 0);
+    
+    var cuotaSemanalEsperada = (prestamosDB || []).filter(function(p) {
+      var clienteObj = clientesDB.find(function(c) { return c.id == p.clienteId; });
+      var zonaCliente = clienteObj ? clienteObj.zona : '';
+      if (rolUsuarioActual === 'cobrador' && zonaCliente !== zonaUsuarioActual) return false;
+      return (parseFloat(p.balancePendiente) || 0) > 0;
+    }).reduce(function(acc, p) { return acc + (parseFloat(p.valorCuota) || 0); }, 0);
+
+    var cobroEstimadoHoy = (prestamosDB || []).filter(function(p) {
+      var clienteObj = clientesDB.find(function(c) { return c.id == p.clienteId; });
+      var zonaCliente = clienteObj ? clienteObj.zona : '';
+      if (rolUsuarioActual === 'cobrador' && zonaCliente !== zonaUsuarioActual) return false;
+
+      if ((parseFloat(p.balancePendiente) || 0) <= 0) return false;
+      var fechaInicioObj = new Date(p.fechaInicio + 'T00:00:00');
+      return fechaInicioObj.getDay() === hoyObj.getDay();
+    }).reduce(function(acc, p) { return acc + (parseFloat(p.valorCuota) || 0); }, 0);
+
+    var cobradoHoyRuta = (cobrosDB || []).filter(function(c) {
+      if (c.fecha !== hoyStr) return false;
+      if (rolUsuarioActual === 'cobrador') {
+        var p = prestamosDB.find(function(item) { return item.id == c.prestamoId; });
+        var cli = clientesDB.find(function(item) { return item.id == (p ? p.clienteId : 0); });
+        return cli && cli.zona === zonaUsuarioActual;
       }
+      return true;
+    }).reduce(function(acc, c) { return acc + (parseFloat(c.monto) || 0); }, 0);
 
-      // Renderizar lista de clientes en riesgo
-      try {
-        renderClientesEnRiesgoTablero();
-      } catch (errRiesgo) {
-        console.warn('Error renderizando riesgos:', errRiesgo);
-      }
-    }
+    var ahora = Date.now();
+    var sieteDiasMs = 7 * 24 * 60 * 60 * 1000;
+    var catorceDiasMs = 14 * 24 * 60 * 60 * 1000;
 
-    function actualizarBadgeSync(estado) {
-      var badge = document.getElementById('badgeSyncStatus');
-      if (!badge) return;
-      if (estado === 'ok') {
-        badge.textContent = '☁️ Sincronizado';
-        badge.style.background = 'rgba(22,163,74,0.3)';
-      } else if (estado === 'guardando') {
-        badge.textContent = '⏳ Guardando...';
-        badge.style.background = 'rgba(217,119,6,0.3)';
-      } else if (estado === 'error') {
-        badge.textContent = '⚠️ Offline';
-        badge.style.background = 'rgba(220,38,38,0.3)';
+    var cobrosEstaSemana = (cobrosDB || []).filter(function(c) {
+      var t = c.timestamp || c.id;
+      return (ahora - t) <= sieteDiasMs;
+    }).reduce(function(acc, c) { return acc + (parseFloat(c.monto) || 0); }, 0);
+
+    var cobrosSemanaAnterior = (cobrosDB || []).filter(function(c) {
+      var t = c.timestamp || c.id;
+      var diff = ahora - t;
+      return diff > sieteDiasMs && diff <= catorceDiasMs;
+    }).reduce(function(acc, c) { return acc + (parseFloat(c.monto) || 0); }, 0);
+
+    // Asignación segura a los elementos del DOM
+    var elPrestado = document.getElementById('mPrestado');
+    if (elPrestado) elPrestado.innerText = '$' + totalActivoCalle.toFixed(2);
+    
+    var elVencido = document.getElementById('mCapitalVencido');
+    if (elVencido) elVencido.innerText = '$' + totalVencidoCalle.toFixed(2);
+    
+    var elCobHist = document.getElementById('mCobradoTotal');
+    if(elCobHist) elCobHist.innerText = '$' + totalCobrado.toFixed(2);
+    
+    var elCuotaSem = document.getElementById('mCuotaSemanalEsperada');
+    if (elCuotaSem) elCuotaSem.innerText = '$' + cuotaSemanalEsperada.toFixed(2);
+    
+    var elCobroHoy = document.getElementById('mCobroHoy');
+    if (elCobroHoy) elCobroHoy.innerText = '$' + cobroEstimadoHoy.toFixed(2);
+    
+    var elCobradoHoy = document.getElementById('mCobradoHoyRuta');
+    if (elCobradoHoy) elCobradoHoy.innerText = '$' + cobradoHoyRuta.toFixed(2);
+
+    var infoAnterior = document.getElementById('infoCobroAnterior');
+    if (infoAnterior) {
+      var mensajeTendencia = "";
+      if (cobrosEstaSemana > cobrosSemanaAnterior) {
+        mensajeTendencia = '🚀 <strong>¡El negocio va subiendo!</strong> Has cobrado <strong>+$' + (cobrosEstaSemana - cobrosSemanaAnterior).toFixed(2) + '</strong> más que la semana anterior.';
+      } else if (cobrosEstaSemana < cobrosSemanaAnterior) {
+        mensajeTendencia = '📉 <strong>El cobro ha bajado.</strong> Has cobrado <strong>-$' + (cobrosSemanaAnterior - cobrosEstaSemana).toFixed(2) + '</strong> menos que la semana pasada.';
       } else {
-        badge.textContent = '☁️ Local';
-        badge.style.background = 'rgba(255,255,255,0.15)';
+        mensajeTendencia = '➖ <strong>El rendimiento se mantiene estable</strong> respecto a la semana pasada.';
       }
+
+      infoAnterior.innerHTML = '<div style="line-height: 1.6;">' +
+        '📆 <strong>Recaudado Semana Pasada:</strong> $' + cobrosSemanaAnterior.toFixed(2) + '<br>' +
+        '📅 <strong>Recaudado Semana Actual:</strong> <span style="color:var(--primary); font-weight:700;">$' + cobrosEstaSemana.toFixed(2) + '</span><br>' +
+        '<hr style="margin: 8px 0; border:0; border-top:1px solid var(--border);">' +
+        '<div style="font-weight: 700;">' + mensajeTendencia + '</div>' +
+      '</div>';
     }
 
+    // Renderizar gráficos del dashboard
+    try {
+      if (typeof renderDashboardCharts === 'function') {
+        renderDashboardCharts(totalActivoCalle, totalVencidoCalle, cobrosEstaSemana, cobrosSemanaAnterior);
+      }
+    } catch (errChart) {
+      console.warn('Error renderizando gráficos:', errChart);
+    }
+
+    // Renderizar lista de clientes en riesgo
+    try {
+      if (typeof renderClientesEnRiesgoTablero === 'function') {
+        renderClientesEnRiesgoTablero();
+      }
+    } catch (errRiesgo) {
+      console.warn('Error renderizando riesgos:', errRiesgo);
+    }
+  } catch (globalError) {
+    console.error("Error crítico en actualizarMetricas:", globalError);
+  }
+}
+
+
+
+
+    
     function renderClientesEnRiesgoTablero() {
       var cont = document.getElementById('listaClientesRiesgoTablero');
       var badge = document.getElementById('badgeTotalRiesgo');
