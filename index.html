@@ -2481,30 +2481,68 @@ function redondear(num) {
     </div>
   </div>
 
+
+  <!-- MODAL CONFIGURAR 2FA DE JORNADA (WhatsApp Oficina) -->
+  <div id="modal2FAConfig" class="modal-overlay" style="display:none;">
+    <div class="modal-box" style="max-width:420px;">
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px;">
+        <span style="font-size:1.6rem;">🔐</span>
+        <h3 style="color:var(--primary); margin:0;">Configurar 2FA de Jornada</h3>
+      </div>
+      <p style="font-size:0.9rem; color:var(--text-muted); margin-bottom:16px; line-height:1.45;">
+        Cuando un cobrador inicie jornada, el código de 6 dígitos se enviará a este WhatsApp.
+      </p>
+      <form onsubmit="guardarConfig2FA(event)">
+        <div class="form-group">
+          <label>📱 WhatsApp de la Oficina (quien recibe los códigos) *</label>
+          <input type="text" id="cfg2faWhatsApp" placeholder="Ej. 8495819150" required
+                 pattern="[0-9]{10,15}" title="Solo números, 10 a 15 dígitos"
+                 style="font-size:1.1rem; letter-spacing:1px;">
+          <small style="color:var(--text-muted); display:block; margin-top:4px;">Formato: 10-15 dígitos, sin guiones ni el signo +.</small>
+        </div>
+        <div style="background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:12px; margin:14px 0;">
+          <label style="display:flex; align-items:center; gap:10px; margin-bottom:10px; cursor:pointer; font-weight:600;">
+            <input type="checkbox" id="cfg2faNotifWhatsApp" checked style="width:18px; height:18px;">
+            Enviar por WhatsApp
+          </label>
+          <label style="display:flex; align-items:center; gap:10px; cursor:pointer; font-weight:600;">
+            <input type="checkbox" id="cfg2faNotifTablero" checked style="width:18px; height:18px;">
+            Mostrar en el Tablero (Notificación interna)
+          </label>
+        </div>
+        <div style="display:flex; gap:10px; margin-top:18px;">
+          <button type="button" class="btn btn-secondary" style="flex:1;" onclick="document.getElementById('modal2FAConfig').style.display='none'">Cancelar</button>
+          <button type="submit" class="btn btn-success" style="flex:1; background:#16a34a;">💾 Guardar Configuración</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- MODAL NOTAS -->
   <div id="modalNotaBox" class="modal-overlay">
-    <div class="modal-box">
-      <h3 style="color:var(--primary); margin-bottom:12px;">📅 Nota de Seguimiento</h3>
+    <div class="modal-box" style="max-width:420px;">
+      <h3 style="color:var(--primary); margin-bottom:12px;">📝 Nota de Seguimiento</h3>
       <form onsubmit="guardarNotaForm(event)">
         <div class="form-group">
-          <label>Selecciona Opción Predeterminada</label>
-          <select id="notaSelect">
-            <option value="Pagara la próxima semana">Pagara la próxima semana</option>
-            <option value="No tiene dinero">No tiene dinero</option>
-            <option value="Va a depositar">Va a depositar</option>
-            <option value="Está enfermo">Está enfermo</option>
-            <option value="Está para el medio">Está para el medio</option>
-            <option value="No contesta el teléfono">No contesta el teléfono</option>
-            <option value="Cliente no localizado">Cliente no localizado</option>
-          </select>
+          <label>Elige una opción rápida</label>
+          <div id="notaChips" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+            <button type="button" class="btn btn-sm nota-chip" style="width:auto; background:#eff6ff; color:#1e3a8a; border:1px solid #bfdbfe;" onclick="seleccionarNotaChip(this, 'Pagará la próxima semana')">📅 Pagará la próxima semana</button>
+            <button type="button" class="btn btn-sm nota-chip" style="width:auto; background:#eff6ff; color:#1e3a8a; border:1px solid #bfdbfe;" onclick="seleccionarNotaChip(this, 'Va a depositar')">🏦 Va a depositar</button>
+            <button type="button" class="btn btn-sm nota-chip" style="width:auto; background:#eff6ff; color:#1e3a8a; border:1px solid #bfdbfe;" onclick="seleccionarNotaChip(this, 'No tiene dinero')">💸 No tiene dinero</button>
+            <button type="button" class="btn btn-sm nota-chip" style="width:auto; background:#eff6ff; color:#1e3a8a; border:1px solid #bfdbfe;" onclick="seleccionarNotaChip(this, 'Está enfermo')">🤒 Está enfermo</button>
+            <button type="button" class="btn btn-sm nota-chip" style="width:auto; background:#eff6ff; color:#1e3a8a; border:1px solid #bfdbfe;" onclick="seleccionarNotaChip(this, 'No contesta el teléfono')">📵 No contesta el teléfono</button>
+            <button type="button" class="btn btn-sm nota-chip" style="width:auto; background:#eff6ff; color:#1e3a8a; border:1px solid #bfdbfe;" onclick="seleccionarNotaChip(this, 'Cliente no localizado')">📍 Cliente no localizado</button>
+            <button type="button" class="btn btn-sm nota-chip" style="width:auto; background:#eff6ff; color:#1e3a8a; border:1px solid #bfdbfe;" onclick="seleccionarNotaChip(this, 'Otro')">✍️ Otro (escribir)</button>
+          </div>
+          <input type="hidden" id="notaSelect" value="Pagará la próxima semana">
         </div>
         <div class="form-group">
-          <label>Comentario Adicional (Opcional)</label>
-          <input type="text" id="notaPersonalizada" placeholder="Escribe detalles...">
+          <label>Escribe lo que quieras (opcional o si elegiste Otro)</label>
+          <textarea id="notaPersonalizada" rows="3" placeholder="Detalles adicionales del seguimiento..." style="width:100%; padding:11px 14px; border:1.5px solid var(--border); border-radius:10px; font-size:0.9rem; resize:vertical; font-family:inherit;"></textarea>
         </div>
         <div style="display:flex; gap:10px; margin-top:15px;">
           <button type="button" class="btn btn-secondary" onclick="cerrarModalNota()">Cancelar</button>
-          <button type="submit" class="btn">Guardar Nota</button>
+          <button type="submit" class="btn btn-success">💾 Guardar Nota</button>
         </div>
       </form>
     </div>
@@ -2773,23 +2811,41 @@ async function sincronizarConNube() {
       supabase.from('inversionistas').select('*').eq('empresa_id', empresaIdActual)
     ]);
 
-    // ✅ CAMBIO CLAVE: solo sobrescribe si Supabase trae datos.
-    if (clientes && clientes.length > 0) clientesDB = clientes;
-    if (prestamos && prestamos.length > 0) prestamosDB = prestamos;
-    if (cobros && cobros.length > 0) cobrosDB = cobros;
-    if (gastos && gastos.length > 0) gastosDB = gastos;
-    if (rutas && rutas.length > 0) rutasDB = rutas;
-    if (empleados && empleados.length > 0) empleadosDB = empleados;
-    if (cobradores && cobradores.length > 0) cobradoresDB = cobradores;
-    if (notas && notas.length > 0) notasDB = notas;
-    if (notificaciones && notificaciones.length > 0) notificacionesDB = notificaciones;
-    if (inversionistas && inversionistas.length > 0) inversionistasDB = inversionistas;
+    // ✅ MERGE por ID: no borrar registros locales que aún no están en la nube
+    function _mergeById(localArr, cloudArr) {
+      if (!cloudArr || !cloudArr.length) return localArr || [];
+      var map = {};
+      (localArr || []).forEach(function(item) {
+        if (item && item.id != null) map[String(item.id)] = item;
+      });
+      cloudArr.forEach(function(item) {
+        if (item && item.id != null) map[String(item.id)] = item;
+      });
+      return Object.keys(map).map(function(k) { return map[k]; });
+    }
+    clientesDB = _mergeById(clientesDB, clientes);
+    prestamosDB = _mergeById(prestamosDB, prestamos);
+    cobrosDB = _mergeById(cobrosDB, cobros);
+    gastosDB = _mergeById(gastosDB, gastos);
+    if (rutas && rutas.length > 0) {
+      try { zonasDB = _mergeById(zonasDB, rutas); } catch(eZ) { if (typeof rutasDB !== 'undefined') rutasDB = rutas; }
+    }
+    empleadosDB = _mergeById(empleadosDB, empleados);
+    cobradoresDB = _mergeById(cobradoresDB, cobradores);
+    notasDB = _mergeById(notasDB, notas);
+    notificacionesDB = _mergeById(notificacionesDB, notificaciones);
+    inversionistasDB = _mergeById(inversionistasDB, inversionistas);
 
     if (control && control.length > 0) {
       controlDiaDB = control[0];
     }
 
-    console.log('✅ Datos sincronizados desde Supabase');
+    // Persistir el merge en local para no perder nada
+    if (typeof guardarEnLocalStorageLocal === 'function') {
+      try { guardarEnLocalStorageLocal(); } catch(eSave) {}
+    }
+
+    console.log('✅ Datos sincronizados (merge) desde Supabase');
 
     if (typeof renderClientes === 'function') renderClientes();
     if (typeof actualizarMetricas === 'function') actualizarMetricas();
@@ -5367,7 +5423,8 @@ if (tabId === 'resumen') {
   var tituloLista = document.getElementById('tituloListaClientes');
   if(!contenedor) return;
   
-  var busqueda = document.getElementById('inputBusquedaCliente').value.toLowerCase();
+  var inputBusq = document.getElementById('inputBusquedaCliente');
+  var busqueda = (inputBusq && inputBusq.value) ? inputBusq.value.toLowerCase() : '';
   var filtroZonaSel = document.getElementById('selectFiltroZonaCliente') ? document.getElementById('selectFiltroZonaCliente').value : 'TODAS';
   
   contenedor.innerHTML = '';
@@ -5384,9 +5441,12 @@ if (tabId === 'resumen') {
   var hoy = new Date();
   hoy.setHours(0,0,0,0);
 
-  var filtrados = clientesDB.filter(function(c) {
-    var apodoText = c.apodo ? c.apodo.toLowerCase() : '';
-    var matchTexto = c.nombre.toLowerCase().indexOf(busqueda) !== -1 || apodoText.indexOf(busqueda) !== -1 || c.cedula.indexOf(busqueda) !== -1;
+  var filtrados = (clientesDB || []).filter(function(c) {
+    if (!c) return false;
+    var nombreText = (c.nombre || '').toLowerCase();
+    var apodoText = c.apodo ? String(c.apodo).toLowerCase() : '';
+    var cedulaText = c.cedula != null ? String(c.cedula) : '';
+    var matchTexto = nombreText.indexOf(busqueda) !== -1 || apodoText.indexOf(busqueda) !== -1 || cedulaText.indexOf(busqueda) !== -1;
     if (!matchTexto) return false;
 
     if (filtroZonaSel !== 'TODAS' && c.zona !== filtroZonaSel) return false;
@@ -5457,7 +5517,7 @@ if (tabId === 'resumen') {
     }
     
     // --- AQUÍ ESTÁ EL ARREGLO DE LAS COMILLAS ---
-    return '<div class="client-card" onclick="verPerfilCreditoCliente(' + c.id + ', \'clientes\')" style="transition: var(--transition);">' +
+    return '<div class="client-card" data-cliente-id="' + c.id + '" onclick="window.verPerfilCreditoCliente && window.verPerfilCreditoCliente(' + c.id + ', \'clientes\')" style="transition: var(--transition); cursor:pointer; -webkit-tap-highlight-color:transparent;">' +
       avatarHtml +
       '<div class="client-info">' +
         '<div class="client-header">' + c.nombre + apodoStr + ' <span style="font-size:0.7rem; color:var(--accent);">[' + (c.zona || 'General') + ']</span></div>' +
@@ -5669,14 +5729,33 @@ if (tabId === 'resumen') {
     }
 
     function verPerfilCreditoCliente(clienteId, origen) {
-  var contenedorPerfil = document.getElementById('perfilClienteDetalle');
-  document.getElementById('seccionListaClientes').style.display = 'none';
-  document.getElementById('seccionFormCliente').style.display = 'none';
-  document.getElementById('seccionEditarCliente').style.display = 'none';
+  try {
+  // Asegurar que la pestaña Clientes esté visible
+  var tabClientes = document.getElementById('clientes');
+  if (tabClientes && !tabClientes.classList.contains('active')) {
+    document.querySelectorAll('.tab-content').forEach(function(t) { t.classList.remove('active'); });
+    tabClientes.classList.add('active');
+    document.querySelectorAll('nav button').forEach(function(b) { b.classList.remove('active'); });
+    var navCli = document.querySelector('nav button[onclick*="clientes"]');
+    if (navCli) navCli.classList.add('active');
+  }
 
-  var cliente = clientesDB.find(function(c) { return c.id === clienteId; });
+  var contenedorPerfil = document.getElementById('perfilClienteDetalle');
+  if (!contenedorPerfil) {
+    alert('Error: no se encontró el contenedor del perfil.');
+    return;
+  }
+  var secLista = document.getElementById('seccionListaClientes');
+  var secForm = document.getElementById('seccionFormCliente');
+  var secEdit = document.getElementById('seccionEditarCliente');
+  if (secLista) secLista.style.display = 'none';
+  if (secForm) secForm.style.display = 'none';
+  if (secEdit) secEdit.style.display = 'none';
+
+  var cliente = (clientesDB || []).find(function(c) { return c.id == clienteId; });
   if (!cliente) {
-    alert("No se encontró el cliente en la base de datos.");
+    alert("No se encontró el cliente en la base de datos (ID: " + clienteId + ").");
+    if (secLista) secLista.style.display = 'block';
     return;
   }
 
@@ -5771,7 +5850,7 @@ if (tabId === 'resumen') {
             '<button class="btn btn-danger btn-sm" onclick="solicitarEliminarElementoCobrador(' + pa.id + ', \'pago\')">🗑️ Solicitar Borrar</button>';
 
           return '<div style="font-size:0.8rem; background:#f8fafc; padding:10px; border-radius:6px; margin-top:8px; border-left:3px solid var(--success); display:flex; justify-content:space-between; align-items:center;">' +
-            '<div>📅 ' + pa.fecha + ' — <strong>Abono:</strong> $' + pa.monto.toFixed(2) + ' (' + (pa.tipoPago || 'Efectivo') + ')<br><em>Cuota: ' + (pa.cuotaInfo || 'N/A') + ' | GPS: ' + (pa.gps || 'N/A') + ' | Atraso: $' + (pa.montoAtraso || 0).toFixed(2) + ' | Nota: ' + pa.nota + '</em></div>' +
+            '<div>📅 ' + (pa.fecha || '') + ' — <strong>Abono:</strong> $' + (parseFloat(pa.monto) || 0).toFixed(2) + ' (' + (pa.tipoPago || 'Efectivo') + ')<br><em>Cuota: ' + (pa.cuotaInfo || 'N/A') + ' | GPS: ' + (pa.gps || 'N/A') + ' | Atraso: $' + (parseFloat(pa.montoAtraso) || 0).toFixed(2) + ' | Nota: ' + (pa.nota || '') + '</em></div>' +
             '<div style="display:flex; gap:4px;">' +
               '<button class="btn btn-warning btn-sm" onclick="imprimirReciboDirecto(' + pa.id + ')">🖨️</button>' +
               '<button class="btn btn-whatsapp btn-sm" onclick="enviarReciboWhatsAppDirecto(' + pa.id + ')">📲</button>' +
@@ -5792,54 +5871,69 @@ if (tabId === 'resumen') {
           '</div>';
         }).join('');
 
-      // AQUÍ SE ARREGLA EL ONCLICK DEL BOTÓN COBRAR CUOTA (evitando el error de sintaxis)
+      // === Perfil estilo captura: botones + grilla + barra progreso + historial ===
+      var pctPagado = totalNumCuotas > 0 ? Math.min(100, Math.round((cuotasPagadasEfectivas / totalNumCuotas) * 100)) : 0;
+      var colorBarra = pctPagado >= 70 ? '#16a34a' : (pctPagado >= 30 ? '#d97706' : '#dc2626');
+
       html += '<div class="loan-title-bar">' +
-          '<span>Prestamo #' + p.id.toString().slice(-6) + '</span>' +
+          '<span>Préstamo #' + p.id.toString().slice(-6) + '</span>' +
           '<span class="days-badge" style="background:' + estadoPrestamoColor + ';">' + estadoPrestamoTexto + '</span>' +
         '</div>' +
 
-        '<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap:6px; margin-bottom:12px;">' +
-          '<button class="btn btn-success btn-sm" onclick="abrirModalCobro(' + p.id + ', ' + valorCuotaReal + ', ' + moraCalculada + ', ' + numCuotaActual + ', ' + totalNumCuotas + ')">💵 Cobrar</button>' +
-          '<button class="btn btn-warning btn-sm" onclick="abrirModalNota(' + p.id + ')">📝 Crear Nota</button>' +
-          '<button class="btn btn-secondary btn-sm" style="background:var(--accent);" onclick="abrirModalRenovacion(' + p.id + ')">🔄 Renovar</button>' +
-          (verificarPermisoEdicion() ? '<button class="btn btn-sm" style="background:#7c3aed; color:white;" onclick="editarCliente(' + cliente.id + ')">✏️ Editar</button>' : '') +
-          (verificarPermisoEdicion() ? '<button class="btn btn-danger btn-sm" onclick="abrirModalMora(' + p.id + ')">⚖️ Editar Mora</button>' : '') +
+        '<div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;">' +
+          '<button class="btn btn-success btn-sm" style="flex:1; min-width:120px;" onclick="abrirModalCobro(' + p.id + ', ' + valorCuotaReal + ', ' + moraCalculada + ', ' + numCuotaActual + ', ' + totalNumCuotas + ')">💵 Cobrar Cuota</button>' +
+          '<button class="btn btn-warning btn-sm" style="flex:1; min-width:120px;" onclick="abrirModalNota(' + p.id + ')">📝 Crear Nota</button>' +
+          '<button class="btn btn-secondary btn-sm" style="flex:1; min-width:120px; background:#1e3a8a;" onclick="abrirModalRenovacion(' + p.id + ')">🔄 Renovar</button>' +
+          (verificarPermisoEdicion() ? '<button class="btn btn-danger btn-sm" style="flex:1; min-width:120px;" onclick="abrirModalMora(' + p.id + ')">⚖️ Editar Mora</button>' : '') +
         '</div>' +
 
         '<div class="loan-grid-table">' +
-          '<div class="loan-grid-row"><div class="loan-grid-label">MODALIDAD</div><div class="loan-grid-val">' + p.plazo.replace('_', ' ').toUpperCase() + '</div></div>' +
+          '<div class="loan-grid-row"><div class="loan-grid-label">MODALIDAD</div><div class="loan-grid-val">' + String(p.plazo || '').replace(/_/g, ' ').toUpperCase() + '</div></div>' +
           '<div class="loan-grid-row"><div class="loan-grid-label">CAPITAL $</div><div class="loan-grid-val">' + capitalPrestado.toFixed(2) + '</div></div>' +
+          '<div class="loan-grid-row"><div class="loan-grid-label">MONTO CUOTA $</div><div class="loan-grid-val" style="color:var(--primary); font-weight:700;">' + valorCuotaReal.toFixed(2) + '</div></div>' +
+          '<div class="loan-grid-row"><div class="loan-grid-label">SEM. PAGADAS</div><div class="loan-grid-val" style="color:var(--success); font-weight:700;">' + cuotasPagadasEfectivas + ' / ' + totalNumCuotas + ' sem.</div></div>' +
+          '<div class="loan-grid-row"><div class="loan-grid-label">CUOTA ACTUAL</div><div class="loan-grid-val" style="color:var(--primary); font-weight:700;">#' + numCuotaActual + ' de ' + totalNumCuotas + '</div></div>' +
           '<div class="loan-grid-row"><div class="loan-grid-label">TOTAL PAGADO $</div><div class="loan-grid-val" style="color:var(--success); font-weight:700;">' + totalPagado.toFixed(2) + '</div></div>' +
           '<div class="loan-grid-row"><div class="loan-grid-label">BALANCE PEND. $</div><div class="loan-grid-val" style="color:var(--danger); font-weight:700;">' + balanceRealPendiente.toFixed(2) + '</div></div>' +
           '<div class="loan-grid-row"><div class="loan-grid-label">MORA $</div><div class="loan-grid-val" style="color:var(--danger); font-weight:700;">' + moraCalculada.toFixed(2) + '</div></div>' +
-          '<div class="loan-grid-row"><div class="loan-grid-label">CUOTA ACTUAL</div><div class="loan-grid-val" style="color:var(--primary); font-weight:700;">' + numCuotaActual + ' de ' + totalNumCuotas + '</div></div>' +
-          '<div class="loan-grid-row"><div class="loan-grid-label">SEM. PAGADAS</div><div class="loan-grid-val" style="color:var(--success); font-weight:700;">' + cuotasPagadasEfectivas + ' / ' + totalNumCuotas + ' sem.</div></div>' +
-          '<div class="loan-grid-row"><div class="loan-grid-label">MONTO CUOTA $</div><div class="loan-grid-val" style="color:var(--primary); font-weight:700;">' + valorCuotaReal.toFixed(2) + '</div></div>' +
           '<div class="loan-grid-row" style="border:2px solid var(--danger);"><div class="loan-grid-label" style="background:var(--danger);">MONTO EN ATRASO $</div><div class="loan-grid-val" style="color:var(--danger); font-size:0.95rem; font-weight:800;">' + montoEnAtrasoActual.toFixed(2) + '</div></div>' +
           '<div class="loan-grid-row"><div class="loan-grid-label">SEMANAS ATRASO</div><div class="loan-grid-val" style="color:var(--danger); font-weight:700;">' + semanasAtrasoCliente + ' sem.</div></div>' +
-          '<div class="loan-grid-row"><div class="loan-grid-label">ÚLTIMO PAGO</div><div class="loan-grid-val">' + ultimoPagoFecha + '</div></div>' +
-          '<div class="loan-grid-row"><div class="loan-grid-label">FECHA INICIO</div><div class="loan-grid-val">' + p.fechaInicio + '</div></div>' +
-          '<div class="loan-grid-row"><div class="loan-grid-label">FECHA TERMINO</div><div class="loan-grid-val" style="color:var(--accent); font-weight:700;">' + (p.fechaTermino || 'N/A') + '</div></div>' +
-          '<div class="loan-grid-row"><div class="loan-grid-label">HISTORIAL</div><div class="loan-grid-val">' + prestamosAnterioresCount + ' préstamo(s) anterior(es)</div></div>' +
+          '<div class="loan-grid-row"><div class="loan-grid-label">ÚLTIMO PAGO</div><div class="loan-grid-val" style="font-weight:700;">' + ultimoPagoFecha + '</div></div>' +
+          '<div class="loan-grid-row"><div class="loan-grid-label">FECHA INICIO</div><div class="loan-grid-val">' + (p.fechaInicio || 'N/A') + '</div></div>' +
+          '<div class="loan-grid-row"><div class="loan-grid-label">FECHA TÉRMINO</div><div class="loan-grid-val" style="color:var(--accent); font-weight:700;">' + (p.fechaTermino || 'N/A') + '</div></div>' +
+        '</div>' +
+
+        '<div style="margin:14px 0 8px 0;">' +
+          '<div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text-muted); margin-bottom:4px;">' +
+            '<span>Progreso del préstamo</span><span style="font-weight:700; color:' + colorBarra + ';">' + pctPagado + '%</span>' +
+          '</div>' +
+          '<div style="height:10px; background:#fee2e2; border-radius:999px; overflow:hidden;">' +
+            '<div style="height:100%; width:' + pctPagado + '%; background:' + colorBarra + '; border-radius:999px; transition:width 0.3s;"></div>' +
+          '</div>' +
         '</div>' +
 
         '<div class="card" style="margin-top: 15px;">' +
-          '<h3>Historial de Pagos y Notas de este Prestamo</h3>' +
-          '<div style="margin-bottom: 12px;">' +
-            '<h4 style="font-size:0.85rem; color:var(--success);">Pagos Registrados:</h4>' +
-            pagosHtml +
-          '</div>' +
-          '<div>' +
-            '<h4 style="font-size:0.85rem; color:var(--warning);">Notas:</h4>' +
-            notasHtml +
-          '</div>' +
+          '<h3>Historial de Abonos</h3>' +
+          '<div style="margin-bottom: 12px;">' + pagosHtml + '</div>' +
+          '<h3 style="margin-top:14px;">Notas de Seguimiento</h3>' +
+          '<div>' + notasHtml + '</div>' +
         '</div>';
     });
   }
 
   contenedorPerfil.innerHTML = html;
   contenedorPerfil.style.display = 'block';
+  // Scroll suave al perfil
+  try { contenedorPerfil.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch(eScroll) {}
+  } catch (errPerfil) {
+    console.error('Error abriendo perfil del cliente:', errPerfil);
+    alert('Error al abrir el perfil: ' + (errPerfil && errPerfil.message ? errPerfil.message : errPerfil));
+    var secLista2 = document.getElementById('seccionListaClientes');
+    if (secLista2) secLista2.style.display = 'block';
+  }
 }
+
+
 
 
 
@@ -6210,10 +6304,35 @@ if (tabId === 'resumen') {
       window.open("https://wa.me/" + tel + "?text=" + textoWA, "_blank");
     }
 
+    function seleccionarNotaChip(btn, valor) {
+      document.getElementById('notaSelect').value = valor;
+      document.querySelectorAll('#notaChips .nota-chip').forEach(function(b) {
+        b.style.background = '#eff6ff';
+        b.style.color = '#1e3a8a';
+        b.style.borderColor = '#bfdbfe';
+      });
+      if (btn) {
+        btn.style.background = '#1e3a8a';
+        btn.style.color = '#fff';
+        btn.style.borderColor = '#1e3a8a';
+      }
+      if (valor === 'Otro') {
+        var ta = document.getElementById('notaPersonalizada');
+        if (ta) ta.focus();
+      }
+    }
+
     function abrirModalNota(prestamoId) {
       prestamoActualId = prestamoId;
-      document.getElementById('notaSelect').value = 'Pagara la próxima semana';
+      document.getElementById('notaSelect').value = 'Pagará la próxima semana';
       document.getElementById('notaPersonalizada').value = '';
+      document.querySelectorAll('#notaChips .nota-chip').forEach(function(b) {
+        b.style.background = '#eff6ff';
+        b.style.color = '#1e3a8a';
+        b.style.borderColor = '#bfdbfe';
+      });
+      var first = document.querySelector('#notaChips .nota-chip');
+      if (first) seleccionarNotaChip(first, 'Pagará la próxima semana');
       document.getElementById('modalNotaBox').style.display = 'flex';
     }
 
@@ -6263,6 +6382,14 @@ if (tabId === 'resumen') {
       document.getElementById('seccionListaClientes').style.display = 'block';
       renderClientes();
     }
+
+// Exponer globalmente para que el onclick de las tarjetas siempre lo encuentre
+window.verPerfilCreditoCliente = verPerfilCreditoCliente;
+window.renderClientes = renderClientes;
+window.cerrarPerfilCliente = cerrarPerfilCliente;
+window.filtrarClientesPorEstado = filtrarClientesPorEstado;
+window.mostrarFormularioCliente = mostrarFormularioCliente;
+window.ocultarFormularioCliente = ocultarFormularioCliente;
 
     function eliminarCliente(id) {
       if (confirm('Estas seguro de eliminar este cliente?')) {
@@ -6334,13 +6461,49 @@ if (tabId === 'resumen') {
       };
       clientesDB.push(nuevo);
       guardarDatosEnNube();
+
+      // Intentar subir también a Supabase para que no se pierda en el próximo sync
+      try {
+        if (typeof supabase !== 'undefined' && supabase && typeof empresaIdActual !== 'undefined' && empresaIdActual) {
+          supabase.from('clientes').upsert([{
+            id: nuevo.id,
+            empresa_id: empresaIdActual,
+            nombre: nuevo.nombre,
+            apodo: nuevo.apodo || '',
+            cedula: nuevo.cedula || '',
+            telefono: nuevo.telefono || '',
+            zona: nuevo.zona || '',
+            direccion: nuevo.direccion || '',
+            provincia: nuevo.provincia || '',
+            ciudad: nuevo.ciudad || '',
+            sector: nuevo.sector || '',
+            calle: nuevo.calle || '',
+            estado: 'Activo'
+          }], { onConflict: 'id' }).then(function(res) {
+            if (res && res.error) console.warn('Supabase clientes upsert:', res.error);
+          }).catch(function(err) { console.warn('Supabase clientes error:', err); });
+        }
+      } catch (eSupa) { console.warn('No se pudo subir cliente a Supabase:', eSupa); }
+
       document.getElementById('formCliente').reset();
-      document.getElementById('previewCedula').style.display = 'none';
-      limpiarFirma();
+      var prevCed = document.getElementById('previewCedula');
+      if (prevCed) prevCed.style.display = 'none';
+      if (typeof limpiarFirma === 'function') limpiarFirma();
       fotoBase64Temporal = "";
       alert('Cliente registrado con exito.');
-      ocultarFormularioCliente();
-      cargarFiltroZonasClientes();
+
+      // Forzar filtro "Todos" y refrescar lista
+      filtroClientesActual = 'todos';
+      try {
+        document.querySelectorAll('#clientes .client-subtab-btn').forEach(function(b) { b.classList.remove('active'); });
+        var btnTodos = document.getElementById('btnFiltroCliTodos');
+        if (btnTodos) btnTodos.classList.add('active');
+      } catch(eFilt) {}
+
+      if (typeof cargarFiltroZonasClientes === 'function') cargarFiltroZonasClientes();
+      if (typeof ocultarFormularioCliente === 'function') ocultarFormularioCliente();
+      if (typeof renderClientes === 'function') renderClientes();
+      if (typeof cargarSelectClientes === 'function') cargarSelectClientes();
     }
 
     function guardarPrestamo(e) {
@@ -6683,6 +6846,7 @@ if (tabId === 'resumen') {
     function ocultarFormularioCliente() {
       document.getElementById('seccionFormCliente').style.display = 'none';
       document.getElementById('seccionListaClientes').style.display = 'block';
+      if (typeof renderClientes === 'function') renderClientes();
     }
 
     // ========== COBROS DE HOY Y SEMANA ANTERIOR EN TABLERO ==========
@@ -7147,7 +7311,7 @@ if (tabId === 'resumen') {
         var c = item.cliente;
         var r = item.riesgo;
         var apodo = c.apodo ? ' ("' + c.apodo + '")' : '';
-        return '<div onclick="verPerfilCreditoCliente(' + c.id + ', \'clientes\')" style="display:flex; justify-content:space-between; align-items:center; gap:10px; padding:10px 12px; margin-bottom:8px; background:var(--bg); border:1px solid var(--border); border-left:4px solid ' + r.color + '; border-radius:10px; cursor:pointer; transition:var(--transition);">' +
+        return '<div data-cliente-id="' + c.id + '" onclick="window.verPerfilCreditoCliente && window.verPerfilCreditoCliente(' + c.id + ', \'clientes\')" style="display:flex; justify-content:space-between; align-items:center; gap:10px; padding:10px 12px; margin-bottom:8px; background:var(--bg); border:1px solid var(--border); border-left:4px solid ' + r.color + '; border-radius:10px; cursor:pointer; transition:var(--transition); -webkit-tap-highlight-color:transparent;">' +
           '<div style="flex:1; min-width:0;">' +
             '<div style="font-weight:700; font-size:0.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">' + c.nombre + apodo + '</div>' +
             '<div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">' + r.detalle + '</div>' +
@@ -7569,32 +7733,9 @@ function toggleLoginPassword(e) {
   }
 }
 
-     
-        // Insertar en Supabase
-        if (typeof supabase !== 'undefined' && empresaIdActual) {
-          await supabase.from('clientes').insert([{
-            empresa_id: empresaIdActual,
-            nombre: nuevoCliente.nombre,
-            apodo: nuevoCliente.apodo,
-            cedula: nuevoCliente.cedula,
-            telefono: nuevoCliente.telefono,
-            zona: nuevoCliente.zona,
-            direccion: nuevoCliente.direccion,
-            estado: 'Activo'
-          }]);
-        }
-        importados++;
-      }
-    }
-    alert(`✅ Se importaron ${importados} clientes exitosamente.`);
-    if (typeof sincronizarConNube === 'function') sincronizarConNube();
-  };
-  reader.readAsText(file);
-}
 
 // ========== IMPORTAR CLIENTES DESDE CSV ==========
-
-
+// (código de importación limpio; el fragmento roto anterior se eliminó)
 
 function saltarSiguiente(current, nextId) {
   if (current.value.length === 1) {
@@ -7616,16 +7757,31 @@ function cerrarModal2FA() {
 }
 
 async function abrirModal2FAConfig() {
-  if (!['admin', 'empleado', 'SuperAdmin'].includes(rolUsuarioActual)) return alert('Solo la oficina puede configurar esto.');
+  if (!['admin', 'empleado', 'SuperAdmin'].includes(rolUsuarioActual)) {
+    return alert('Solo la oficina puede configurar esto.');
+  }
+  var modal = document.getElementById('modal2FAConfig');
+  if (!modal) {
+    alert('Error: el modal de 2FA no está en el HTML. Recarga la página con la versión actualizada.');
+    return;
+  }
+  // precargar número por defecto si está vacío
+  var inputWA = document.getElementById('cfg2faWhatsApp');
+  if (inputWA && !inputWA.value) inputWA.value = '8495819150';
+
   if (supabase && empresaIdActual) {
-    const { data } = await supabase.from('config_2fa_empresa').select('*').eq('empresa_id', empresaIdActual).maybeSingle();
-    if (data) {
-      document.getElementById('cfg2faWhatsApp').value = data.whatsapp_oficina || '';
-      document.getElementById('cfg2faNotifWhatsApp').checked = data.notificar_whatsapp !== false;
-      document.getElementById('cfg2faNotifTablero').checked = data.notificar_tablero !== false;
+    try {
+      const { data } = await supabase.from('config_2fa_empresa').select('*').eq('empresa_id', empresaIdActual).maybeSingle();
+      if (data) {
+        if (inputWA) inputWA.value = data.whatsapp_oficina || '8495819150';
+        document.getElementById('cfg2faNotifWhatsApp').checked = data.notificar_whatsapp !== false;
+        document.getElementById('cfg2faNotifTablero').checked = data.notificar_tablero !== false;
+      }
+    } catch (err) {
+      console.warn('No se pudo cargar config 2FA desde nube:', err);
     }
   }
-  document.getElementById('modal2FAConfig').style.display = 'flex';
+  modal.style.display = 'flex';
 }
 
 async function guardarConfig2FA(e) {
