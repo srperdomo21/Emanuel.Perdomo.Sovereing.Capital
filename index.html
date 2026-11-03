@@ -7528,43 +7528,10 @@ async function registrarPagoYEnviarWhatsApp(prestamoId, telefonoCliente, nombreC
   }
 }
 
-function toggleLoginPassword(e) {
-  if (e) { e.preventDefault(); e.stopPropagation(); }
-  var input = document.getElementById('loginPassword');
-  var btn = document.getElementById('btnTogglePassword');
-  if (!input) return;
-  if (input.type === 'password') {
-    input.type = 'text';
-    if (btn) { btn.textContent = '🙈'; btn.title = 'Ocultar contraseña'; }
-  } else {
-    input.type = 'password';
-    if (btn) { btn.textContent = '👁️'; btn.title = 'Ver contraseña'; }
-  }
-}
 
-     
-        // Insertar en Supabase
-        if (typeof supabase !== 'undefined' && empresaIdActual) {
-          await supabase.from('clientes').insert([{
-            empresa_id: empresaIdActual,
-            nombre: nuevoCliente.nombre,
-            apodo: nuevoCliente.apodo,
-            cedula: nuevoCliente.cedula,
-            telefono: nuevoCliente.telefono,
-            zona: nuevoCliente.zona,
-            direccion: nuevoCliente.direccion,
-            estado: 'Activo'
-          }]);
-        }
-        importados++;
-      }
-    }
-    alert(`✅ Se importaron ${importados} clientes exitosamente.`);
-    if (typeof sincronizarConNube === 'function') sincronizarConNube();
-  };
-  reader.readAsText(file);
-}
 
+
+        
 // ========== IMPORTAR CLIENTES DESDE CSV ==========
 
 
@@ -8420,8 +8387,55 @@ function imprimirReporteCompleto() {
 // ============ SISTEMA DE BURÓ DE CRÉDITO (SCORE) ============
 // ============================================================
 
+
+
+function renderBuroCredito() {
+  var cont = document.getElementById('listaBuroClientes');
+  if (!cont) return;
+  
+  var busqueda = (document.getElementById('inputBusquedaBuro') || {}).value || '';
+  busqueda = busqueda.toLowerCase().trim();
+
+  var clientesFiltrados = clientesDB.filter(function(c) {
+    // PROTECCIÓN: Evita que el sistema falle si un cliente no tiene nombre o cédula
+    var nombreSeguro = (c.nombre || '').toLowerCase();
+    var cedulaSegura = (c.cedula || '').toLowerCase();
+    return nombreSeguro.indexOf(busqueda) !== -1 || cedulaSegura.indexOf(busqueda) !== -1;
+  });
+
+  // Ordenar por score de mayor a menor
+  clientesFiltrados.sort(function(a, b) {
+    return evaluarScoreCliente(b.id).score - evaluarScoreCliente(a.id).score;
+  });
+
+  if (clientesFiltrados.length === 0) {
+    cont.innerHTML = '<p style="color:#64748b; text-align:center;">No se encontraron clientes.</p>';
+    return;
+  }
+
+  cont.innerHTML = clientesFiltrados.map(function(c) {
+    // Se cambió 'eval' por 'evaluacion' para evitar conflictos
+    var evaluacion = evaluarScoreCliente(c.id); 
+    
+    return '<div style="background:#fff; padding:14px; border-radius:10px; border:1px solid #e2e8f0; border-left:5px solid ' + evaluacion.color + '; box-shadow:0 2px 5px rgba(0,0,0,0.05);">' +
+      '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">' +
+        '<strong style="font-size:1rem; color:#1e293b;">👤 ' + (c.nombre || 'Sin Nombre') + '</strong>' +
+        '<span style="background:' + evaluacion.color + '15; color:' + evaluacion.color + '; padding:3px 8px; border-radius:20px; font-weight:800; font-size:0.9rem;">' + evaluacion.score + '/1000</span>' +
+      '</div>' +
+      '<div style="font-size:0.8rem; color:#475569; margin-bottom:10px;">' +
+        'Categoría: <strong style="color:' + evaluacion.color + ';">' + evaluacion.categoria + '</strong><br>' +
+        'Límite de préstamo: <strong>$' + evaluacion.maxPrestamo.toLocaleString() + '</strong>' +
+      '</div>' +
+      '<div style="background:#f8fafc; padding:8px; border-radius:6px; font-size:0.75rem; color:#64748b;">' +
+        '<div style="font-weight:700; margin-bottom:4px; color:#334155;">Motivos del Score:</div>' +
+        evaluacion.detalles.map(function(d){ return '• ' + d; }).join('<br>') +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
 function evaluarScoreCliente(clienteId) {
-  var score = 500; // Punto de partida (Neutral)
+  var score = 500;
   var detalles = [];
   
   var prestamosCliente = prestamosDB.filter(function(p) { return p.clienteId == clienteId; });
@@ -8430,19 +8444,20 @@ function evaluarScoreCliente(clienteId) {
     return p && p.clienteId == clienteId;
   });
 
-  // 1. Préstamos pagados (Buena historia) + Puntos
   var pagados = prestamosCliente.filter(function(p) { return p.balancePendiente <= 0 || p.estado === 'Finalizado'; });
   if (pagados.length > 0) {
     score += (pagados.length * 100);
     detalles.push("+" + (pagados.length * 100) + " pts por " + pagados.length + " préstamo(s) saldado(s)");
   }
 
-  // 2. Días desde el último pago
   if (cobrosCliente.length > 0) {
     cobrosCliente.sort(function(a,b) { return new Date(b.timestamp || b.fecha) - new Date(a.timestamp || a.fecha); });
     var fechaUltPago = new Date(cobrosCliente[0].timestamp || cobrosCliente[0].fecha);
     var diasSinPagar = Math.floor((new Date() - fechaUltPago) / (1000 * 60 * 60 * 24));
     
+    // Protección contra fechas inválidas
+    if (isNaN(diasSinPagar)) diasSinPagar = 999; 
+
     if (diasSinPagar <= 7) { score += 150; detalles.push("+150 pts Pago reciente (Al día)"); }
     else if (diasSinPagar <= 15) { score += 50; detalles.push("+50 pts Pagó en los últimos 15 días"); }
     else if (diasSinPagar > 30) { score -= 200; detalles.push("-200 pts por más de 30 días sin pagar"); }
@@ -8454,32 +8469,30 @@ function evaluarScoreCliente(clienteId) {
       detalles.push("-50 pts Cliente nuevo (Sin historial)");
   }
 
-  // 3. Mora acumulada
   var moraTotal = prestamosCliente.reduce(function(acc, p) { return acc + (p.moraManualFija || 0); }, 0);
   if (moraTotal > 0) {
     score -= 150;
     detalles.push("-150 pts por tener mora registrada ($" + moraTotal.toFixed(2) + ")");
   }
 
-  // 4. Préstamos activos simultáneos
   var activos = prestamosCliente.filter(function(p) { return p.balancePendiente > 0; });
   if (activos.length > 1) {
     score -= (activos.length * 50);
     detalles.push("-" + (activos.length * 50) + " pts por tener " + activos.length + " préstamos abiertos");
   }
 
-  // 5. Antigüedad del cliente
   if (prestamosCliente.length > 0) {
     var fechasInicio = prestamosCliente.map(function(p) { return new Date(p.fechaInicio).getTime(); });
     var primerPrestamo = new Date(Math.min.apply(null, fechasInicio));
     var mesesAntiguedad = (new Date() - primerPrestamo) / (1000 * 60 * 60 * 24 * 30);
     
+    if (isNaN(mesesAntiguedad)) mesesAntiguedad = 0; // Protección contra fechas inválidas
+
     if (mesesAntiguedad > 12) { score += 150; detalles.push("+150 pts por más de 1 año de antigüedad"); }
     else if (mesesAntiguedad > 6) { score += 100; detalles.push("+100 pts por más de 6 meses de antigüedad"); }
     else { score += 20; detalles.push("+20 pts por antigüedad menor a 6 meses"); }
   }
 
-  // Límites 0 a 1000
   score = Math.max(0, Math.min(1000, Math.round(score)));
 
   var categoria, color, maxPrestamo, recomendacion;
@@ -8497,45 +8510,8 @@ function evaluarScoreCliente(clienteId) {
   return { score: score, categoria: categoria, color: color, maxPrestamo: maxPrestamo, recomendacion: recomendacion, detalles: detalles };
 }
 
-function renderBuroCredito() {
-  var cont = document.getElementById('listaBuroClientes');
-  if (!cont) return;
-  
-  var busqueda = (document.getElementById('inputBusquedaBuro') || {}).value || '';
-  busqueda = busqueda.toLowerCase().trim();
 
-  var clientesFiltrados = clientesDB.filter(function(c) {
-    return c.nombre.toLowerCase().indexOf(busqueda) !== -1 || c.cedula.indexOf(busqueda) !== -1;
-  });
 
-  // Ordenar por score de mayor a menor
-  clientesFiltrados.sort(function(a, b) {
-    return evaluarScoreCliente(b.id).score - evaluarScoreCliente(a.id).score;
-  });
-
-  if (clientesFiltrados.length === 0) {
-    cont.innerHTML = '<p style="color:#64748b; text-align:center;">No se encontraron clientes.</p>';
-    return;
-  }
-
-  cont.innerHTML = clientesFiltrados.map(function(c) {
-    var eval = evaluarScoreCliente(c.id);
-    return '<div style="background:#fff; padding:14px; border-radius:10px; border:1px solid #e2e8f0; border-left:5px solid ' + eval.color + '; box-shadow:0 2px 5px rgba(0,0,0,0.05);">' +
-      '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">' +
-        '<strong style="font-size:1rem; color:#1e293b;">👤 ' + c.nombre + '</strong>' +
-        '<span style="background:' + eval.color + '15; color:' + eval.color + '; padding:3px 8px; border-radius:20px; font-weight:800; font-size:0.9rem;">' + eval.score + '/1000</span>' +
-      '</div>' +
-      '<div style="font-size:0.8rem; color:#475569; margin-bottom:10px;">' +
-        'Categoría: <strong style="color:' + eval.color + ';">' + eval.categoria + '</strong><br>' +
-        'Límite de préstamo: <strong>$' + eval.maxPrestamo.toLocaleString() + '</strong>' +
-      '</div>' +
-      '<div style="background:#f8fafc; padding:8px; border-radius:6px; font-size:0.75rem; color:#64748b;">' +
-        '<div style="font-weight:700; margin-bottom:4px; color:#334155;">Motivos del Score:</div>' +
-        eval.detalles.map(function(d){ return '• ' + d; }).join('<br>') +
-      '</div>' +
-    '</div>';
-  }).join('');
-}
 
 // Función que se ejecuta al elegir un cliente en el formulario de préstamo
 function mostrarScoreEnPrestamo() {
@@ -8550,32 +8526,30 @@ function mostrarScoreEnPrestamo() {
     return;
   }
 
-  var eval = evaluarScoreCliente(cliId);
+  // Usamos 'evaluacion' en lugar de 'eval' para evitar errores
+  var evaluacion = evaluarScoreCliente(cliId);
   
   box.style.display = 'block';
   box.innerHTML = 
-    '<div style="background:' + eval.color + '10; border:1px solid ' + eval.color + '50; padding:12px; border-radius:8px;">' +
+    '<div style="background:' + evaluacion.color + '10; border:1px solid ' + evaluacion.color + '50; padding:12px; border-radius:8px;">' +
       '<div style="display:flex; justify-content:space-between; margin-bottom:6px;">' +
-        '<strong style="color:' + eval.color + ';">Score Buró: ' + eval.score + '/1000 (' + eval.categoria + ')</strong>' +
-        '<span style="font-size:0.8rem; font-weight:700; color:' + eval.color + ';">Máx: $' + eval.maxPrestamo.toLocaleString() + '</span>' +
+        '<strong style="color:' + evaluacion.color + ';">Score Buró: ' + evaluacion.score + '/1000 (' + evaluacion.categoria + ')</strong>' +
+        '<span style="font-size:0.8rem; font-weight:700; color:' + evaluacion.color + ';">Máx: $' + evaluacion.maxPrestamo.toLocaleString() + '</span>' +
       '</div>' +
-      '<div style="font-size:0.8rem; color:#334155;">' + eval.recomendacion + '</div>' +
+      '<div style="font-size:0.8rem; color:#334155;">' + evaluacion.recomendacion + '</div>' +
     '</div>';
 
   // Auto-limitar el monto máximo permitido en el input
-  if (eval.maxPrestamo > 0) {
-    inputMonto.setAttribute('max', eval.maxPrestamo);
+  if (evaluacion.maxPrestamo > 0) {
+    inputMonto.setAttribute('max', evaluacion.maxPrestamo);
   } else {
-    inputMonto.removeAttribute('max'); // Si es riesgo alto, lo dejamos libre pero avisamos
+    inputMonto.removeAttribute('max'); 
   }
 }
 
-// Cuando la pestaña del buró se abre, se renderiza
-window.addEventListener('DOMContentLoaded', function() {
-  if (typeof Chart !== 'undefined') {
-     // Solo para asegurar que el sistema cargó
-  }
-});
+
+
+
 
 
 
