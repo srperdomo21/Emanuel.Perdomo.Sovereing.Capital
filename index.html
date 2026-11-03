@@ -1602,7 +1602,8 @@ function redondear(num) {
           <div style="display:flex; gap:8px; margin-bottom:15px; flex-wrap:wrap;">
   <button class="btn btn-success" style="flex:1;" onclick="mostrarFormularioCliente()">➕ Registrar Nuevo Cliente</button>
   <button class="btn btn-secondary btn-sm" onclick="exportarExcelClientes()" style="background:var(--success);">📊 Exportar Excel</button>
-
+  <button class="btn btn-danger btn-sm solo-admin-emp" onclick="eliminarClientesSeleccionados()" style="display:none;">🗑️ Borrar seleccionados</button>
+  <button class="btn btn-danger btn-sm solo-admin-emp" onclick="limpiarRegistrosViejos()" style="display:none; background:linear-gradient(135deg,#7f1d1d,#dc2626);">🧹 Limpiar registros viejos</button>
 </div>
 
 
@@ -5517,7 +5518,12 @@ if (tabId === 'resumen') {
     }
     
     // --- AQUÍ ESTÁ EL ARREGLO DE LAS COMILLAS ---
+    var checkHtml = '';
+    if (typeof verificarPermisoEdicion === 'function' && verificarPermisoEdicion()) {
+      checkHtml = '<input type="checkbox" class="cli-check" data-id="' + c.id + '" onclick="event.stopPropagation();" style="width:18px; height:18px; margin-right:8px; flex-shrink:0; accent-color:#1e3a8a;">';
+    }
     return '<div class="client-card" data-cliente-id="' + c.id + '" onclick="window.verPerfilCreditoCliente && window.verPerfilCreditoCliente(' + c.id + ', \'clientes\')" style="transition: var(--transition); cursor:pointer; -webkit-tap-highlight-color:transparent;">' +
+      checkHtml +
       avatarHtml +
       '<div class="client-info">' +
         '<div class="client-header">' + c.nombre + apodoStr + ' <span style="font-size:0.7rem; color:var(--accent);">[' + (c.zona || 'General') + ']</span></div>' +
@@ -6391,14 +6397,82 @@ window.filtrarClientesPorEstado = filtrarClientesPorEstado;
 window.mostrarFormularioCliente = mostrarFormularioCliente;
 window.ocultarFormularioCliente = ocultarFormularioCliente;
 
-    function eliminarCliente(id) {
-      if (confirm('Estas seguro de eliminar este cliente?')) {
-        clientesDB = clientesDB.filter(function(c) { return c.id !== id; });
-        guardarDatosEnNube();
-        renderClientes();
-        cerrarPerfilCliente();
-      }
+    function _borrarClienteYRelacionados(id) {
+      var prestamosDel = (prestamosDB || []).filter(function(p) { return p.clienteId == id; }).map(function(p) { return p.id; });
+      clientesDB = (clientesDB || []).filter(function(c) { return c.id != id; });
+      prestamosDB = (prestamosDB || []).filter(function(p) { return p.clienteId != id; });
+      cobrosDB = (cobrosDB || []).filter(function(c) { return prestamosDel.indexOf(c.prestamoId) === -1; });
+      notasDB = (notasDB || []).filter(function(n) { return prestamosDel.indexOf(n.prestamoId) === -1; });
     }
+
+    function eliminarCliente(id) {
+      if (!verificarPermisoEdicion()) {
+        alert('Solo Admin / SuperAdmin pueden eliminar clientes.');
+        return;
+      }
+      if (!confirm('¿Eliminar este cliente y TODOS sus préstamos, pagos y notas? Esta acción no se puede deshacer.')) return;
+      _borrarClienteYRelacionados(id);
+      guardarDatosEnNube();
+      try {
+        if (typeof supabase !== 'undefined' && supabase && empresaIdActual) {
+          supabase.from('clientes').delete().eq('id', id).eq('empresa_id', empresaIdActual).then(function(){});
+        }
+      } catch(e) {}
+      renderClientes();
+      if (typeof cerrarPerfilCliente === 'function') cerrarPerfilCliente();
+      alert('✅ Cliente eliminado.');
+    }
+
+    function eliminarClientesSeleccionados() {
+      if (!verificarPermisoEdicion()) {
+        alert('Solo Admin / SuperAdmin pueden eliminar.');
+        return;
+      }
+      var checks = document.querySelectorAll('.cli-check:checked');
+      if (!checks.length) {
+        alert('Marca al menos un cliente con el checkbox.');
+        return;
+      }
+      if (!confirm('¿Eliminar ' + checks.length + ' cliente(s) seleccionados y todos sus préstamos/pagos/notas?')) return;
+      checks.forEach(function(ch) {
+        _borrarClienteYRelacionados(ch.getAttribute('data-id'));
+      });
+      guardarDatosEnNube();
+      renderClientes();
+      alert('✅ Se eliminaron ' + checks.length + ' registro(s).');
+    }
+
+    function limpiarRegistrosViejos() {
+      if (!verificarPermisoEdicion()) {
+        alert('Solo Admin / SuperAdmin pueden limpiar.');
+        return;
+      }
+      var total = (clientesDB || []).length;
+      if (!total) {
+        alert('No hay clientes para limpiar.');
+        return;
+      }
+      var msg = '⚠️ LIMPIAR REGISTROS VIEJOS\n\n' +
+        'Hay ' + total + ' cliente(s) en la lista.\n\n' +
+        'OK = BORRAR TODOS los clientes, préstamos, cobros y notas de esta empresa.\n' +
+        'Cancelar = no hacer nada.\n\n' +
+        'Esto NO se puede deshacer.';
+      if (!confirm(msg)) return;
+      if (!confirm('Última confirmación: ¿borrar TODO de verdad?')) return;
+
+      clientesDB = [];
+      prestamosDB = [];
+      cobrosDB = [];
+      notasDB = [];
+      guardarDatosEnNube();
+      renderClientes();
+      if (typeof actualizarMetricas === 'function') actualizarMetricas();
+      alert('✅ Registros limpiados. Ya puedes cargar clientes nuevos.');
+    }
+
+    window.eliminarCliente = eliminarCliente;
+    window.eliminarClientesSeleccionados = eliminarClientesSeleccionados;
+    window.limpiarRegistrosViejos = limpiarRegistrosViejos;
 
     function eliminarPrestamoDirecto(prestamoId) {
       if (!verificarPermisoEdicion()) {
