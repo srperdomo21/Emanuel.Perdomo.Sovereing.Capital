@@ -2812,30 +2812,56 @@ async function sincronizarConNube() {
       supabase.from('inversionistas').select('*').eq('empresa_id', empresaIdActual)
     ]);
 
-    // ✅ MERGE por ID: no borrar registros locales que aún no están en la nube
-    function _mergeById(localArr, cloudArr) {
-      if (!cloudArr || !cloudArr.length) return localArr || [];
+    // ✅ MERGE por ID + respetar borrados locales (no resucitar lo eliminado)
+    function _getDeletedIds(tipo) {
+      try {
+        var safe = (typeof empresaActual !== 'undefined' && empresaActual ? empresaActual : 'default').replace(/[^a-zA-Z0-9]/g, '_');
+        return JSON.parse(localStorage.getItem('psc_' + safe + '_deleted_' + tipo) || '[]');
+      } catch(e) { return []; }
+    }
+    function _mergeById(localArr, cloudArr, deletedIds) {
+      deletedIds = deletedIds || [];
+      var delSet = {};
+      deletedIds.forEach(function(id) { delSet[String(id)] = true; });
       var map = {};
       (localArr || []).forEach(function(item) {
-        if (item && item.id != null) map[String(item.id)] = item;
+        if (item && item.id != null && !delSet[String(item.id)]) map[String(item.id)] = item;
       });
-      cloudArr.forEach(function(item) {
-        if (item && item.id != null) map[String(item.id)] = item;
+      (cloudArr || []).forEach(function(item) {
+        if (item && item.id != null && !delSet[String(item.id)]) {
+          // Cloud no pisa un borrado local; solo agrega si no fue eliminado
+          map[String(item.id)] = item;
+        }
       });
       return Object.keys(map).map(function(k) { return map[k]; });
     }
-    clientesDB = _mergeById(clientesDB, clientes);
-    prestamosDB = _mergeById(prestamosDB, prestamos);
-    cobrosDB = _mergeById(cobrosDB, cobros);
-    gastosDB = _mergeById(gastosDB, gastos);
-    if (rutas && rutas.length > 0) {
-      try { zonasDB = _mergeById(zonasDB, rutas); } catch(eZ) { if (typeof rutasDB !== 'undefined') rutasDB = rutas; }
+
+    // Si el usuario hizo "Limpiar registros viejos", NO restaurar clientes/préstamos/cobros/notas desde la nube
+    var safeEmp = (typeof empresaActual !== 'undefined' && empresaActual ? empresaActual : 'default').replace(/[^a-zA-Z0-9]/g, '_');
+    var purged = localStorage.getItem('psc_' + safeEmp + '_purged_core') === '1';
+
+    if (purged) {
+      // Mantener vacío lo que el usuario limpió a propósito
+      clientesDB = clientesDB || [];
+      prestamosDB = prestamosDB || [];
+      cobrosDB = cobrosDB || [];
+      notasDB = notasDB || [];
+      console.log('⛔ Purge activo: no se restauran clientes/préstamos desde la nube');
+    } else {
+      clientesDB = _mergeById(clientesDB, clientes, _getDeletedIds('clientes'));
+      prestamosDB = _mergeById(prestamosDB, prestamos, _getDeletedIds('prestamos'));
+      cobrosDB = _mergeById(cobrosDB, cobros, _getDeletedIds('cobros'));
+      notasDB = _mergeById(notasDB, notas, _getDeletedIds('notas'));
     }
-    empleadosDB = _mergeById(empleadosDB, empleados);
-    cobradoresDB = _mergeById(cobradoresDB, cobradores);
-    notasDB = _mergeById(notasDB, notas);
-    notificacionesDB = _mergeById(notificacionesDB, notificaciones);
-    inversionistasDB = _mergeById(inversionistasDB, inversionistas);
+
+    gastosDB = _mergeById(gastosDB, gastos, []);
+    if (rutas && rutas.length > 0) {
+      try { zonasDB = _mergeById(zonasDB, rutas, []); } catch(eZ) { if (typeof rutasDB !== 'undefined') rutasDB = rutas; }
+    }
+    empleadosDB = _mergeById(empleadosDB, empleados, []);
+    cobradoresDB = _mergeById(cobradoresDB, cobradores, []);
+    notificacionesDB = _mergeById(notificacionesDB, notificaciones, []);
+    inversionistasDB = _mergeById(inversionistasDB, inversionistas, []);
 
     if (control && control.length > 0) {
       controlDiaDB = control[0];
@@ -6397,12 +6423,50 @@ window.filtrarClientesPorEstado = filtrarClientesPorEstado;
 window.mostrarFormularioCliente = mostrarFormularioCliente;
 window.ocultarFormularioCliente = ocultarFormularioCliente;
 
+    function _safeEmpKey() {
+      return (typeof empresaActual !== 'undefined' && empresaActual ? empresaActual : 'default').replace(/[^a-zA-Z0-9]/g, '_');
+    }
+
+    function _markDeleted(tipo, ids) {
+      try {
+        var key = 'psc_' + _safeEmpKey() + '_deleted_' + tipo;
+        var arr = JSON.parse(localStorage.getItem(key) || '[]');
+        (ids || []).forEach(function(id) {
+          var s = String(id);
+          if (arr.indexOf(s) === -1) arr.push(s);
+        });
+        // Limitar tamaño
+        if (arr.length > 5000) arr = arr.slice(-5000);
+        localStorage.setItem(key, JSON.stringify(arr));
+      } catch(e) {}
+    }
+
     function _borrarClienteYRelacionados(id) {
       var prestamosDel = (prestamosDB || []).filter(function(p) { return p.clienteId == id; }).map(function(p) { return p.id; });
+      var cobrosDel = (cobrosDB || []).filter(function(c) { return prestamosDel.indexOf(c.prestamoId) !== -1; }).map(function(c) { return c.id; });
+      var notasDel = (notasDB || []).filter(function(n) { return prestamosDel.indexOf(n.prestamoId) !== -1; }).map(function(n) { return n.id; });
+
       clientesDB = (clientesDB || []).filter(function(c) { return c.id != id; });
       prestamosDB = (prestamosDB || []).filter(function(p) { return p.clienteId != id; });
       cobrosDB = (cobrosDB || []).filter(function(c) { return prestamosDel.indexOf(c.prestamoId) === -1; });
       notasDB = (notasDB || []).filter(function(n) { return prestamosDel.indexOf(n.prestamoId) === -1; });
+
+      _markDeleted('clientes', [id]);
+      _markDeleted('prestamos', prestamosDel);
+      _markDeleted('cobros', cobrosDel);
+      _markDeleted('notas', notasDel);
+
+      // Borrar también en Supabase (para que no vuelvan al sincronizar)
+      try {
+        if (typeof supabase !== 'undefined' && supabase && typeof empresaIdActual !== 'undefined' && empresaIdActual) {
+          supabase.from('clientes').delete().eq('id', id).eq('empresa_id', empresaIdActual).then(function(){});
+          prestamosDel.forEach(function(pid) {
+            supabase.from('prestamos').delete().eq('id', pid).eq('empresa_id', empresaIdActual).then(function(){});
+            supabase.from('cobros').delete().eq('prestamo_id', pid).eq('empresa_id', empresaIdActual).then(function(){});
+            supabase.from('notas').delete().eq('prestamo_id', pid).eq('empresa_id', empresaIdActual).then(function(){});
+          });
+        }
+      } catch(eSup) { console.warn('Supabase delete cliente:', eSup); }
     }
 
     function eliminarCliente(id) {
@@ -6413,14 +6477,9 @@ window.ocultarFormularioCliente = ocultarFormularioCliente;
       if (!confirm('¿Eliminar este cliente y TODOS sus préstamos, pagos y notas? Esta acción no se puede deshacer.')) return;
       _borrarClienteYRelacionados(id);
       guardarDatosEnNube();
-      try {
-        if (typeof supabase !== 'undefined' && supabase && empresaIdActual) {
-          supabase.from('clientes').delete().eq('id', id).eq('empresa_id', empresaIdActual).then(function(){});
-        }
-      } catch(e) {}
       renderClientes();
       if (typeof cerrarPerfilCliente === 'function') cerrarPerfilCliente();
-      alert('✅ Cliente eliminado.');
+      alert('✅ Cliente eliminado (no volverá al sincronizar).');
     }
 
     function eliminarClientesSeleccionados() {
@@ -6434,12 +6493,13 @@ window.ocultarFormularioCliente = ocultarFormularioCliente;
         return;
       }
       if (!confirm('¿Eliminar ' + checks.length + ' cliente(s) seleccionados y todos sus préstamos/pagos/notas?')) return;
+      var n = checks.length;
       checks.forEach(function(ch) {
         _borrarClienteYRelacionados(ch.getAttribute('data-id'));
       });
       guardarDatosEnNube();
       renderClientes();
-      alert('✅ Se eliminaron ' + checks.length + ' registro(s).');
+      alert('✅ Se eliminaron ' + n + ' registro(s). Ya no deberían volver a aparecer.');
     }
 
     function limpiarRegistrosViejos() {
@@ -6448,10 +6508,6 @@ window.ocultarFormularioCliente = ocultarFormularioCliente;
         return;
       }
       var total = (clientesDB || []).length;
-      if (!total) {
-        alert('No hay clientes para limpiar.');
-        return;
-      }
       var msg = '⚠️ LIMPIAR REGISTROS VIEJOS\n\n' +
         'Hay ' + total + ' cliente(s) en la lista.\n\n' +
         'OK = BORRAR TODOS los clientes, préstamos, cobros y notas de esta empresa.\n' +
@@ -6460,14 +6516,54 @@ window.ocultarFormularioCliente = ocultarFormularioCliente;
       if (!confirm(msg)) return;
       if (!confirm('Última confirmación: ¿borrar TODO de verdad?')) return;
 
+      // Marcar todos los IDs actuales como eliminados
+      _markDeleted('clientes', (clientesDB || []).map(function(c) { return c.id; }));
+      _markDeleted('prestamos', (prestamosDB || []).map(function(p) { return p.id; }));
+      _markDeleted('cobros', (cobrosDB || []).map(function(c) { return c.id; }));
+      _markDeleted('notas', (notasDB || []).map(function(n) { return n.id; }));
+
+      // Bandera de purge: el sync NO debe restaurar estos datos desde la nube
+      try {
+        localStorage.setItem('psc_' + _safeEmpKey() + '_purged_core', '1');
+      } catch(e) {}
+
       clientesDB = [];
       prestamosDB = [];
       cobrosDB = [];
       notasDB = [];
       guardarDatosEnNube();
+
+      // Vaciar también en Firebase si existe
+      try {
+        if (typeof db !== 'undefined' && db) {
+          var dbPath = 'psc_datos_' + _safeEmpKey();
+          db.ref(dbPath).update({
+            clientes: [],
+            prestamos: [],
+            cobros: [],
+            notas: []
+          });
+        }
+      } catch(eFb) { console.warn('Firebase clean:', eFb); }
+
+      // Vaciar en Supabase (mejor esfuerzo)
+      try {
+        if (typeof supabase !== 'undefined' && supabase && typeof empresaIdActual !== 'undefined' && empresaIdActual) {
+          supabase.from('clientes').delete().eq('empresa_id', empresaIdActual).then(function(r){ console.log('Supabase clientes purged', r); });
+          supabase.from('prestamos').delete().eq('empresa_id', empresaIdActual).then(function(){});
+          supabase.from('cobros').delete().eq('empresa_id', empresaIdActual).then(function(){});
+          supabase.from('notas').delete().eq('empresa_id', empresaIdActual).then(function(){});
+        }
+      } catch(eSup) { console.warn('Supabase purge:', eSup); }
+
       renderClientes();
       if (typeof actualizarMetricas === 'function') actualizarMetricas();
-      alert('✅ Registros limpiados. Ya puedes cargar clientes nuevos.');
+      alert('✅ Registros limpiados de verdad.\n\nSi vuelven a aparecer, recarga la página (o cierra sesión y entra de nuevo). Los nuevos clientes que registres sí se guardarán.');
+    }
+
+    // Al crear un cliente nuevo, quitar la bandera de purge para esa empresa
+    function _clearPurgeFlagIfNeeded() {
+      try { localStorage.removeItem('psc_' + _safeEmpKey() + '_purged_core'); } catch(e) {}
     }
 
     window.eliminarCliente = eliminarCliente;
@@ -6534,6 +6630,13 @@ window.ocultarFormularioCliente = ocultarFormularioCliente;
         estado: 'Activo'
       };
       clientesDB.push(nuevo);
+      if (typeof _clearPurgeFlagIfNeeded === 'function') _clearPurgeFlagIfNeeded();
+      // Quitar este id de la lista de eliminados por si se reutiliza
+      try {
+        var k = 'psc_' + (empresaActual || 'default').replace(/[^a-zA-Z0-9]/g, '_') + '_deleted_clientes';
+        var arr = JSON.parse(localStorage.getItem(k) || '[]').filter(function(x) { return String(x) !== String(nuevo.id); });
+        localStorage.setItem(k, JSON.stringify(arr));
+      } catch(e) {}
       guardarDatosEnNube();
 
       // Intentar subir también a Supabase para que no se pierda en el próximo sync
