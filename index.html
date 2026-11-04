@@ -2753,10 +2753,6 @@ var db = null;
 
 
 
-
-
-
-
 async function sincronizarConNube() {
   try {
     // 1. Empresas
@@ -2765,11 +2761,9 @@ async function sincronizarConNube() {
 
     if (empresas && empresas.length > 0) {
       empresasGlobalesDB = empresas;
-    if (empresas && empresas.length > 0) {
-  empresasGlobalesDB = empresas;
-} else {
-  empresasGlobalesDB = [];
-}
+    } else {
+      empresasGlobalesDB = [];
+    }
 
     const empActual = empresasGlobalesDB.find(e => e.nombre === empresaActual);
     empresaIdActual = empActual ? empActual.id : null;
@@ -2777,7 +2771,6 @@ async function sincronizarConNube() {
       console.warn('Empresa activa no encontrada en la nube.');
       return;
     }
-
     // 2. Cargar TODAS las tablas en paralelo
     const [clientes, prestamos, cobros, gastos, rutas, empleados, cobradores, notas, notificaciones, inversionistas, control] = await Promise.all([
       supabase.from('clientes').select('*').eq('empresa_id', empresaIdActual),
