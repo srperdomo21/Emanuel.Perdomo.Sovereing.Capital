@@ -897,11 +897,9 @@ function redondear(num) {
       <form onsubmit="realizarLogin(event)" style="text-align:left;">
         <div class="form-group">
           <label>Financiera / Empresa (Multi-tenant)</label>
-          <select id="loginEmpresaSelect" required onchange="actualizarListasLoginEmpresa(this.value)">
-            <option value="Perdomo Sovereign Capital S.A.">🏢 Perdomo Sovereign Capital S.A. (Master)</option>
-            <option value="Financiera Norestana">🏢 Financiera Norestana</option>
-            <option value="Inversiones Cibao Express">🏢 Inversiones Cibao Express</option>
-          </select>
+         <select id="loginEmpresaSelect" required onchange="actualizarListasLoginEmpresa(this.value)">
+    <option value="">⏳ Cargando empresas desde la nube...</option>
+</select>
         </div>
 
         <div class="form-group">
@@ -7697,27 +7695,29 @@ window.ocultarFormularioCliente = ocultarFormularioCliente;
     }
 
     function actualizarSelectsLoginEmpresa() {
-      var selectLogin = document.getElementById('loginEmpresaSelect');
-      if (!selectLogin) return;
-      // No borrar opciones si no hay empresas cargadas (evita select vacío y login roto)
-      if (!empresasGlobalesDB || empresasGlobalesDB.length === 0) {
-        if (selectLogin.options.length === 0) {
-          selectLogin.innerHTML =
-            '<option value="Perdomo Sovereign Capital S.A.">🏢 Perdomo Sovereign Capital S.A. (Master)</option>' +
-            '<option value="Financiera Norestana">🏢 Financiera Norestana</option>' +
-            '<option value="Inversiones Cibao Express">🏢 Inversiones Cibao Express</option>';
-        }
-        return;
-      }
-      var valorActual = selectLogin.value;
-      selectLogin.innerHTML = empresasGlobalesDB.map(function(emp) {
-        return '<option value="' + emp.nombre + '">🏢 ' + emp.nombre + '</option>';
-      }).join('');
-      if (valorActual) {
-        selectLogin.value = valorActual;
-        if (!selectLogin.value && selectLogin.options.length) selectLogin.selectedIndex = 0;
-      }
+  var selectLogin = document.getElementById('loginEmpresaSelect');
+  if (!selectLogin) return;
+  
+  var valorActual = selectLogin.value;
+  
+  // Si no hay empresas cargadas de Supabase, mostrar advertencia y NO mostrar las de prueba
+  if (!empresasGlobalesDB || empresasGlobalesDB.length === 0) {
+    selectLogin.innerHTML = '<option value="">⏳ Cargando empresas o ninguna registrada...</option>';
+    return;
+  }
+
+  // Llenar el select SOLO con lo que venga de Supabase
+  selectLogin.innerHTML = empresasGlobalesDB.map(function(emp) {
+    return '<option value="' + emp.nombre + '">🏢 ' + emp.nombre + '</option>';
+  }).join('');
+
+  if (valorActual) {
+    selectLogin.value = valorActual;
+    if (!selectLogin.value && selectLogin.options.length) {
+      selectLogin.selectedIndex = 0;
     }
+  }
+}
 
     // ========== PWA: REGISTRO Y SOPORTE DE INSTALACIÓN ==========
     var deferredInstallPrompt = null;
