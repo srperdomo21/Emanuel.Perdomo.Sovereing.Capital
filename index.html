@@ -2752,26 +2752,36 @@ var telefonoSoporteDefault = '8495819150';
 var db = null;
 
 
-
 async function sincronizarConNube() {
   try {
+    console.log("Iniciando sincronización con Supabase...");
+    
     // 1. Empresas
     const { data: empresas, error: errEmp } = await supabase.from('empresas').select('*').order('id');
     if (errEmp) throw errEmp;
 
     if (empresas && empresas.length > 0) {
       empresasGlobalesDB = empresas;
+      console.log("Empresas cargadas:", empresasGlobalesDB.length);
     } else {
       empresasGlobalesDB = [];
+      console.warn("Supabase no devolvió ninguna empresa.");
     }
 
     const empActual = empresasGlobalesDB.find(e => e.nombre === empresaActual);
     empresaIdActual = empActual ? empActual.id : null;
+    
+    // 2. ACTUALIZAMOS EL SELECT DEL LOGIN INMEDIATAMENTE
+    if (typeof actualizarSelectsLoginEmpresa === 'function') {
+      actualizarSelectsLoginEmpresa();
+    }
+
     if (!empresaIdActual) {
       console.warn('Empresa activa no encontrada en la nube.');
-      return;
+      return; // Si no hay empresa seleccionada, detenemos aquí
     }
-    // 2. Cargar TODAS las tablas en paralelo
+
+    // 3. Cargar TODAS las tablas en paralelo
     const [clientes, prestamos, cobros, gastos, rutas, empleados, cobradores, notas, notificaciones, inversionistas, control] = await Promise.all([
       supabase.from('clientes').select('*').eq('empresa_id', empresaIdActual),
       supabase.from('prestamos').select('*').eq('empresa_id', empresaIdActual),
@@ -2786,7 +2796,7 @@ async function sincronizarConNube() {
       supabase.from('control_dia').select('*').eq('empresa_id', empresaIdActual).limit(1)
     ]).then(arr => arr.map(r => r.data));
 
-    // 3. Solo reemplazar si Supabase trae algo (offline-first)
+    // 4. Solo reemplazar si Supabase trae algo (offline-first)
     if (clientes?.length) clientesDB = clientes;
     if (prestamos?.length) prestamosDB = prestamos;
     if (cobros?.length) cobrosDB = cobros;
@@ -2801,17 +2811,27 @@ async function sincronizarConNube() {
 
     guardarEnLocalStorageLocal();
     actualizarBadgeSync('ok');
-    if (typeof refrescarTodaLaInterfaz === 'function') refrescarTodaLaInterfaz();
+    
+    // SOLO refrescamos toda la interfaz si el usuario ya inició sesión
+    if (typeof rolUsuarioActual !== 'undefined' && rolUsuarioActual !== '') {
+      if (typeof refrescarTodaLaInterfaz === 'function') refrescarTodaLaInterfaz();
+    }
 
-    // 4. Arrancar realtime (escucha cambios en vivo)
+    // 5. Arrancar realtime
     inicializarRealtime();
     console.log('✅ Supabase cargado y realtime activo');
+    
   } catch (error) {
-    console.error('Error cargando datos:', error);
+    console.error('❌ Error cargando datos:', error.message || error);
     actualizarBadgeSync('error');
+    
+    // SI HAY UN ERROR, MOSTRARLO EN EL SELECT PARA QUE NO SE QUEDE PENSANDO
+    var selectLogin = document.getElementById('loginEmpresaSelect');
+    if (selectLogin) {
+      selectLogin.innerHTML = '<option value="">❌ Error de conexión. Revisa tu internet.</option>';
+    }
   }
 }
-
 
 
 
