@@ -7714,9 +7714,9 @@ window.ocultarFormularioCliente = ocultarFormularioCliente;
   
   // Si no hay empresas cargadas de Supabase, mostrar advertencia y NO mostrar las de prueba
   if (!empresasGlobalesDB || empresasGlobalesDB.length === 0) {
-    selectLogin.innerHTML = '<option value="">⏳ Cargando empresas o ninguna registrada...</option>';
-    return;
-  }
+  selectLogin.innerHTML = '<option value="">⚠️ No hay empresas registradas o error de conexión.</option>';
+  return;
+}
 
   // Llenar el select SOLO con lo que venga de Supabase
   selectLogin.innerHTML = empresasGlobalesDB.map(function(emp) {
@@ -8702,5 +8702,20 @@ window.addEventListener('DOMContentLoaded', function() {
 
 </script>
 
+<script>
+// ==========================================
+// INICIALIZACIÓN DE LA APLICACIÓN
+// ==========================================
+document.addEventListener('DOMContentLoaded', function() {
+    // Iniciar la carga de empresas desde Supabase al abrir la pantalla de login
+    if (typeof sincronizarConNube === 'function') {
+        sincronizarConNube().catch(function(err) {
+            console.error("Error en la sincronización inicial:", err);
+        });
+    }
+});
+</script>
+
 </body>
 </html>
+
