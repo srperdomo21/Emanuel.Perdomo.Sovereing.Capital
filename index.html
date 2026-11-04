@@ -2765,12 +2765,11 @@ async function sincronizarConNube() {
 
     if (empresas && empresas.length > 0) {
       empresasGlobalesDB = empresas;
-    } else if (!empresasGlobalesDB || empresasGlobalesDB.length === 0) {
-      empresasGlobalesDB = [
-        { id: 1, nombre: "Perdomo Sovereign Capital S.A.", usuarioAdmin: "admin", passwordAdmin: "Admin21", fechaPago: "2026-11-30", estado: "activa", requierePago: false },
-        { id: 2, nombre: "Financiera Norestana", usuarioAdmin: "norestana", passwordAdmin: "1234", fechaPago: "2026-11-15", estado: "activa" }
-      ];
-    }
+    if (empresas && empresas.length > 0) {
+  empresasGlobalesDB = empresas;
+} else {
+  empresasGlobalesDB = [];
+}
 
     const empActual = empresasGlobalesDB.find(e => e.nombre === empresaActual);
     empresaIdActual = empActual ? empActual.id : null;
