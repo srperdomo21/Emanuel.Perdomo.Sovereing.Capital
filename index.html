@@ -26,11 +26,9 @@
   <!-- CHART.JS para gráficos profesionales -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <!-- SUPABASE -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.0/dist/umd/supabase.min.js"></script>
 
 
-
-<script>
 // ==========================================
 // FASE 7: CONTROL DE GRÁFICOS Y CIERRE DE CAJA
 // ==========================================
@@ -246,9 +244,13 @@ async function realizarCierreCaja() {
 
 <script>
     
-  // ========== CONFIG (en producción mueve estas claves a Edge Functions / env) ==========
-  var SUPABASE_URL = 'https://vzzfslsosmbgmlyvzyis.supabase.co';
-var SUPABASE_ANON_KEY = 'sb_publishable__tBf4S2mIqfMXluRwkyNHg_pIXWarbJ';
+  
+  var SUPABASE_URL = 'https://quspjrizkyhowquonyum.supabase.co';
+var SUPABASE_ANON_KEY = 'sb_publishable_2CFYvUocRvSErAAmRfDSMw_NbI_Gejt';
+  
+  
+  
+
 var supabase = (window.supabase && window.supabase.createClient)
   ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
   : null;
@@ -2751,54 +2753,36 @@ var logoEmpresaEditTemporal = '';
 var telefonoSoporteDefault = '8495819150';
 var db = null;
 
-// ============ CARGAR TODO DESDE SUPABASE ============
+
+
+
+
+
+
 async function sincronizarConNube() {
   try {
-    // 1. Cargar empresas
-    const { data: empresas, error: errEmp } = await supabase
-      .from('empresas')
-      .select('*')
-      .order('id');
-
+    // 1. Empresas
+    const { data: empresas, error: errEmp } = await supabase.from('empresas').select('*').order('id');
     if (errEmp) throw errEmp;
 
     if (empresas && empresas.length > 0) {
       empresasGlobalesDB = empresas;
     } else if (!empresasGlobalesDB || empresasGlobalesDB.length === 0) {
-      try {
-        empresasGlobalesDB = JSON.parse(localStorage.getItem('psc_empresas_globales') || '[]');
-      } catch(e) { empresasGlobalesDB = []; }
-      if (!empresasGlobalesDB.length) {
-        empresasGlobalesDB = [
-          {id:1, nombre:"Perdomo Sovereign Capital S.A.", usuarioAdmin:"admin", passwordAdmin:"Admin21", fechaPago:"2026-11-30", estado:"activa", requierePago:false},
-          {id:2, nombre:"Financiera Norestana", usuarioAdmin:"norestana", passwordAdmin:"1234", fechaPago:"2026-11-15", estado:"activa"}
-        ];
-      }
+      empresasGlobalesDB = [
+        { id: 1, nombre: "Perdomo Sovereign Capital S.A.", usuarioAdmin: "admin", passwordAdmin: "Admin21", fechaPago: "2026-11-30", estado: "activa", requierePago: false },
+        { id: 2, nombre: "Financiera Norestana", usuarioAdmin: "norestana", passwordAdmin: "1234", fechaPago: "2026-11-15", estado: "activa" }
+      ];
     }
 
-    // Buscar el id de la empresa actual
     const empActual = empresasGlobalesDB.find(e => e.nombre === empresaActual);
     empresaIdActual = empActual ? empActual.id : null;
-
     if (!empresaIdActual) {
-      console.warn('No se encontró empresa activa en nube; se usa modo local.');
+      console.warn('Empresa activa no encontrada en la nube.');
       return;
     }
-    
-    // 2. Cargar todos los datos de esa empresa
-    const [
-      { data: clientes },
-      { data: prestamos },
-      { data: cobros },
-      { data: gastos },
-      { data: rutas },
-      { data: empleados },
-      { data: cobradores },
-      { data: notas },
-      { data: notificaciones },
-      { data: control },
-      { data: inversionistas }
-    ] = await Promise.all([
+
+    // 2. Cargar TODAS las tablas en paralelo
+    const [clientes, prestamos, cobros, gastos, rutas, empleados, cobradores, notas, notificaciones, inversionistas, control] = await Promise.all([
       supabase.from('clientes').select('*').eq('empresa_id', empresaIdActual),
       supabase.from('prestamos').select('*').eq('empresa_id', empresaIdActual),
       supabase.from('cobros').select('*').eq('empresa_id', empresaIdActual),
@@ -2808,203 +2792,41 @@ async function sincronizarConNube() {
       supabase.from('cobradores').select('*').eq('empresa_id', empresaIdActual),
       supabase.from('notas').select('*').eq('empresa_id', empresaIdActual),
       supabase.from('notificaciones').select('*').eq('empresa_id', empresaIdActual),
-      supabase.from('control_dia').select('*').eq('empresa_id', empresaIdActual).limit(1),
-      supabase.from('inversionistas').select('*').eq('empresa_id', empresaIdActual)
-    ]);
+      supabase.from('inversionistas').select('*').eq('empresa_id', empresaIdActual),
+      supabase.from('control_dia').select('*').eq('empresa_id', empresaIdActual).limit(1)
+    ]).then(arr => arr.map(r => r.data));
 
-    // ✅ MERGE por ID + respetar borrados locales (no resucitar lo eliminado)
-    function _getDeletedIds(tipo) {
-      try {
-        var safe = (typeof empresaActual !== 'undefined' && empresaActual ? empresaActual : 'default').replace(/[^a-zA-Z0-9]/g, '_');
-        return JSON.parse(localStorage.getItem('psc_' + safe + '_deleted_' + tipo) || '[]');
-      } catch(e) { return []; }
-    }
-    function _mergeById(localArr, cloudArr, deletedIds) {
-      deletedIds = deletedIds || [];
-      var delSet = {};
-      deletedIds.forEach(function(id) { delSet[String(id)] = true; });
-      var map = {};
-      (localArr || []).forEach(function(item) {
-        if (item && item.id != null && !delSet[String(item.id)]) map[String(item.id)] = item;
-      });
-      (cloudArr || []).forEach(function(item) {
-        if (item && item.id != null && !delSet[String(item.id)]) {
-          // Cloud no pisa un borrado local; solo agrega si no fue eliminado
-          map[String(item.id)] = item;
-        }
-      });
-      return Object.keys(map).map(function(k) { return map[k]; });
-    }
+    // 3. Solo reemplazar si Supabase trae algo (offline-first)
+    if (clientes?.length) clientesDB = clientes;
+    if (prestamos?.length) prestamosDB = prestamos;
+    if (cobros?.length) cobrosDB = cobros;
+    if (gastos?.length) gastosDB = gastos;
+    if (rutas?.length) zonasDB = rutas;
+    if (empleados?.length) empleadosDB = empleados;
+    if (cobradores?.length) cobradoresDB = cobradores;
+    if (notas?.length) notasDB = notas;
+    if (notificaciones?.length) notificacionesDB = notificaciones;
+    if (inversionistas?.length) inversionistasDB = inversionistas;
+    if (control?.length) controlDiaDB = control[0];
 
-    // Si el usuario hizo "Limpiar registros viejos", NO restaurar clientes/préstamos/cobros/notas desde la nube
-    var safeEmp = (typeof empresaActual !== 'undefined' && empresaActual ? empresaActual : 'default').replace(/[^a-zA-Z0-9]/g, '_');
-    var purged = localStorage.getItem('psc_' + safeEmp + '_purged_core') === '1';
+    guardarEnLocalStorageLocal();
+    actualizarBadgeSync('ok');
+    if (typeof refrescarTodaLaInterfaz === 'function') refrescarTodaLaInterfaz();
 
-    if (purged) {
-      // Mantener vacío lo que el usuario limpió a propósito
-      clientesDB = clientesDB || [];
-      prestamosDB = prestamosDB || [];
-      cobrosDB = cobrosDB || [];
-      notasDB = notasDB || [];
-      console.log('⛔ Purge activo: no se restauran clientes/préstamos desde la nube');
-    } else {
-      clientesDB = _mergeById(clientesDB, clientes, _getDeletedIds('clientes'));
-      prestamosDB = _mergeById(prestamosDB, prestamos, _getDeletedIds('prestamos'));
-      cobrosDB = _mergeById(cobrosDB, cobros, _getDeletedIds('cobros'));
-      notasDB = _mergeById(notasDB, notas, _getDeletedIds('notas'));
-    }
-
-    gastosDB = _mergeById(gastosDB, gastos, []);
-    if (rutas && rutas.length > 0) {
-      try { zonasDB = _mergeById(zonasDB, rutas, []); } catch(eZ) { if (typeof rutasDB !== 'undefined') rutasDB = rutas; }
-    }
-    empleadosDB = _mergeById(empleadosDB, empleados, []);
-    cobradoresDB = _mergeById(cobradoresDB, cobradores, []);
-    notificacionesDB = _mergeById(notificacionesDB, notificaciones, []);
-    inversionistasDB = _mergeById(inversionistasDB, inversionistas, []);
-
-    if (control && control.length > 0) {
-      controlDiaDB = control[0];
-    }
-
-    // Persistir el merge en local para no perder nada
-    if (typeof guardarEnLocalStorageLocal === 'function') {
-      try { guardarEnLocalStorageLocal(); } catch(eSave) {}
-    }
-
-    console.log('✅ Datos sincronizados (merge) desde Supabase');
-
-    if (typeof renderClientes === 'function') renderClientes();
-    if (typeof actualizarMetricas === 'function') actualizarMetricas();
-    if (typeof renderListadoGeneral === 'function') renderListadoGeneral();
-    if (typeof renderNotificacionesAdmin === 'function') renderNotificacionesAdmin();
-    if (typeof renderEmpresasAisladasList === 'function') renderEmpresasAisladasList();
-    if (typeof actualizarSelectsLoginEmpresa === 'function') actualizarSelectsLoginEmpresa();
-
-
-// --- PEGAR ESTAS LÍNEAS AQUÍ (PARTE 3) ---
-// Refresca los selectores del login una vez que los datos de la nube han llegado
-var rolActualLogin = document.getElementById('loginRolSelect') ? document.getElementById('loginRolSelect').value : '';
-if (rolActualLogin) {
-  cambiarTipoLogin(rolActualLogin);
-}
-// -----------------------------------------
-
-
-
-
-
+    // 4. Arrancar realtime (escucha cambios en vivo)
+    inicializarRealtime();
+    console.log('✅ Supabase cargado y realtime activo');
   } catch (error) {
     console.error('Error cargando datos:', error);
+    actualizarBadgeSync('error');
   }
 }
 
- 
 
 
 
 
 
-
-    
-
-    empresaActual = localStorage.getItem('psc_empresa_activa') || 'Perdomo Sovereign Capital S.A.';
-    // Cargar empresas desde localStorage si aún están vacías
-    if (!empresasGlobalesDB || empresasGlobalesDB.length === 0) {
-      try {
-        empresasGlobalesDB = JSON.parse(localStorage.getItem('psc_empresas_globales') || '[{"id":1,"nombre":"Perdomo Sovereign Capital S.A.","usuarioAdmin":"admin","passwordAdmin":"Admin21","fechaPago":"2026-11-30","estado":"activa","requierePago":false},{"id":2,"nombre":"Financiera Norestana","usuarioAdmin":"norestana","passwordAdmin":"1234","fechaPago":"2026-11-15","estado":"activa"}]');
-      } catch(e) { empresasGlobalesDB = []; }
-    }
-
-    // Cargar datos AISLADOS por empresa (nunca se mezclan entre compañías)
-    function _loadLocal(base, defVal) {
-      var safe = (empresaActual || 'default').replace(/[^a-zA-Z0-9]/g, '_');
-      var key = 'psc_' + safe + '_' + base;
-      try {
-        var val = localStorage.getItem(key);
-        if (val !== null) return JSON.parse(val);
-        // Fallback + migración automática a clave nueva (solo empresa master)
-        // Así SuperAdmin y Admin de Sovereign Capital siempre ven los mismos datos
-        if (empresaActual === 'Perdomo Sovereign Capital S.A.') {
-          var old = localStorage.getItem('psc_' + base);
-          if (old) {
-            try { localStorage.setItem(key, old); } catch(eMig) {}
-            return JSON.parse(old);
-          }
-        }
-      } catch(e) {}
-      return defVal;
-    }
-    zonasDB = _loadLocal('zonas', [{"id":1,"numero":"1","nombre":"Zona Principal","dia":"Lunes"}]);
-    clientesDB = _loadLocal('clientes', []);
-    prestamosDB = _loadLocal('prestamos', []);
-    cobrosDB = _loadLocal('cobros', []);
-    notasDB = _loadLocal('notas', []);
-    notificacionesDB = _loadLocal('notificaciones', []);
-    gastosDB = _loadLocal('gastos', []);
-    inversionistasDB = _loadLocal('inversionistas', []);
-    cobradoresDB = _loadLocal('cobradores', []);
-    empleadosDB = _loadLocal('empleados', []);
-    controlDiaDB = _loadLocal('controldia', {abierto: false, fondoInicial: 0, fecha: "", empleado: "", zona: ""});
-    
-    filtroClientesActual = 'todos';
-    fotoBase64Temporal = "";
-    fotoConfirmacionTemporal = "";
-    prestamoActualId = null;
-    rolUsuarioActual = localStorage.getItem('psc_rol_activo') || '';
-    nombreUsuarioActual = localStorage.getItem('psc_nombre_usuario') || 'SR Perdomo';
-    zonaUsuarioActual = localStorage.getItem('psc_zona_usuario') || '';
-    gpsUltimaPosicion = { lat: 19.3000, lng: -70.2667, precision: 'GPS Activo' };
-
-    bluetoothDevice = null;
-    bluetoothCharacteristic = null;
-    firmando = false;
-    logoEmpresaTemporal = "";
-    logoEmpresaEditTemporal = "";
-    </script>
-    
-    <script>     
-    
-    window.addEventListener('DOMContentLoaded', function() {
-  // --- LÍNEAS DEL ARREGLO DE SELECTORES ---
-  var loginRolSelect = document.getElementById('loginRolSelect');
-  if (loginRolSelect && loginRolSelect.value) {
-    cambiarTipoLogin(loginRolSelect.value);
-  }
-  // ----------------------------------------
-
-  if (typeof iniciarGeolocalizacionSatelital === 'function') iniciarGeolocalizacionSatelital();
-  if (typeof corregirRegistrosExistentes === 'function') corregirRegistrosExistentes();
-  if (typeof verificarEstadoSuscripcionEmpresa === 'function') verificarEstadoSuscripcionEmpresa();
-
-  // Cargar empresas locales por defecto si Supabase falla
-  if (!empresasGlobalesDB || empresasGlobalesDB.length === 0) {
-    try {
-      empresasGlobalesDB = JSON.parse(localStorage.getItem('psc_empresas_globales') || '[{"id":1,"nombre":"Perdomo Sovereign Capital S.A.","usuarioAdmin":"admin","passwordAdmin":"Admin21","fechaPago":"2026-11-30","estado":"activa","requierePago":false},{"id":2,"nombre":"Financiera Norestana","usuarioAdmin":"norestana","passwordAdmin":"1234","fechaPago":"2026-11-15","estado":"activa"}]');
-    } catch(e) { empresasGlobalesDB = []; }
-  }
-
-  if (localStorage.getItem('psc_sesion_activa') === 'true') {
-    document.getElementById('loginScreen').style.display = 'none';
-    if (typeof actualizarInterfazPorRol === 'function') actualizarInterfazPorRol();
-    if (typeof aplicarTemaEmpresa === 'function') aplicarTemaEmpresa();
-    var ultimaPestana = localStorage.getItem('psc_ultima_pestana') || 'resumen';
-    setTimeout(function() {
-      if (typeof showTab === 'function') showTab(ultimaPestana, null);
-    }, 300);
-  }
-
-  if (typeof iniciarPadFirma === 'function') iniciarPadFirma();
-  sincronizarConNube().catch(function(err){ console.warn('Sync:', err); });
-
-  var fechaInput = document.getElementById('pFechaInicio');
-  if (fechaInput) try { fechaInput.valueAsDate = new Date(); } catch(e){}
-  if (typeof calcularCuotaPreview === 'function') calcularCuotaPreview();
-  if (typeof renderEmpresasAisladasList === 'function') renderEmpresasAisladasList();
-  if (typeof actualizarSelectsLoginEmpresa === 'function') actualizarSelectsLoginEmpresa();
-});
-
-// ============ GUARDAR DATOS EN SUPABASE ============
 
     function previewLogoEmpresa(input, previewId, isEdit) {
       if (input.files && input.files[0]) {
@@ -3843,27 +3665,179 @@ actualizarSelectsLoginEmpresa();
       localStorage.setItem(getKeyEmpresa('empleados'), JSON.stringify(empleadosDB || []));
       localStorage.setItem(getKeyEmpresa('controldia'), JSON.stringify(controlDiaDB || {abierto:false, fondoInicial:0, fecha:'', empleado:'', zona:''}));
     }
+    
+    
+    
+    
+    // ============================================================
+// SINCRONIZACIÓN BIDIRECCIONAL CON SUPABASE (Fase 8)
+// ============================================================
 
-    function guardarDatosEnNube() {
-      guardarEnLocalStorageLocal();
-      if(db) {
-        var dbPath = 'psc_datos_' + empresaActual.replace(/[^a-zA-Z0-9]/g, '_');
-        db.ref(dbPath).set({
-          clientes: clientesDB,
-          prestamos: prestamosDB,
-          cobros: cobrosDB,
-          notas: notasDB,
-          notificaciones: notificacionesDB,
-          gastos: gastosDB,
-          inversionistas: inversionistasDB,
-          zonas: zonasDB,
-          cobradores: cobradoresDB,
-          empleados: empleadosDB,
-          controlDia: controlDiaDB
-        });
-        db.ref('psc_empresas_globales').set(empresasGlobalesDB);
-      }
+// Mapa: variable local -> {getter, setter, tabla en Supabase}
+const MAPA_TABLAS_SUPABASE = {
+  clientes:       { get: () => clientesDB,       set: v => clientesDB = v },
+  prestamos:      { get: () => prestamosDB,      set: v => prestamosDB = v },
+  cobros:         { get: () => cobrosDB,         set: v => cobrosDB = v },
+  gastos:         { get: () => gastosDB,         set: v => gastosDB = v },
+  rutas:          { get: () => zonasDB,          set: v => zonasDB = v },
+  cobradores:     { get: () => cobradoresDB,     set: v => cobradoresDB = v },
+  empleados:      { get: () => empleadosDB,      set: v => empleadosDB = v },
+  notas:          { get: () => notasDB,          set: v => notasDB = v },
+  notificaciones: { get: () => notificacionesDB, set: v => notificacionesDB = v },
+  inversionistas: { get: () => inversionistasDB, set: v => inversionistasDB = v }
+};
+
+// ============ GUARDAR: local + Supabase (upsert + borrar faltantes) ============
+async function guardarDatosEnNube() {
+  // 1. SIEMPRE guardar en local (offline-first)
+  guardarEnLocalStorageLocal();
+
+  // 2. Si no hay Supabase o empresa, solo local
+  if (!supabase || !empresaIdActual) {
+    actualizarBadgeSync('local');
+    return;
+  }
+
+  try {
+    await Promise.all(
+      Object.entries(MAPA_TABLAS_SUPABASE).map(([tabla, cfg]) =>
+        sincronizarTablaCompleta(tabla, cfg.get())
+      )
+    );
+    // control_dia (objeto, no array) se guarda aparte
+    await guardarControlDiaSupabase();
+    actualizarBadgeSync('ok');
+  } catch (err) {
+    console.warn('⚠️ Error guardando en Supabase:', err);
+    actualizarBadgeSync('error');
+  }
+}
+
+async function sincronizarTablaCompleta(nombreTabla, arrayLocal) {
+  const localArr = arrayLocal || [];
+
+  // Paso A: IDs que ya existen hoy en la nube
+  const { data: existentes, error: errExist } = await supabase
+    .from(nombreTabla)
+    .select('id')
+    .eq('empresa_id', empresaIdActual);
+
+  if (errExist) throw errExist;
+
+  // Paso B: Upsert (insertar lo nuevo + actualizar lo existente)
+  if (localArr.length > 0) {
+    const registros = localArr.map(item => ({ ...item, empresa_id: empresaIdActual }));
+    const { error: errUp } = await supabase
+      .from(nombreTabla)
+      .upsert(registros, { onConflict: 'id' });
+    if (errUp) throw errUp;
+  }
+
+  // Paso C: Borrar de la nube lo que ya no está en local
+  const idsLocalSet = new Set(localArr.map(x => String(x.id)));
+  const idsABorrar = (existentes || [])
+    .map(x => x.id)
+    .filter(id => !idsLocalSet.has(String(id)));
+
+  if (idsABorrar.length > 0) {
+    const { error: errDel } = await supabase
+      .from(nombreTabla)
+      .delete()
+      .in('id', idsABorrar)
+      .eq('empresa_id', empresaIdActual);
+    if (errDel) throw errDel;
+  }
+}
+
+async function guardarControlDiaSupabase() {
+  if (!empresaIdActual) return;
+  await supabase.from('control_dia').delete().eq('empresa_id', empresaIdActual);
+  if (controlDiaDB && Object.keys(controlDiaDB).length) {
+    const ctrl = { ...controlDiaDB, empresa_id: empresaIdActual };
+    delete ctrl.id;
+    await supabase.from('control_dia').insert([ctrl]);
+  }
+}
+
+// ============ REALTIME: cambios en Supabase -> UI automáticamente ============
+let canalesRealtime = [];
+
+function inicializarRealtime() {
+  if (!supabase || !empresaIdActual) return;
+
+  // Limpiar canales previos
+  canalesRealtime.forEach(ch => { try { supabase.removeChannel(ch); } catch (e) {} });
+  canalesRealtime = [];
+
+  Object.keys(MAPA_TABLAS_SUPABASE).forEach(nombreTabla => {
+    const canal = supabase
+      .channel(`rt:${nombreTabla}:${empresaIdActual}`)
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: nombreTabla, filter: `empresa_id=eq.${empresaIdActual}` },
+        payload => manejarCambioRealtime(nombreTabla, payload)
+      )
+      .subscribe();
+    canalesRealtime.push(canal);
+  });
+
+  console.log('🔴 Realtime conectado a Supabase');
+}
+
+function manejarCambioRealtime(nombreTabla, payload) {
+  const cfg = MAPA_TABLAS_SUPABASE[nombreTabla];
+  if (!cfg) return;
+
+  let arr = cfg.get() || [];
+  const { eventType, new: nuevo, old: viejo } = payload;
+
+  if (eventType === 'INSERT') {
+    if (!arr.some(x => String(x.id) === String(nuevo.id))) {
+      arr = [...arr, nuevo];
     }
+  } else if (eventType === 'UPDATE') {
+    const idx = arr.findIndex(x => String(x.id) === String(nuevo.id));
+    if (idx >= 0) { arr = [...arr]; arr[idx] = { ...arr[idx], ...nuevo }; }
+    else arr = [...arr, nuevo];
+  } else if (eventType === 'DELETE') {
+    arr = arr.filter(x => String(x.id) !== String(viejo.id));
+  }
+
+  cfg.set(arr);
+  guardarEnLocalStorageLocal();
+  refrescarUIRealtime();
+}
+
+function refrescarUIRealtime() {
+  try {
+    if (typeof actualizarMetricas === 'function') actualizarMetricas();
+    if (typeof renderClientes === 'function') renderClientes();
+    if (typeof renderCobrosHoyYSemana === 'function') renderCobrosHoyYSemana();
+    if (typeof renderListadoGeneral === 'function') renderListadoGeneral();
+    if (typeof renderNotificacionesAdmin === 'function') renderNotificacionesAdmin();
+    const tabCobros = document.getElementById('cobrosGeneralesTab');
+    if (tabCobros && tabCobros.classList.contains('active') && typeof renderCobrosGenerales === 'function') {
+      renderCobrosGenerales();
+    }
+  } catch (e) { console.warn('UI refresh realtime:', e); }
+}
+
+function actualizarBadgeSync(estado) {
+  const badge = document.getElementById('badgeSyncStatus');
+  if (!badge) return;
+  if (estado === 'ok') {
+    badge.textContent = '☁️ Sincronizado';
+    badge.style.background = 'rgba(22,163,74,0.85)';
+  } else if (estado === 'error') {
+    badge.textContent = '⚠️ Sin sync';
+    badge.style.background = 'rgba(220,38,38,0.85)';
+  } else {
+    badge.textContent = '💾 Local';
+    badge.style.background = 'rgba(255,255,255,0.15)';
+  }
+}
+    
+ 
+                                                                                    
 
     function verificarPermisoBloqueoRuta() {
       var bloqueoDiv = document.getElementById('bloqueoRutaPantalla');
@@ -4398,19 +4372,38 @@ async function realizarLogin(e) {
       }
     }
 
-    function pedirClaveBorrarTodo() {
-      var claveIngresada = prompt("Introduce la contrasena de Administrador (Admin21) para borrar todos los datos del sistema:");
-      if (claveIngresada === "Admin21") {
-        if (confirm("Estas totalmente seguro de borrar TODOS los datos de la nube y del dispositivo?")) {
-          localStorage.clear();
-          if(db) db.ref('psc_datos_' + empresaActual.replace(/[^a-zA-Z0-9]/g, '_')).remove();
-          alert("Sistema reiniciado con exito!");
-          location.reload();
-        }
-      } else if (claveIngresada !== null) {
-        alert("Contrasena incorrecta.");
-      }
+    
+    
+    async function pedirClaveBorrarTodo() {
+  var claveIngresada = prompt("Introduce la contraseña de Administrador (Admin21) para borrar TODOS los datos:");
+  if (claveIngresada !== "Admin21") {
+    if (claveIngresada !== null) alert("Contraseña incorrecta.");
+    return;
+  }
+  if (!confirm("¿Seguro que quieres borrar TODOS los datos de esta empresa en local y en Supabase?")) return;
+
+  try {
+    if (supabase && empresaIdActual) {
+      const tablas = ['clientes', 'prestamos', 'cobros', 'gastos', 'rutas', 'cobradores', 'empleados', 'notas', 'notificaciones', 'inversionistas', 'control_dia'];
+      await Promise.all(tablas.map(t =>
+        supabase.from(t).delete().eq('empresa_id', empresaIdActual)
+      ));
     }
+    // Limpiar local de esta empresa
+    const safe = (empresaActual || 'default').replace(/[^a-zA-Z0-9]/g, '_');
+    Object.keys(localStorage).forEach(k => {
+      if (k.startsWith('psc_' + safe + '_')) localStorage.removeItem(k);
+    });
+    alert("✅ Base de datos de la empresa borrada. Recargando...");
+    location.reload();
+  } catch (err) {
+    alert("Error al borrar: " + err.message);
+  }
+}
+    
+    
+    
+    
 
     function showTab(tabId, btn) {
       document.querySelectorAll('.tab-content').forEach(function(t) { t.classList.remove('active'); });
@@ -4489,7 +4482,15 @@ if (tabId === 'resumen') {
       try { localStorage.setItem('psc_ultima_pestana', tabId); } catch(e){}
     }
 
-    function guardarNuevaEmpresaAdmin(e) {
+
+
+
+
+
+
+
+
+    async function guardarNuevaEmpresaAdmin(e) {
       e.preventDefault();
       var nombre = document.getElementById('saNombreEmpresa').value.trim();
       var rnc = document.getElementById('saRNC').value.trim();
@@ -4539,11 +4540,14 @@ if (tabId === 'resumen') {
         cobradores: [], empleados: [],
         controlDia: {abierto: false, fondoInicial: 0, fecha: "", empleado: "", zona: ""}
       };
-      if (db) {
-        db.ref(dbPath).set(datosVacios);
-        db.ref('psc_empresas_globales').set(empresasGlobalesDB);
-      }
-      localStorage.setItem('psc_empresas_globales', JSON.stringify(empresasGlobalesDB));
+      
+      if (supabase) {
+  // Insertar la empresa en Supabase (sin passwordAdmin en texto plano si ya está hasheado)
+  const nuevaEmp = empresasGlobalesDB[empresasGlobalesDB.length - 1];
+  await supabase.from('empresas').upsert([nuevaEmp], { onConflict: 'id' });
+  // Los datos de la nueva empresa se cargan vacíos al cambiar de empresa
+}
+          localStorage.setItem('psc_empresas_globales', JSON.stringify(empresasGlobalesDB));
 
       document.getElementById('saNombreEmpresa').value = '';
       document.getElementById('saRNC').value = '';
@@ -4561,6 +4565,15 @@ if (tabId === 'resumen') {
       renderEmpresasAisladasList();
       actualizarSelectsLoginEmpresa();
     }
+
+
+
+
+
+
+
+
+
 
 
     function renderSuperAdminEmpresas() {
@@ -7501,7 +7514,7 @@ window.ocultarFormularioCliente = ocultarFormularioCliente;
       }).join('');
     }
 
-    function guardarNuevaEmpresaAislada(e) {
+    async function guardarNuevaEmpresaAislada(e) {
       e.preventDefault();
       var nombre = document.getElementById('nuevaEmpresaNombre').value.trim();
       var rnc = document.getElementById('nuevaEmpresaRNC').value.trim();
@@ -7555,10 +7568,15 @@ window.ocultarFormularioCliente = ocultarFormularioCliente;
         controlDia: {abierto: false, fondoInicial: 0, fecha: "", empleado: "", zona: ""}
       };
 
-      if (db) {
-        db.ref(dbPath).set(datosVacios);
-        db.ref('psc_empresas_globales').set(empresasGlobalesDB);
-      }
+      
+      if (supabase) {
+  // Insertar la empresa en Supabase (sin passwordAdmin en texto plano si ya está hasheado)
+  const nuevaEmp = empresasGlobalesDB[empresasGlobalesDB.length - 1];
+  await supabase.from('empresas').upsert([nuevaEmp], { onConflict: 'id' });
+  // Los datos de la nueva empresa se cargan vacíos al cambiar de empresa
+}
+      
+      
 
       localStorage.setItem('psc_empresas_globales', JSON.stringify(empresasGlobalesDB));
       
