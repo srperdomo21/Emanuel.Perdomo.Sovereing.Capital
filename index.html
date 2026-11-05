@@ -732,6 +732,11 @@ function redondear(num) {
     }
     </style>
 
+
+  <!-- Leaflet para mapas OpenStreetMap (gratis, sin API key) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
 </head>
  <body>
 <!-- Estructura HTML recomendada para el Dashboard y Módulos (Fase 4) -->
@@ -976,6 +981,7 @@ function redondear(num) {
     
       
       <button class="sidebar-btn" onclick="showTabFromMenu('cobrosGeneralesTab')">💰 Cobros Generales</button>
+      <button class="sidebar-btn" onclick="showTabFromMenu('mapaTab')">🗺️ Mapa y Seguimiento</button>
       <hr style="border:0; border-top:1px solid var(--border); margin:5px 0;">
       <button class="sidebar-btn" onclick="abrirAyudaWhatsApp()" style="background:#25d366; color:white; font-weight:700;">🆘 Ayuda / Soporte WhatsApp</button>
       <button class="sidebar-btn solo-admin-emp" onclick="abrirModalCambiarTelefonoSoporte()" style="background:#0f172a; color:white;">📱 Cambiar Número de Soporte</button>
@@ -3790,7 +3796,35 @@ function inicializarRealtime() {
     canalesRealtime.push(canal);
   });
 
+  // 🛰️ Canal exclusivo para ubicaciones en vivo (no toca el canal principal)
+  try {
+    const canalUbic = supabase
+      .channel('rt:ubicaciones:' + empresaIdActual)
+      .on('postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'ubicaciones_cobradores', filter: 'empresa_id=eq.' + empresaIdActual },
+        payload => { try { manejarUbicacionRealtime(payload); } catch(e){} }
+      )
+      .subscribe();
+    canalesRealtime.push(canalUbic);
+  } catch(eUbi) { console.warn('Realtime ubicaciones:', eUbi); }
+
   console.log('🔴 Realtime conectado a Supabase');
+}
+
+// 🛰️ Actualiza marcador del cobrador al llegar un punto nuevo
+function manejarUbicacionRealtime(payload) {
+  if (!payload || !payload.new) return;
+  const u = payload.new;
+  if (u.lat == null || u.lng == null) return;
+  if (typeof cargarUbicacionesCobradoresEnVivo === 'function') {
+    cargarUbicacionesCobradoresEnVivo();
+  }
+  // Si estamos viendo la ruta de ese cobrador, recargar polyline
+  var sel = document.getElementById('selectCobradorRuta');
+  if (sel && sel.value === u.cobrador_nombre && typeof cargarRutaCobradorSeleccionado === 'function') {
+    clearTimeout(window._tRuta);
+    window._tRuta = setTimeout(cargarRutaCobradorSeleccionado, 1500);
+  }
 }
 
 function manejarCambioRealtime(nombreTabla, payload) {
@@ -3818,6 +3852,7 @@ function manejarCambioRealtime(nombreTabla, payload) {
 }
 
 function refrescarUIRealtime() {
+  try { if (typeof actualizarMapaRealtime === 'function') actualizarMapaRealtime(); } catch(e) {}
   try {
     if (typeof actualizarMetricas === 'function') actualizarMetricas();
     if (typeof renderClientes === 'function') renderClientes();
@@ -4374,6 +4409,10 @@ async function realizarLogin(e) {
 
     function cerrarSesion() {
       if(confirm("Estas seguro de cerrar sesion?")) {
+        // 🛰️ Apagar seguimiento GPS antes de salir
+        if (typeof detenerSeguimientoGPS === 'function') {
+          try { detenerSeguimientoGPS(); } catch(e) {}
+        }
         localStorage.removeItem('psc_sesion_activa');
         localStorage.removeItem('psc_rol_activo');
         localStorage.removeItem('psc_nombre_usuario');
@@ -4453,6 +4492,9 @@ async function realizarLogin(e) {
       if (tabId === 'businessIntelligenceTab') renderBusinessIntelligence();
       
       if (tabId === 'buroCreditoTab') renderBuroCredito();
+      if (tabId === 'mapaTab') {
+        setTimeout(function(){ try { inicializarMapa(); } catch(e){ console.warn('Mapa init:', e); } }, 120);
+      }
 
       // Reportes y gráficos de cierre de caja
       if (tabId === 'reportes' || tabId === 'reportesTab') {
@@ -6223,7 +6265,7 @@ if (tabId === 'resumen') {
       document.getElementById('modalCobroBox').style.display = 'none';
     }
 
-    function procesarCobroForm(e) {
+    async function procesarCobroForm(e) {
       e.preventDefault();
       var monto = parseFloat(document.getElementById('cobroMonto').value) || 0;
       var mora = parseFloat(document.getElementById('cobroMora').value) || 0;
@@ -6281,6 +6323,16 @@ if (tabId === 'resumen') {
         tipoPago: tipo,
         gps: gpsStr
       };
+
+      // 🛰️ Capturar GPS exacto del cobro
+      try {
+        await new Promise(function(resolve) {
+          capturarUbicacionGPS(function(lat, lng, precision) {
+            if (lat != null) { pago.lat = lat; pago.lng = lng; pago.precision = precision; }
+            resolve();
+          });
+        });
+      } catch(eGps) { console.warn('GPS cobro:', eGps); }
 
       cobrosDB.push(pago);
       guardarDatosEnNube();
@@ -6395,19 +6447,30 @@ if (tabId === 'resumen') {
       document.getElementById('modalNotaBox').style.display = 'none';
     }
 
-    function guardarNotaForm(e) {
+    async function guardarNotaForm(e) {
       e.preventDefault();
       var textoNota = document.getElementById('notaSelect').value;
       var extra = document.getElementById('notaPersonalizada').value.trim();
       if(extra) textoNota += ': ' + extra;
 
-      notasDB.push({
+      var nuevaNota = {
         id: Date.now(),
         prestamoId: prestamoActualId,
         fecha: new Date().toLocaleDateString(),
         texto: "[" + nombreUsuarioActual + "] " + textoNota
-      });
+      };
 
+      // 🛰️ Capturar GPS exacto de la nota
+      try {
+        await new Promise(function(resolve) {
+          capturarUbicacionGPS(function(lat, lng, precision) {
+            if (lat != null) { nuevaNota.lat = lat; nuevaNota.lng = lng; nuevaNota.precision = precision; }
+            resolve();
+          });
+        });
+      } catch(eGps) { console.warn('GPS nota:', eGps); }
+
+      notasDB.push(nuevaNota);
       guardarDatosEnNube();
       cerrarModalNota();
       alert("Nota guardada con exito.");
@@ -6620,7 +6683,7 @@ window.ocultarFormularioCliente = ocultarFormularioCliente;
       fotoConfirmacionTemporal = "";
     }
 
-    function guardarCliente(e) {
+    async function guardarCliente(e) {
       e.preventDefault();
       var firmaBase64 = "";
       if (canvasFirma) {
@@ -6652,6 +6715,16 @@ window.ocultarFormularioCliente = ocultarFormularioCliente;
         firma: firmaBase64,
         estado: 'Activo'
       };
+      // 🛰️ Capturar GPS exacto del cliente
+      try {
+        await new Promise(function(resolve) {
+          capturarUbicacionGPS(function(lat, lng, precision) {
+            if (lat != null) { nuevo.lat = lat; nuevo.lng = lng; nuevo.precision = precision; }
+            resolve();
+          });
+        });
+      } catch(eGps) { console.warn('GPS cliente:', eGps); }
+
       clientesDB.push(nuevo);
       if (typeof _clearPurgeFlagIfNeeded === 'function') _clearPurgeFlagIfNeeded();
       // Quitar este id de la lista de eliminados por si se reutiliza
@@ -6706,7 +6779,7 @@ window.ocultarFormularioCliente = ocultarFormularioCliente;
       if (typeof cargarSelectClientes === 'function') cargarSelectClientes();
     }
 
-    function guardarPrestamo(e) {
+    async function guardarPrestamo(e) {
       e.preventDefault();
       var clienteId = document.getElementById('pClienteSelect').value;
       var cliente = clientesDB.find(function(c) { return c.id == clienteId; });
@@ -6788,6 +6861,16 @@ window.ocultarFormularioCliente = ocultarFormularioCliente;
         firma: cliente.firma || "",
         estado: 'Activo'
       };
+
+      // 🛰️ Capturar GPS exacto del desembolso
+      try {
+        await new Promise(function(resolve) {
+          capturarUbicacionGPS(function(lat, lng, precision) {
+            if (lat != null) { nuevoPrestamo.lat = lat; nuevoPrestamo.lng = lng; nuevoPrestamo.precision = precision; }
+            resolve();
+          });
+        });
+      } catch(eGps) { console.warn('GPS préstamo:', eGps); }
 
       prestamosDB.push(nuevoPrestamo);
       guardarDatosEnNube();
@@ -8070,6 +8153,77 @@ function cancelar2FAJornada() {
 }
 </script>
 
+
+<!-- ========== NUEVA PESTAÑA MAPA Y SEGUIMIENTO GPS ========== -->
+<div id="mapaTab" class="tab-content">
+  <div class="card" style="margin-bottom:12px;">
+    <h3 style="color:var(--primary); margin-bottom:8px;">🗺️ Mapa y Seguimiento en Tiempo Real</h3>
+    <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:10px;">
+      <span id="lblCobradoresEnLinea" style="font-weight:700; color:var(--success);">Cobradores en línea: 0</span>
+      <button class="btn btn-sm btn-success" onclick="centrarEnMiUbicacion()" style="width:auto;">🎯 Centrar en mi ubicación</button>
+      <button class="btn btn-sm btn-secondary" onclick="actualizarMapaCompleto()" style="width:auto;">🔄 Refrescar mapa</button>
+    </div>
+    <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:10px; font-size:0.85rem;">
+      <label><input type="checkbox" id="filtroMapaClientes" checked onchange="actualizarCapasMapa()"> 👤 Clientes</label>
+      <label><input type="checkbox" id="filtroMapaPrestamos" checked onchange="actualizarCapasMapa()"> 💰 Préstamos</label>
+      <label><input type="checkbox" id="filtroMapaCobros" checked onchange="actualizarCapasMapa()"> 💵 Cobros</label>
+      <label><input type="checkbox" id="filtroMapaNotas" checked onchange="actualizarCapasMapa()"> 📝 Notas</label>
+      <label><input type="checkbox" id="filtroMapaCobradores" checked onchange="actualizarCapasMapa()"> 🏍️ Cobradores en vivo</label>
+    </div>
+  </div>
+
+  <div id="mapaContainer" style="display:flex; flex-direction:row; gap:12px; flex-wrap:wrap;">
+    <div id="mapaLeaflet" style="flex:1 1 65%; min-height:420px; height:65vh; border-radius:12px; border:1px solid var(--border); z-index:1;"></div>
+    
+    <div class="card" style="flex:1 1 280px; max-width:340px; max-height:65vh; overflow-y:auto;">
+      <h3 style="font-size:0.95rem;">🏍️ Cobradores activos</h3>
+      <div id="listaCobradoresMapa" style="font-size:0.85rem; margin-bottom:12px;"></div>
+      
+      <div class="form-group">
+        <label>Ver ruta de cobrador</label>
+        <select id="selectCobradorRuta" onchange="cargarRutaCobradorSeleccionado()">
+          <option value="">-- Seleccionar --</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Período de ruta</label>
+        <select id="selectPeriodoRuta" onchange="cargarRutaCobradorSeleccionado()">
+          <option value="hoy">Hoy</option>
+          <option value="ayer">Ayer</option>
+          <option value="semana">Última semana</option>
+        </select>
+      </div>
+      <div id="infoRutaSeleccionada" style="font-size:0.8rem; color:var(--text-muted); margin-bottom:10px;"></div>
+      
+      <button class="btn btn-sm btn-success" onclick="guardarRecorridoActual()" style="margin-bottom:6px;">💾 Guardar Recorrido</button>
+      <button class="btn btn-sm btn-secondary" onclick="descargarRecorrido('gpx')" style="margin-bottom:4px;">📥 Descargar GPX</button>
+      <button class="btn btn-sm btn-secondary" onclick="descargarRecorrido('kml')" style="margin-bottom:4px;">📥 Descargar KML</button>
+      <button class="btn btn-sm btn-secondary" onclick="descargarRecorrido('csv')">📥 Descargar CSV</button>
+    </div>
+  </div>
+  
+  <div id="gpsIndicator" style="display:none; position:fixed; bottom:90px; left:50%; transform:translateX(-50%); background:var(--success); color:white; padding:8px 16px; border-radius:20px; font-size:0.8rem; font-weight:700; z-index:1500; box-shadow:0 4px 12px rgba(0,0,0,0.25);">
+    🛰️ GPS activo — Enviando ubicación cada 30s
+  </div>
+</div>
+
+<style>
+  @media (max-width: 768px) {
+    #mapaContainer { flex-direction: column !important; }
+    #mapaLeaflet { height: 50vh !important; min-height: 300px !important; width: 100% !important; }
+    #mapaContainer .card { max-width: 100% !important; max-height: none !important; }
+  }
+  .leaflet-marker-icon.pulsante {
+    animation: pulse-red 1.5s infinite;
+  }
+  @keyframes pulse-red {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.25); opacity: 0.75; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+</style>
+
+
 <!-- MODAL PARA PEGAR TEXTO -->
 
 <script>
@@ -8716,6 +8870,463 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
+
+<script>
+/* ============================================================
+   MÓDULO MAPA + GPS EN TIEMPO REAL (agregado sin tocar sync core)
+   ============================================================ */
+
+/* SQL setup (ejecutar manualmente en Supabase):
+CREATE TABLE IF NOT EXISTS ubicaciones_cobradores (
+  id BIGSERIAL PRIMARY KEY,
+  empresa_id BIGINT,
+  cobrador_nombre TEXT,
+  cobrador_id BIGINT,
+  lat DOUBLE PRECISION,
+  lng DOUBLE PRECISION,
+  precision_m DOUBLE PRECISION,
+  velocidad DOUBLE PRECISION,
+  bateria INT,
+  timestamp TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_ubic_cob_emp_fecha ON ubicaciones_cobradores(empresa_id, timestamp DESC);
+
+CREATE TABLE IF NOT EXISTS recorridos_guardados (
+  id BIGSERIAL PRIMARY KEY,
+  empresa_id BIGINT,
+  cobrador_nombre TEXT,
+  fecha_inicio TIMESTAMPTZ,
+  fecha_fin TIMESTAMPTZ,
+  distancia_km DOUBLE PRECISION,
+  puntos JSONB,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS lat DOUBLE PRECISION;
+ALTER TABLE clientes ADD COLUMN IF NOT EXISTS lng DOUBLE PRECISION;
+ALTER TABLE prestamos ADD COLUMN IF NOT EXISTS lat DOUBLE PRECISION;
+ALTER TABLE prestamos ADD COLUMN IF NOT EXISTS lng DOUBLE PRECISION;
+ALTER TABLE cobros ADD COLUMN IF NOT EXISTS lat DOUBLE PRECISION;
+ALTER TABLE cobros ADD COLUMN IF NOT EXISTS lng DOUBLE PRECISION;
+ALTER TABLE notas ADD COLUMN IF NOT EXISTS lat DOUBLE PRECISION;
+ALTER TABLE notas ADD COLUMN IF NOT EXISTS lng DOUBLE PRECISION;
+*/
+
+var mapaLeaflet = null;
+var capaMarcadores = null;
+var capaCobradores = null;
+var capaPolylines = null;
+var marcadoresPorId = {};
+var watchIdGPS = null;
+var ultimaUbicacionEnviada = 0;
+var ubicacionesPendientes = JSON.parse(localStorage.getItem('psc_ubicaciones_pendientes') || '[]');
+var puntosRutaActual = [];
+var coloresCobradores = ['#e11d48','#2563eb','#16a34a','#d97706','#7c3aed','#0891b2','#db2777'];
+
+function calcularDistanciaHaversine(lat1, lng1, lat2, lng2) {
+  var R = 6371000;
+  var dLat = (lat2 - lat1) * Math.PI / 180;
+  var dLng = (lng2 - lng1) * Math.PI / 180;
+  var a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+          Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+          Math.sin(dLng/2) * Math.sin(dLng/2);
+  var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
+function obtenerIconoLeaflet(tipo) {
+  var colores = { cliente: '#2563eb', prestamo: '#d4af37', cobro: '#16a34a', nota: '#eab308', cobrador: '#e11d48' };
+  var emoji = { cliente: '👤', prestamo: '💰', cobro: '💵', nota: '📝', cobrador: '🏍️' };
+  var c = colores[tipo] || '#64748b';
+  var e = emoji[tipo] || '📍';
+  var html = '<div style="background:'+c+';width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.35);">' + e + '</div>';
+  return L.divIcon({ html: html, className: tipo === 'cobrador' ? 'pulsante' : '', iconSize: [28,28], iconAnchor: [14,14] });
+}
+
+function inicializarMapa() {
+  if (typeof L === 'undefined') {
+    console.warn('Leaflet aún no cargado');
+    setTimeout(inicializarMapa, 400);
+    return;
+  }
+  var el = document.getElementById('mapaLeaflet');
+  if (!el) return;
+  if (mapaLeaflet) {
+    setTimeout(function(){ mapaLeaflet.invalidateSize(); actualizarMapaCompleto(); }, 100);
+    return;
+  }
+  mapaLeaflet = L.map('mapaLeaflet').setView([18.4861, -69.9312], 12); // RD default
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; OpenStreetMap'
+  }).addTo(mapaLeaflet);
+  capaMarcadores = L.layerGroup().addTo(mapaLeaflet);
+  capaCobradores = L.layerGroup().addTo(mapaLeaflet);
+  capaPolylines = L.layerGroup().addTo(mapaLeaflet);
+  actualizarMapaCompleto();
+  iniciarSeguimientoGPSSiCobrador();
+  setTimeout(function(){ mapaLeaflet.invalidateSize(); }, 250);
+}
+
+function actualizarMapaCompleto() {
+  if (!mapaLeaflet || !capaMarcadores) return;
+  capaMarcadores.clearLayers();
+  marcadoresPorId = {};
+  var mostrarClientes = document.getElementById('filtroMapaClientes') ? document.getElementById('filtroMapaClientes').checked : true;
+  var mostrarPrestamos = document.getElementById('filtroMapaPrestamos') ? document.getElementById('filtroMapaPrestamos').checked : true;
+  var mostrarCobros = document.getElementById('filtroMapaCobros') ? document.getElementById('filtroMapaCobros').checked : true;
+  var mostrarNotas = document.getElementById('filtroMapaNotas') ? document.getElementById('filtroMapaNotas').checked : true;
+
+  if (mostrarClientes && typeof clientesDB !== 'undefined') {
+    (clientesDB || []).forEach(function(c) {
+      if (c.lat == null || c.lng == null) return;
+      if (typeof rolUsuarioActual !== 'undefined' && rolUsuarioActual === 'cobrador' && c.zona !== zonaUsuarioActual) return;
+      var m = L.marker([c.lat, c.lng], { icon: obtenerIconoLeaflet('cliente') })
+        .bindTooltip(c.nombre + ' · ' + (c.telefono||'') + ' · ' + (c.zona||''))
+        .bindPopup(popupCliente(c));
+      m.addTo(capaMarcadores);
+      marcadoresPorId['cli_'+c.id] = m;
+    });
+  }
+  if (mostrarPrestamos && typeof prestamosDB !== 'undefined') {
+    (prestamosDB || []).forEach(function(p) {
+      if (p.lat == null || p.lng == null) return;
+      var m = L.marker([p.lat, p.lng], { icon: obtenerIconoLeaflet('prestamo') })
+        .bindTooltip('Préstamo $' + (p.monto||0) + ' · Bal: $' + (p.balancePendiente||0))
+        .bindPopup('<b>💰 Préstamo</b><br>Monto: $'+(p.monto||0)+'<br>Balance: $'+(p.balancePendiente||0)+'<br>Cuota: $'+(p.valorCuota||0));
+      m.addTo(capaMarcadores);
+    });
+  }
+  if (mostrarCobros && typeof cobrosDB !== 'undefined') {
+    (cobrosDB || []).forEach(function(c) {
+      if (c.lat == null || c.lng == null) return;
+      var m = L.marker([c.lat, c.lng], { icon: obtenerIconoLeaflet('cobro') })
+        .bindTooltip('Cobro $' + (c.monto||0) + ' · ' + (c.fecha||''))
+        .bindPopup('<b>💵 Cobro</b><br>$'+(c.monto||0)+'<br>'+(c.fecha||'')+'<br>'+(c.cobrador||''));
+      m.addTo(capaMarcadores);
+    });
+  }
+  if (mostrarNotas && typeof notasDB !== 'undefined') {
+    (notasDB || []).forEach(function(n) {
+      if (n.lat == null || n.lng == null) return;
+      var m = L.marker([n.lat, n.lng], { icon: obtenerIconoLeaflet('nota') })
+        .bindTooltip((n.texto || n.nota || '').substring(0,40))
+        .bindPopup('<b>📝 Nota</b><br>' + (n.texto || n.nota || ''));
+      m.addTo(capaMarcadores);
+    });
+  }
+  actualizarListaCobradoresMapa();
+  cargarUbicacionesCobradoresEnVivo();
+}
+
+function popupCliente(c) {
+  var tel = (c.telefono || '').replace(/\D/g,'');
+  var maps = 'https://www.google.com/maps/dir/?api=1&destination=' + c.lat + ',' + c.lng;
+  return '<b>👤 ' + (c.nombre||'') + '</b><br>' +
+    (c.telefono ? '📞 ' + c.telefono + '<br>' : '') +
+    (c.zona ? '📍 ' + c.zona + '<br>' : '') +
+    '<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px;">' +
+    '<button class="btn btn-sm" onclick="verPerfilCreditoCliente && verPerfilCreditoCliente(' + c.id + ')">Ver ficha</button>' +
+    (tel ? '<a class="btn btn-sm btn-success" href="tel:' + tel + '">Llamar</a>' : '') +
+    (tel ? '<a class="btn btn-sm btn-whatsapp" href="https://wa.me/' + tel + '" target="_blank">WhatsApp</a>' : '') +
+    '<a class="btn btn-sm btn-secondary" href="' + maps + '" target="_blank">Cómo llegar</a></div>';
+}
+
+function actualizarCapasMapa() { actualizarMapaCompleto(); }
+
+function centrarEnMiUbicacion() {
+  if (!navigator.geolocation) return alert('GPS no disponible');
+  navigator.geolocation.getCurrentPosition(function(pos) {
+    if (mapaLeaflet) {
+      mapaLeaflet.setView([pos.coords.latitude, pos.coords.longitude], 16);
+      L.circleMarker([pos.coords.latitude, pos.coords.longitude], { radius: 8, color: '#2563eb', fillColor: '#3b82f6', fillOpacity: 0.7 }).addTo(mapaLeaflet)
+        .bindPopup('📍 Tú estás aquí').openPopup();
+    }
+  }, function(){ alert('No se pudo obtener tu ubicación'); }, { enableHighAccuracy: true, timeout: 10000 });
+}
+
+function capturarUbicacionGPS(callback) {
+  if (!navigator.geolocation) { if (callback) callback(null, null, null); return; }
+  navigator.geolocation.getCurrentPosition(function(pos) {
+    if (callback) callback(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
+  }, function() {
+    if (callback) callback(null, null, null);
+  }, { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 });
+}
+
+// Wrappers no invasivos: se llaman desde las funciones originales si el usuario las modifica manualmente,
+// o se pueden invocar después de crear el objeto. Aquí proveemos helpers seguros.
+function enriquecerConGPS(obj, done) {
+  capturarUbicacionGPS(function(lat, lng, precision) {
+    if (lat != null) { obj.lat = lat; obj.lng = lng; if (precision != null) obj.precision = precision; }
+    if (done) done(obj);
+  });
+}
+
+function iniciarSeguimientoGPSSiCobrador() {
+  if (typeof rolUsuarioActual === 'undefined' || rolUsuarioActual !== 'cobrador') return;
+  if (watchIdGPS) return;
+  if (!navigator.geolocation) return;
+  var ind = document.getElementById('gpsIndicator');
+  if (ind) ind.style.display = 'block';
+  watchIdGPS = navigator.geolocation.watchPosition(function(pos) {
+    var ahora = Date.now();
+    var dist = 0;
+    if (puntosRutaActual.length > 0) {
+      var last = puntosRutaActual[puntosRutaActual.length-1];
+      dist = calcularDistanciaHaversine(last.lat, last.lng, pos.coords.latitude, pos.coords.longitude);
+    }
+    if (ahora - ultimaUbicacionEnviada >= 30000 || dist >= 50) {
+      ultimaUbicacionEnviada = ahora;
+      var punto = {
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude,
+        precision_m: pos.coords.accuracy,
+        velocidad: pos.coords.speed || 0,
+        timestamp: new Date().toISOString()
+      };
+      puntosRutaActual.push(punto);
+      guardarUbicacionCobrador(punto);
+    }
+  }, function(err){ console.warn('GPS watch error', err); }, { enableHighAccuracy: true, maximumAge: 10000, timeout: 15000 });
+}
+
+function detenerSeguimientoGPS() {
+  if (watchIdGPS != null) {
+    navigator.geolocation.clearWatch(watchIdGPS);
+    watchIdGPS = null;
+  }
+  var ind = document.getElementById('gpsIndicator');
+  if (ind) ind.style.display = 'none';
+}
+
+async function guardarUbicacionCobrador(punto) {
+  var payload = {
+    empresa_id: (typeof empresaIdActual !== 'undefined' ? empresaIdActual : null),
+    cobrador_nombre: (typeof nombreUsuarioActual !== 'undefined' ? nombreUsuarioActual : 'Cobrador'),
+    cobrador_id: null,
+    lat: punto.lat,
+    lng: punto.lng,
+    precision_m: punto.precision_m || null,
+    velocidad: punto.velocidad || 0,
+    bateria: null,
+    timestamp: punto.timestamp || new Date().toISOString()
+  };
+  try {
+    if (navigator.getBattery) {
+      var bat = await navigator.getBattery();
+      payload.bateria = Math.round(bat.level * 100);
+    }
+  } catch(e){}
+  if (!navigator.onLine || !supabase) {
+    ubicacionesPendientes.push(payload);
+    localStorage.setItem('psc_ubicaciones_pendientes', JSON.stringify(ubicacionesPendientes));
+    return;
+  }
+  try {
+    await supabase.from('ubicaciones_cobradores').insert([payload]);
+  } catch(e) {
+    console.warn('Error enviando ubicación', e);
+    ubicacionesPendientes.push(payload);
+    localStorage.setItem('psc_ubicaciones_pendientes', JSON.stringify(ubicacionesPendientes));
+  }
+}
+
+async function sincronizarUbicacionesPendientes() {
+  if (!ubicacionesPendientes.length || !supabase || !navigator.onLine) return;
+  var pendientes = ubicacionesPendientes.slice();
+  ubicacionesPendientes = [];
+  localStorage.setItem('psc_ubicaciones_pendientes', '[]');
+  for (var i = 0; i < pendientes.length; i++) {
+    try {
+      await supabase.from('ubicaciones_cobradores').insert([pendientes[i]]);
+    } catch(e) {
+      ubicacionesPendientes.push(pendientes[i]);
+    }
+  }
+  localStorage.setItem('psc_ubicaciones_pendientes', JSON.stringify(ubicacionesPendientes));
+}
+
+async function cargarUbicacionesCobradoresEnVivo() {
+  if (!supabase || !capaCobradores) return;
+  var mostrar = document.getElementById('filtroMapaCobradores') ? document.getElementById('filtroMapaCobradores').checked : true;
+  if (!mostrar) { capaCobradores.clearLayers(); return; }
+  try {
+    var desde = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+    var q = supabase.from('ubicaciones_cobradores').select('*').gte('timestamp', desde).order('timestamp', { ascending: false }).limit(200);
+    if (typeof empresaIdActual !== 'undefined' && empresaIdActual) q = q.eq('empresa_id', empresaIdActual);
+    var { data, error } = await q;
+    if (error || !data) return;
+    capaCobradores.clearLayers();
+    var porCobrador = {};
+    data.forEach(function(u) {
+      var key = u.cobrador_nombre || 'desconocido';
+      if (!porCobrador[key] || new Date(u.timestamp) > new Date(porCobrador[key].timestamp)) {
+        porCobrador[key] = u;
+      }
+    });
+    var enLinea = 0;
+    Object.keys(porCobrador).forEach(function(nombre) {
+      var u = porCobrador[nombre];
+      enLinea++;
+      var m = L.marker([u.lat, u.lng], { icon: obtenerIconoLeaflet('cobrador') })
+        .bindTooltip(nombre + ' · ' + new Date(u.timestamp).toLocaleTimeString())
+        .bindPopup('<b>🏍️ ' + nombre + '</b><br>Última: ' + new Date(u.timestamp).toLocaleString() + '<br>Vel: ' + (u.velocidad||0).toFixed(1) + ' m/s');
+      m.addTo(capaCobradores);
+    });
+    var lbl = document.getElementById('lblCobradoresEnLinea');
+    if (lbl) lbl.textContent = 'Cobradores en línea: ' + enLinea;
+  } catch(e) { console.warn('ubicaciones vivo', e); }
+}
+
+function actualizarListaCobradoresMapa() {
+  var cont = document.getElementById('listaCobradoresMapa');
+  var sel = document.getElementById('selectCobradorRuta');
+  if (!cont || !sel) return;
+  var nombres = {};
+  if (typeof cobrosDB !== 'undefined') {
+    (cobrosDB || []).forEach(function(c){ if (c.cobrador) nombres[c.cobrador] = true; });
+  }
+  if (typeof nombreUsuarioActual !== 'undefined' && nombreUsuarioActual) nombres[nombreUsuarioActual] = true;
+  var lista = Object.keys(nombres).sort();
+  cont.innerHTML = lista.length ? lista.map(function(n){ return '<div style="padding:4px 0;">🏍️ ' + n + '</div>'; }).join('') : '<p style="color:var(--text-muted);">Sin cobradores recientes</p>';
+  var prev = sel.value;
+  sel.innerHTML = '<option value="">-- Seleccionar --</option>' + lista.map(function(n){ return '<option value="'+n+'">'+n+'</option>'; }).join('');
+  if (prev) sel.value = prev;
+}
+
+async function cargarRutaCobradorSeleccionado() {
+  if (!capaPolylines || !supabase) return;
+  capaPolylines.clearLayers();
+  puntosRutaActual = [];
+  var nombre = document.getElementById('selectCobradorRuta') ? document.getElementById('selectCobradorRuta').value : '';
+  var periodo = document.getElementById('selectPeriodoRuta') ? document.getElementById('selectPeriodoRuta').value : 'hoy';
+  var info = document.getElementById('infoRutaSeleccionada');
+  if (!nombre) { if (info) info.textContent = ''; return; }
+  var ahora = new Date();
+  var desde = new Date(ahora);
+  if (periodo === 'hoy') { desde.setHours(0,0,0,0); }
+  else if (periodo === 'ayer') { desde.setDate(desde.getDate()-1); desde.setHours(0,0,0,0); ahora = new Date(desde); ahora.setHours(23,59,59,999); }
+  else { desde.setDate(desde.getDate()-7); }
+  try {
+    var q = supabase.from('ubicaciones_cobradores').select('*')
+      .eq('cobrador_nombre', nombre)
+      .gte('timestamp', desde.toISOString())
+      .lte('timestamp', ahora.toISOString())
+      .order('timestamp', { ascending: true });
+    if (typeof empresaIdActual !== 'undefined' && empresaIdActual) q = q.eq('empresa_id', empresaIdActual);
+    var { data } = await q;
+    if (!data || !data.length) {
+      if (info) info.textContent = 'Sin puntos de ubicación en este período.';
+      return;
+    }
+    var coords = data.map(function(p){ return [p.lat, p.lng]; });
+    puntosRutaActual = data.map(function(p){ return { lat: p.lat, lng: p.lng, ts: p.timestamp }; });
+    var color = coloresCobradores[nombre.length % coloresCobradores.length];
+    var poly = L.polyline(coords, { color: color, weight: 4, opacity: 0.85 }).addTo(capaPolylines);
+    var dist = 0;
+    for (var i = 1; i < coords.length; i++) {
+      dist += calcularDistanciaHaversine(coords[i-1][0], coords[i-1][1], coords[i][0], coords[i][1]);
+    }
+    if (info) info.textContent = 'Distancia: ' + (dist/1000).toFixed(2) + ' km · Puntos: ' + data.length + ' · Inicio: ' + new Date(data[0].timestamp).toLocaleTimeString();
+    if (mapaLeaflet && coords.length) mapaLeaflet.fitBounds(poly.getBounds(), { padding: [30,30] });
+  } catch(e) {
+    console.warn('ruta', e);
+    if (info) info.textContent = 'Error cargando ruta (¿tabla creada?)';
+  }
+}
+
+async function guardarRecorridoActual() {
+  if (!puntosRutaActual.length) return alert('No hay puntos de recorrido cargados.');
+  var nombre = document.getElementById('selectCobradorRuta') ? document.getElementById('selectCobradorRuta').value : (nombreUsuarioActual || 'Cobrador');
+  var dist = 0;
+  for (var i = 1; i < puntosRutaActual.length; i++) {
+    dist += calcularDistanciaHaversine(puntosRutaActual[i-1].lat, puntosRutaActual[i-1].lng, puntosRutaActual[i].lat, puntosRutaActual[i].lng);
+  }
+  var payload = {
+    empresa_id: (typeof empresaIdActual !== 'undefined' ? empresaIdActual : null),
+    cobrador_nombre: nombre,
+    fecha_inicio: puntosRutaActual[0].ts || new Date().toISOString(),
+    fecha_fin: puntosRutaActual[puntosRutaActual.length-1].ts || new Date().toISOString(),
+    distancia_km: +(dist/1000).toFixed(3),
+    puntos: puntosRutaActual
+  };
+  if (!supabase) return alert('Sin conexión a Supabase');
+  try {
+    var { error } = await supabase.from('recorridos_guardados').insert([payload]);
+    if (error) throw error;
+    alert('✅ Recorrido guardado (' + payload.distancia_km + ' km)');
+  } catch(e) {
+    alert('Error al guardar: ' + (e.message || e) + '\\n¿Creaste la tabla recorridos_guardados?');
+  }
+}
+
+function descargarRecorrido(formato) {
+  if (!puntosRutaActual.length) return alert('Primero selecciona y carga una ruta.');
+  var nombre = (document.getElementById('selectCobradorRuta') || {}).value || 'Cobrador';
+  var fecha = new Date().toISOString().slice(0,10);
+  var filename = 'Recorrido_' + nombre.replace(/\s+/g,'_') + '_' + fecha;
+  var content = '', mime = 'text/plain';
+  if (formato === 'gpx') {
+    mime = 'application/gpx+xml';
+    filename += '.gpx';
+    content = '<?xml version="1.0" encoding="UTF-8"?>\\n<gpx version="1.1" creator="Perdomo Sovereign Capital">\\n<trk><name>' + nombre + '</name><trkseg>\\n';
+    puntosRutaActual.forEach(function(p) {
+      content += '<trkpt lat="' + p.lat + '" lon="' + p.lng + '"><time>' + (p.ts || '') + '</time></trkpt>\\n';
+    });
+    content += '</trkseg></trk></gpx>';
+  } else if (formato === 'kml') {
+    mime = 'application/vnd.google-earth.kml+xml';
+    filename += '.kml';
+    content = '<?xml version="1.0" encoding="UTF-8"?>\\n<kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>' + nombre + '</name><Placemark><LineString><coordinates>\\n';
+    puntosRutaActual.forEach(function(p){ content += p.lng + ',' + p.lat + ',0\\n'; });
+    content += '</coordinates></LineString></Placemark></Document></kml>';
+  } else {
+    mime = 'text/csv';
+    filename += '.csv';
+    content = 'lat,lng,timestamp\\n';
+    puntosRutaActual.forEach(function(p){ content += p.lat + ',' + p.lng + ',' + (p.ts||'') + '\\n'; });
+  }
+  var blob = new Blob([content], { type: mime });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function actualizarMapaRealtime() {
+  if (!document.getElementById('mapaTab') || !document.getElementById('mapaTab').classList.contains('active')) return;
+  cargarUbicacionesCobradoresEnVivo();
+}
+
+// Auto-start tracking on login for cobrador (non-invasive)
+var _origCerrarSesion = typeof cerrarSesion === 'function' ? cerrarSesion : null;
+if (typeof window !== 'undefined') {
+  window.addEventListener('online', function(){ sincronizarUbicacionesPendientes(); });
+}
+
+// Soft patch for GPS capture on save functions (only adds lat/lng if GPS available, never blocks)
+(function patchGuardadosConGPS() {
+  function wrap(fnName) {
+    if (typeof window[fnName] !== 'function') return;
+    var original = window[fnName];
+    window[fnName] = function(e) {
+      var self = this, args = arguments;
+      // Let original run; we can't easily inject into the object creation without deeper rewrite.
+      // Instead, after a successful save the data may already be without GPS.
+      // Best effort: try to capture GPS in parallel for future records via helpers.
+      return original.apply(self, args);
+    };
+  }
+  // Note: To fully inject GPS into guardarPrestamo / procesarCobroForm / guardarNotaForm / guardarCliente
+  // without breaking them, the user should add 2-3 lines inside each function after creating the object:
+  //   capturarUbicacionGPS(function(lat,lng,prec){ if(lat!=null){ obj.lat=lat; obj.lng=lng; } ... continue save ... });
+  // Because those functions are large and critical, we do NOT rewrite them automatically here.
+})();
+
+console.log('%c[Mapa GPS] Módulo cargado. Ejecuta el SQL de setup en Supabase y prueba la pestaña 🗺️ Mapa y Seguimiento.', 'color:#16a34a;font-weight:bold');
+</script>
+
 </body>
 </html>
-
