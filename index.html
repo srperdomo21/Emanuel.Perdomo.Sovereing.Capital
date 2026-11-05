@@ -3389,12 +3389,13 @@ async function guardarCobradorCalle(e) {
   // 3. INTENTAR GUARDAR EN SUPABASE (En segundo plano)
   if (supabase && empresaIdActual) {
     try {
-      const { error } = await supabase.from('cobradores').insert([{
-        empresa_id: empresaIdActual,
-        nombre: nombre,
-        password_hash: nuevoCob.password,
-        zonas: zonasSeleccionadas
-      }]);
+  const { error } = await supabase.from('cobradores').upsert([{
+    id: nuevoCob.id, 
+    empresa_id: empresaIdActual,
+    nombre: nombre,
+    password_hash: nuevoCob.password,
+    zonas: zonasSeleccionadas
+  }], { onConflict: 'id' });
 
       if (error) {
         console.error("Error de Supabase:", error);
