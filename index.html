@@ -6273,11 +6273,29 @@ if (tabId === 'resumen') {
         estado: 'Activo'
       };
 
+      
       prestamosDB.push(nuevoPrestamo);
-      guardarDatosEnNube();
-      cerrarModalRenovacion();
-      alert("Renovacion procesada con exito!");
-      imprimirContratoDetalle(nuevoPrestamo);
+guardarEnLocalStorageLocal();
+
+if (supabase && empresaIdActual) {
+    // AGREGAMOS EL EMPRESA_ID AL OBJETO
+    let datosRPC = Object.assign({}, nuevoPrestamo, { empresa_id: empresaIdActual });
+    
+    supabase.rpc('insertar_prestamo_rpc', { datos: datosRPC }).then(function(res) {
+        if (res.error) console.error("Error RPC Renovación:", res.error);
+        else actualizarBadgeSync('ok');
+    }).catch(function(err) { console.error("Error red:", err); });
+} else {
+    actualizarBadgeSync('local');
+}
+
+cerrarModalRenovacion();
+alert("Renovacion procesada con exito!");
+imprimirContratoDetalle(nuevoPrestamo);
+      
+      
+      
+      
     }
 
     function abrirModalCobro(prestamoId, sugeridoMonto, sugeridoMora, cuotaActual, cuotasTotales) {
