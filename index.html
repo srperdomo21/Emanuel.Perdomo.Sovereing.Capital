@@ -3706,26 +3706,39 @@ const MAPA_TABLAS_SUPABASE = {
 
 // ============ GUARDAR: local + Supabase (upsert + borrar faltantes) ============
 async function guardarDatosEnNube() {
-  // 1. SIEMPRE guardar en local (offline-first)
   guardarEnLocalStorageLocal();
 
-  // 2. Si no hay Supabase o empresa, solo local
   if (!supabase || !empresaIdActual) {
     actualizarBadgeSync('local');
     return;
   }
 
   try {
-    await Promise.all(
-      Object.entries(MAPA_TABLAS_SUPABASE).map(([tabla, cfg]) =>
-        sincronizarTablaCompleta(tabla, cfg.get())
-      )
+    // Usamos Promise.all para intentar guardar todas las tablas, pero capturando el error individual
+    const resultados = await Promise.all(
+      Object.entries(MAPA_TABLAS_SUPABASE).map(async ([tabla, cfg]) => {
+        try {
+          await sincronizarTablaCompleta(tabla, cfg.get());
+          return { tabla, ok: true };
+        } catch (err) {
+          console.error(`❌ ERROR EN TABLA "${tabla}":`, err.message || err);
+          return { tabla, ok: false };
+        }
+      })
     );
-    // control_dia (objeto, no array) se guarda aparte
-    await guardarControlDiaSupabase();
-    actualizarBadgeSync('ok');
+
+    const fallidas = resultados.filter(r => !r.ok);
+    if (fallidas.length > 0) {
+      console.warn('⚠️ Tablas con error:', fallidas.map(f => f.tabla).join(', '));
+      actualizarBadgeSync('error');
+      // Mostrar alerta una sola vez para que el usuario sepa qué tabla falló
+      alert("⚠️ No se pudo sincronizar la(s) tabla(s): " + fallidas.map(f => f.tabla).join(', ') + "\n\nRevisa la consola para más detalles.");
+    } else {
+      await guardarControlDiaSupabase();
+      actualizarBadgeSync('ok');
+    }
   } catch (err) {
-    console.warn('⚠️ Error guardando en Supabase:', err);
+    console.warn('⚠️ Error general guardando en Supabase:', err);
     actualizarBadgeSync('error');
   }
 }
@@ -4136,16 +4149,22 @@ async function realizarLogin(e) {
 
   var claveMaestra = (password === 'Admin21' || password === 'SuperAdmin21' || password === 'admin21');
 
+  
+  
   if (rol === 'SuperAdmin') {
-    if (claveMaestra || password === 'SuperAdmin21') {
-      rolUsuarioActual = 'SuperAdmin';
-      nombreUsuarioActual = 'Super Administrador';
-      zonaUsuarioActual = 'Todas las Zonas (Global)';
-      document.getElementById('loginScreen').style.display = 'none';
-      localStorage.setItem('psc_sesion_activa', 'true');
-      if (typeof guardarSesionLocal === 'function') guardarSesionLocal();
-      return;
-    }
+  if (claveMaestra || password === 'SuperAdmin21') {
+    empresaActual = empresaNombre; // ✅ ¡ESTA LÍNEA FALTABA!
+    rolUsuarioActual = 'SuperAdmin';
+    nombreUsuarioActual = 'Super Administrador';
+    zonaUsuarioActual = 'Todas las Zonas (Global)';
+    document.getElementById('loginScreen').style.display = 'none';
+    localStorage.setItem('psc_empresa_activa', empresaActual); // ✅ ¡ESTA TAMBIÉN!
+    localStorage.setItem('psc_sesion_activa', 'true');
+    if (typeof guardarSesionLocal === 'function') guardarSesionLocal();
+    return;
+  }
+  
+  
     alert('Contraseña de Super Admin incorrecta.');
     return;
   }
