@@ -4497,6 +4497,12 @@ if (rol === 'cobrador') {
   if (typeof cargarFiltroZonasClientes === 'function') cargarFiltroZonasClientes();
 }
 
+function verificarPermisoEdicion() {
+  return (rolUsuarioActual === 'admin' || rolUsuarioActual === 'empleado' || rolUsuarioActual === 'SuperAdmin');
+}
+
+
+
 async function pedirClaveBorrarTodo() {
 
   var claveIngresada = prompt("Introduce la contraseña de Administrador (Admin21) para borrar TODOS los datos:");
