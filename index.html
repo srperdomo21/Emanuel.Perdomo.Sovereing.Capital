@@ -3756,11 +3756,31 @@ async function sincronizarTablaCompleta(nombreTabla, arrayLocal) {
 
   // Paso B: Upsert (insertar lo nuevo + actualizar lo existente)
   if (localArr.length > 0) {
-    const registros = localArr.map(item => ({ ...item, empresa_id: empresaIdActual }));
-    const { error: errUp } = await supabase
-      .from(nombreTabla)
-      .upsert(registros, { onConflict: 'id' });
-    if (errUp) throw errUp;
+  
+    const registros = localArr.map(item => {
+  const nuevoItem = { ...item, empresa_id: empresaIdActual };
+  
+  // Arreglo para guardar las contraseñas donde Supabase las espera
+  if (nombreTabla === 'cobradores' || nombreTabla === 'empleados') {
+    if (nuevoItem.password && !nuevoItem.password_hash) {
+      nuevoItem.password_hash = nuevoItem.password;
+    }
+    delete nuevoItem.password; 
+  }
+  
+  return nuevoItem;
+});
+
+const { error: errUp } = await supabase
+  .from(nombreTabla)
+  .upsert(registros, { onConflict: 'id' });
+  
+if (errUp) throw errUp;
+    
+    
+    
+    
+    
   }
 
   // Paso C: Borrar de la nube lo que ya no está en local
