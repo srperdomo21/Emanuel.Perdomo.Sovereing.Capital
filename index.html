@@ -2525,6 +2525,33 @@ function redondear(num) {
     </div>
   </div>
 
+
+<!-- MODAL 2FA JORNADA (Para cobradores) -->
+<div id="modal2FAJornada" class="modal-overlay" style="display:none; z-index: 10000;">
+  <div class="modal-box" style="max-width: 400px; text-align: center;">
+    <h3 style="color:var(--primary); margin-bottom:12px;">🔐 Autorización de Jornada</h3>
+    <p style="font-size:0.9rem; color:var(--text-muted); margin-bottom:15px;">
+      Ingresa el código de 6 dígitos enviado a la oficina para iniciar.
+    </p>
+    
+    <div style="background:#f8fafc; padding:10px; border-radius:8px; margin-bottom:15px; font-size:0.85rem;">
+      <div>Cobrador: <strong id="lbl2FACobrador" style="color:var(--primary);">-</strong></div>
+      <div>Zona: <strong id="lbl2FAZona" style="color:var(--accent);">-</strong></div>
+    </div>
+
+    <div class="form-group">
+      <input type="text" id="input2FAJornada" maxlength="6" placeholder="000000" 
+             style="text-align: center; font-size: 1.5rem; letter-spacing: 8px; font-weight: bold; padding: 10px;">
+    </div>
+
+    <div style="display:flex; gap:10px; margin-top:15px;">
+      <button type="button" class="btn btn-secondary" style="flex:1;" onclick="cancelar2FAJornada()">Cancelar</button>
+      <button type="button" class="btn btn-success" style="flex:1;" onclick="confirmar2FAJornada()">✅ Verificar</button>
+    </div>
+  </div>
+</div>
+
+
   <!-- MODAL NOTAS -->
   <div id="modalNotaBox" class="modal-overlay">
     <div class="modal-box" style="max-width:420px;">
@@ -4324,16 +4351,36 @@ async function realizarLogin(e) {
     if (typeof clearLoginAttempts === 'function') clearLoginAttempts(rateKey);
 
     // 5. Flujo de 2FA para cobradores
-    if (rol === 'cobrador') {
-      loginPendiente2FA = { empresa: empresa, rol: rol, nombre: nombrePersona, zona: zonaPersona || '' };
-      document.getElementById('lbl2FACobrador').innerText = nombrePersona;
-      document.getElementById('lbl2FAZona').innerText = loginPendiente2FA.zona;
-      await solicitarCodigoJornada(nombrePersona, loginPendiente2FA.zona);
-      document.getElementById('loginScreen').style.display = 'none';
-      document.getElementById('modal2FAJornada').style.display = 'flex';
-      document.getElementById('input2FAJornada').focus();
-      return;
-    }
+if (rol === 'cobrador') {
+  loginPendiente2FA = { empresa: empresa, rol: rol, nombre: nombrePersona, zona: zonaPersona || '' };
+  
+  // --- DIAGNÓSTICO (Para ver en consola si el elemento existe) ---
+  console.log("Revisando elemento lbl2FACobrador:", document.getElementById('lbl2FACobrador'));
+
+  // Verificamos si los elementos existen antes de usarlos (Así evitamos el error null)
+  var elCobrador = document.getElementById('lbl2FACobrador');
+  if (elCobrador) elCobrador.innerText = nombrePersona;
+
+  var elZona = document.getElementById('lbl2FAZona');
+  if (elZona) elZona.innerText = loginPendiente2FA.zona || '';
+
+  await solicitarCodigoJornada(nombrePersona, loginPendiente2FA.zona || '');
+
+  var loginScreen = document.getElementById('loginScreen');
+  if (loginScreen) loginScreen.style.display = 'none';
+
+  var modal2FA = document.getElementById('modal2FAJornada');
+  if (modal2FA) {
+      modal2FA.style.display = 'flex';
+      var input2FA = document.getElementById('input2FAJornada');
+      if (input2FA) input2FA.focus();
+  } else {
+      // Si por alguna razón el HTML del modal no está, esto evita que la app se congele
+      alert("Aviso: El modal visual de 2FA no se encontró, pero el login continuará.");
+      if (typeof confirmar2FAJornada === 'function') confirmar2FAJornada(); 
+  }
+  return;
+}
 
     // 6. Login exitoso para empleados (Crea la sesión)
     var sesionUsuario = {
@@ -4407,63 +4454,51 @@ async function realizarLogin(e) {
       } catch(e) { console.warn('UI post-login:', e); }
     }
 
-    function actualizarInterfazPorRol() {
-      var badgeRol = document.getElementById('badgeRolHeader');
-      var cardNotif = document.getElementById('cardNotificacionesAdmin');
-      var elementosAdminEmp = document.querySelectorAll('.solo-admin-emp');
-      var btnSuperAdminMenu = document.querySelector('.solo-super-admin');
+   function actualizarInterfazPorRol() {
+  var badgeRol = document.getElementById('badgeRolHeader');
+  var cardNotif = document.getElementById('cardNotificacionesAdmin');
+  var elementosAdminEmp = document.querySelectorAll('.solo-admin-emp');
+  var btnSuperAdminMenu = document.querySelector('.solo-super-admin');
 
-      if (rolUsuarioActual === 'SuperAdmin') {
-        badgeRol.innerText = "👑 SUPER ADMIN (GLOBAL)";
-        badgeRol.style.background = "var(--danger)";
-        if(cardNotif) cardNotif.style.display = 'block';
-        elementosAdminEmp.forEach(function(el) { el.style.display = 'block'; });
-        if(btnSuperAdminMenu) btnSuperAdminMenu.style.display = 'flex';
-      } else if (rolUsuarioActual === 'admin') {
-        badgeRol.innerText = "👑 ADMIN (" + empresaActual.toUpperCase() + ")";
-        badgeRol.style.background = "var(--warning)";
-        if(cardNotif) cardNotif.style.display = 'block';
-        elementosAdminEmp.forEach(function(el) { el.style.display = 'block'; });
-        if(btnSuperAdminMenu) btnSuperAdminMenu.style.display = 'none';
-      } else if(rolUsuarioActual === 'empleado') {
-        badgeRol.innerText = "👥 ASISTENTE: " + nombreUsuarioActual.toUpperCase();
-        badgeRol.style.background = "var(--success)";
-        if(cardNotif) cardNotif.style.display = 'block';
-        elementosAdminEmp.forEach(function(el) { el.style.display = 'block'; });
-        if(btnSuperAdminMenu) btnSuperAdminMenu.style.display = 'none';
-      } else {
-        badgeRol.innerText = "🏍️ COBRADOR: " + nombreUsuarioActual.toUpperCase() + " (" + zonaUsuarioActual + ")";
-        badgeRol.style.background = "var(--accent)";
-        if(cardNotif) cardNotif.style.display = 'none';
-        elementosAdminEmp.forEach(function(el) { el.style.display = 'none'; });
-        if(btnSuperAdminMenu) btnSuperAdminMenu.style.display = 'none';
-      }
-      verificarEstadoSuscripcionEmpresa();
-      verificarPermisoBloqueoRuta();
-      cargarFiltroZonasClientes();
+  // 1. Protegemos la actualización del Badge del Rol
+  if (badgeRol) {
+    if (rolUsuarioActual === 'SuperAdmin') {
+      badgeRol.innerText = "👑 SUPER ADMIN (GLOBAL)";
+      badgeRol.style.background = "var(--danger)";
+    } else if (rolUsuarioActual === 'admin') {
+      badgeRol.innerText = "👑 ADMIN (" + empresaActual.toUpperCase() + ")";
+      badgeRol.style.background = "var(--warning)";
+    } else if(rolUsuarioActual === 'empleado') {
+      badgeRol.innerText = "👥 ASISTENTE: " + nombreUsuarioActual.toUpperCase();
+      badgeRol.style.background = "var(--success)";
+    } else {
+      badgeRol.innerText = "🏍️ COBRADOR: " + nombreUsuarioActual.toUpperCase() + " (" + zonaUsuarioActual + ")";
+      badgeRol.style.background = "var(--accent)";
     }
+  }
 
-    function verificarPermisoEdicion() {
-      return (rolUsuarioActual === 'admin' || rolUsuarioActual === 'empleado' || rolUsuarioActual === 'SuperAdmin');
-    }
+  // 2. Protegemos las notificaciones y menús
+  if (rolUsuarioActual === 'SuperAdmin' || rolUsuarioActual === 'admin' || rolUsuarioActual === 'empleado') {
+    if (cardNotif) cardNotif.style.display = 'block';
+    elementosAdminEmp.forEach(function(el) { el.style.display = 'block'; });
+  } else {
+    if (cardNotif) cardNotif.style.display = 'none';
+    elementosAdminEmp.forEach(function(el) { el.style.display = 'none'; });
+  }
 
-    function cerrarSesion() {
-      if(confirm("Estas seguro de cerrar sesion?")) {
-        // 🛰️ Apagar seguimiento GPS antes de salir
-        if (typeof detenerSeguimientoGPS === 'function') {
-          try { detenerSeguimientoGPS(); } catch(e) {}
-        }
-        localStorage.removeItem('psc_sesion_activa');
-        localStorage.removeItem('psc_rol_activo');
-        localStorage.removeItem('psc_nombre_usuario');
-        localStorage.removeItem('psc_zona_usuario');
-        location.reload();
-      }
-    }
+  // 3. Protegemos el botón de Super Admin
+  if (btnSuperAdminMenu) {
+    btnSuperAdminMenu.style.display = (rolUsuarioActual === 'SuperAdmin') ? 'flex' : 'none';
+  }
 
-    
-    
-    async function pedirClaveBorrarTodo() {
+  // Llamadas a otras funciones de verificación
+  if (typeof verificarEstadoSuscripcionEmpresa === 'function') verificarEstadoSuscripcionEmpresa();
+  if (typeof verificarPermisoBloqueoRuta === 'function') verificarPermisoBloqueoRuta();
+  if (typeof cargarFiltroZonasClientes === 'function') cargarFiltroZonasClientes();
+}
+
+async function pedirClaveBorrarTodo() {
+
   var claveIngresada = prompt("Introduce la contraseña de Administrador (Admin21) para borrar TODOS los datos:");
   if (claveIngresada !== "Admin21") {
     if (claveIngresada !== null) alert("Contraseña incorrecta.");
