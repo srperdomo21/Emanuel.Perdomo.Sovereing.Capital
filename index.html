@@ -8955,19 +8955,72 @@ window.addEventListener('DOMContentLoaded', function() {
 
 </script>
 
+
+
 <script>
 // ==========================================
-// INICIALIZACIÓN DE LA APLICACIÓN
+// INICIALIZACIÓN Y PERSISTENCIA DE SESIÓN
 // ==========================================
 document.addEventListener('DOMContentLoaded', function() {
-    // Iniciar la carga de empresas desde Supabase al abrir la pantalla de login
-    if (typeof sincronizarConNube === 'function') {
-        sincronizarConNube().catch(function(err) {
-            console.error("Error en la sincronización inicial:", err);
-        });
+    // 1. Revisar si hay una sesión activa guardada
+    var sesionActiva = localStorage.getItem('psc_sesion_activa');
+    
+    if (sesionActiva === 'true') {
+        // 2. Recuperar los datos del usuario de la sesión
+        empresaActual = localStorage.getItem('psc_empresa_activa') || 'Perdomo Sovereign Capital S.A.';
+        rolUsuarioActual = localStorage.getItem('psc_rol_activo') || '';
+        nombreUsuarioActual = localStorage.getItem('psc_nombre_usuario') || '';
+        zonaUsuarioActual = localStorage.getItem('psc_zona_usuario') || '';
+        
+        // 3. Ocultar la pantalla de login inmediatamente
+        var ls = document.getElementById('loginScreen');
+        if (ls) ls.style.display = 'none';
+        
+        // 4. Cargar los datos locales de esta empresa
+        if (typeof cargarDatosLocalEmpresaActual === 'function') {
+            cargarDatosLocalEmpresaActual();
+        }
+
+        // 5. Sincronizar con la nube (en segundo plano para actualizar datos)
+        if (typeof sincronizarConNube === 'function') {
+            sincronizarConNube().catch(function(err) {
+                console.error("Error en la sincronización inicial:", err);
+            });
+        }
+
+        // 6. Actualizar la interfaz (menús, roles, colores)
+        if (typeof actualizarInterfazPorRol === 'function') actualizarInterfazPorRol();
+        if (typeof aplicarTemaEmpresa === 'function') aplicarTemaEmpresa();
+        
+        // 7. Restaurar la última pestaña en la que estaba el usuario
+        var ultimaPestana = localStorage.getItem('psc_ultima_pestana');
+        if (ultimaPestana && typeof showTab === 'function') {
+            showTab(ultimaPestana, null);
+            // Simular que el botón de abajo queda seleccionado
+            var btnNav = document.querySelector('nav button[onclick*="' + ultimaPestana + '"]');
+            if(btnNav) btnNav.classList.add('active');
+        } else {
+            // Si no hay pestaña guardada, ir al tablero por defecto
+            if (typeof showTab === 'function') showTab('resumen', null);
+        }
+        
+        // 8. Actualizar métricas y gráficos
+        setTimeout(function() {
+            if (typeof actualizarMetricas === 'function') actualizarMetricas();
+        }, 300);
+        
+    } else {
+        // Si NO hay sesión activa (el usuario cerró sesión o entró por primera vez)
+        // Solo cargamos las empresas para que aparezcan en el login
+        if (typeof sincronizarConNube === 'function') {
+            sincronizarConNube().catch(function(err) {
+                console.error("Error en la sincronización inicial:", err);
+            });
+        }
     }
 });
 </script>
+     
 
 
 <script>
