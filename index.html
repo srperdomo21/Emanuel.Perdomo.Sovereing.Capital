@@ -255,14 +255,21 @@ var supabase = (window.supabase && window.supabase.createClient)
   ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
   : null;
 
-
 // --- MÉTODO DE RESPALDO INFALIBLE (POLLING) ---
 let ultimoCodigoId = null;
 
 setInterval(async () => {
   if (!supabase) return;
   
+  // 🔒 FILTRO DE SEGURIDAD: Solo la oficina (Admin, SuperAdmin, Empleado) puede ver los códigos
+  if (rolUsuarioActual !== 'admin' && rolUsuarioActual !== 'SuperAdmin' && rolUsuarioActual !== 'empleado') {
+    return; // Si es cobrador o no ha iniciado sesión, se detiene aquí y no muestra nada.
+  }
+  
   try {
+
+      
+    
     // Pregunta a Supabase cada 5 segundos si hay un código nuevo
     const { data, error } = await supabase
       .from('codigos_jornada')
