@@ -2796,25 +2796,27 @@ async function sincronizarConNube() {
   try {
     console.log("Iniciando sincronización con Supabase...");
     
-    // 1. Empresas
-    const { data: empresas, error: errEmp } = await supabase.from('empresas').select('*').order('id');
+    // Ponemos un límite de tiempo de 8 segundos para que no se quede cargando para siempre
+    const timeout = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error("Tiempo de espera agotado. Revisa tu internet o el estado de Supabase.")), 8000)
+    );
+
+    const fetchEmpresas = supabase.from('empresas').select('*').order('id');
+    const { data: empresas, error: errEmp } = await Promise.race([fetchEmpresas, timeout]);
+
     if (errEmp) throw errEmp;
 
     if (empresas && empresas.length > 0) {
       empresasGlobalesDB = empresas;
-      console.log("Empresas cargadas:", empresasGlobalesDB.length);
     } else {
       empresasGlobalesDB = [];
       console.warn("Supabase no devolvió ninguna empresa.");
     }
 
-    const empActual = empresasGlobalesDB.find(e => e.nombre === empresaActual);
-    empresaIdActual = empActual ? empActual.id : null;
-    
-    // 2. ACTUALIZAMOS EL SELECT DEL LOGIN INMEDIATAMENTE
     if (typeof actualizarSelectsLoginEmpresa === 'function') {
       actualizarSelectsLoginEmpresa();
     }
+    
 
     if (!empresaIdActual) {
       console.warn('Empresa activa no encontrada en la nube.');
