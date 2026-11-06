@@ -5924,6 +5924,9 @@ if (tabId === 'resumen') {
     
     
     
+    
+    
+    
     function verPerfilCreditoCliente(clienteId, origen) {
   try {
     // Asegurar que la pestaña Clientes esté visible
@@ -5997,151 +6000,152 @@ if (tabId === 'resumen') {
       hoy.setHours(0,0,0,0);
 
       prestamosCliente.forEach(function(p) {
-  try {
-        prestamoActualId = p.id;
-        var pagosP = cobrosDB.filter(function(cp) { return cp.prestamoId == p.id; });
-        var notasP = notasDB.filter(function(np) { return np.prestamoId == p.id; });
-        
-        // --- BLINDAJE CONTRA VALORES NULL ---
-        var totalPagado = pagosP.reduce(function(acc, curr) { return acc + (parseFloat(curr.monto) || 0); }, 0);
-        var capitalPrestado = parseFloat(p.monto) || 0;
-        var cuotasReales = parseInt(p.numCuotas) || 13;
-        var tasaReal = parseFloat(p.tasa) || 30;
-        var valorCuotaOriginal = parseFloat(p.valorCuota) || 0;
-
-        var totalConInteres = p.plazo === 'personalizado' 
-          ? (valorCuotaOriginal * cuotasReales) 
-          : (capitalPrestado + (capitalPrestado * (tasaReal / 100)));
+        try {
+          prestamoActualId = p.id;
+          var pagosP = cobrosDB.filter(function(cp) { return cp.prestamoId == p.id; })
+            .sort(function(a, b) {
+              var ta = a.timestamp || (a.fecha ? new Date(a.fecha).getTime() : 0) || 0;
+              var tb = b.timestamp || (b.fecha ? new Date(b.fecha).getTime() : 0) || 0;
+              return ta - tb;
+            });
+          var notasP = notasDB.filter(function(np) { return np.prestamoId == p.id; });
           
-        if (isNaN(totalConInteres) || totalConInteres === null) totalConInteres = 0;
+          // --- BLINDAJE CONTRA VALORES NULL Y NaN ---
+          var totalPagado = pagosP.reduce(function(acc, curr) { return acc + (parseFloat(curr.monto) || 0); }, 0);
+          var capitalPrestado = parseFloat(p.monto) || 0;
+          var cuotasReales = parseInt(p.numCuotas) || 13;
+          var tasaReal = parseFloat(p.tasa) || 30;
+          var valorCuotaOriginal = parseFloat(p.valorCuota) || 0;
 
-        var totalNumCuotas = cuotasReales;
-        var valorCuotaReal = p.plazo === 'personalizado' ? valorCuotaOriginal : (totalConInteres / totalNumCuotas);
-        
-        // Si la cuota es 0 o nula, la forzamos a 1 para evitar división por cero
-        if (isNaN(valorCuotaReal) || valorCuotaReal === 0 || valorCuotaReal === null) valorCuotaReal = 1;
+          var totalConInteres = p.plazo === 'personalizado' 
+            ? (valorCuotaOriginal * cuotasReales) 
+            : (capitalPrestado + (capitalPrestado * (tasaReal / 100)));
+            
+          if (isNaN(totalConInteres) || totalConInteres === null) totalConInteres = 0;
 
-        p.valorCuota = valorCuotaReal;
-        p.totalPagar = totalConInteres;
+          var totalNumCuotas = cuotasReales;
+          var valorCuotaReal = p.plazo === 'personalizado' ? valorCuotaOriginal : (totalConInteres / totalNumCuotas);
+          
+          if (isNaN(valorCuotaReal) || valorCuotaReal === 0 || valorCuotaReal === null) valorCuotaReal = 1;
 
-        var cuotasPagadasEfectivas = Math.floor(totalPagado / valorCuotaReal);
-        var balanceRealPendiente = Math.max(0, totalConInteres - totalPagado);
-        p.balancePendiente = balanceRealPendiente;
+          p.valorCuota = valorCuotaReal;
+          p.totalPagar = totalConInteres;
 
-        var numCuotaActual = Math.min(totalNumCuotas, cuotasPagadasEfectivas + 1);
+          var cuotasPagadasEfectivas = Math.floor(totalPagado / valorCuotaReal);
+          var balanceRealPendiente = Math.max(0, totalConInteres - totalPagado);
+          p.balancePendiente = balanceRealPendiente;
 
-        var fechaInicioObj = new Date(p.fechaInicio + 'T00:00:00');
-        var diffDiasInicio = Math.floor((hoy - fechaInicioObj) / (1000 * 60 * 60 * 24));
-        var cuotasEsperadasTranscurridas = Math.floor(diffDiasInicio / 7) + 1;
-        if (cuotasEsperadasTranscurridas > totalNumCuotas) cuotasEsperadasTranscurridas = totalNumCuotas;
-        if (cuotasEsperadasTranscurridas < 0) cuotasEsperadasTranscurridas = 0;
-        
-        var cuotasDebidasReal = Math.max(0, cuotasEsperadasTranscurridas - cuotasPagadasEfectivas);
+          var numCuotaActual = Math.min(totalNumCuotas, cuotasPagadasEfectivas + 1);
 
-        var referenciaFecha = pagosP.length > 0 ? pagosP[pagosP.length - 1].fecha : p.fechaInicio;
-        var diffDias = Math.floor((hoy - new Date(referenciaFecha)) / (1000 * 60 * 60 * 24));
-        var semanasAtrasoCliente = Math.max(cuotasDebidasReal, diffDias >= 14 ? Math.floor(diffDias / 7) : 0);
-        
-        // Corrección: validar si es null o undefined
-        if (p.moraManualFija === undefined || p.moraManualFija === null) {
-          p.moraManualFija = (semanasAtrasoCliente > 0 && balanceRealPendiente > 0) ? valorCuotaReal * 0.03 : 0;
-        }
-        var moraCalculada = parseFloat(p.moraManualFija) || 0;
-        
-        var montoEnAtrasoActual = calcularMontoAtrasoPrestamo(p, hoy);
-        if (isNaN(montoEnAtrasoActual) || montoEnAtrasoActual === null) montoEnAtrasoActual = 0;
+          var fechaInicioObj = new Date(p.fechaInicio + 'T00:00:00');
+          var diffDiasInicio = Math.floor((hoy - fechaInicioObj) / (1000 * 60 * 60 * 24));
+          var cuotasEsperadasTranscurridas = Math.floor(diffDiasInicio / 7) + 1;
+          if (cuotasEsperadasTranscurridas > totalNumCuotas) cuotasEsperadasTranscurridas = totalNumCuotas;
+          if (cuotasEsperadasTranscurridas < 0) cuotasEsperadasTranscurridas = 0;
+          
+          var cuotasDebidasReal = Math.max(0, cuotasEsperadasTranscurridas - cuotasPagadasEfectivas);
 
-        var estadoPrestamoColor = p.balancePendiente === 0 ? 'var(--success)' : 'var(--danger)';
-        var estadoPrestamoTexto = p.balancePendiente === 0 ? 'SALDADO / FINALIZADO' : 'ACTIVO';
+          var referenciaFecha = pagosP.length > 0 ? pagosP[pagosP.length - 1].fecha : p.fechaInicio;
+          var diffDias = Math.floor((hoy - new Date(referenciaFecha)) / (1000 * 60 * 60 * 24));
+          var semanasAtrasoCliente = Math.max(cuotasDebidasReal, diffDias >= 14 ? Math.floor(diffDias / 7) : 0);
+          
+          if (p.moraManualFija === undefined || p.moraManualFija === null) {
+            p.moraManualFija = (semanasAtrasoCliente > 0 && balanceRealPendiente > 0) ? valorCuotaReal * 0.03 : 0;
+          }
+          var moraCalculada = parseFloat(p.moraManualFija) || 0;
+          
+          var montoEnAtrasoActual = calcularMontoAtrasoPrestamo(p, hoy);
+          if (isNaN(montoEnAtrasoActual) || montoEnAtrasoActual === null) montoEnAtrasoActual = 0;
 
-        var ultimoPagoFecha = pagosP.length > 0 ? pagosP[pagosP.length - 1].fecha : 'Sin pagos';
+          var estadoPrestamoColor = p.balancePendiente === 0 ? 'var(--success)' : 'var(--danger)';
+          var estadoPrestamoTexto = p.balancePendiente === 0 ? 'SALDADO / FINALIZADO' : 'ACTIVO';
 
-        var pagosHtml = pagosP.length === 0 ? '<p style="font-size:0.80rem; color:#475569;">No hay pagos registrados.</p>' :
-          pagosP.map(function(pa) {
-            var btnBorrarPagoHtml = verificarPermisoEdicion() ? 
-              '<button class="btn btn-danger btn-sm" onclick="eliminarPagoDirectoAdmin(' + pa.id + ',' + cliente.id + ')">🗑️</button>' :
-              '<button class="btn btn-danger btn-sm" onclick="solicitarEliminarElementoCobrador(' + pa.id + ', \'pago\')">🗑️ Solicitar Borrar</button>';
+          var ultimoPagoFecha = pagosP.length > 0 ? pagosP[pagosP.length - 1].fecha : 'Sin pagos';
 
-            return '<div style="font-size:0.8rem; background:#f8fafc; padding:10px; border-radius:6px; margin-top:8px; border-left:3px solid var(--success); display:flex; justify-content:space-between; align-items:center;">' +
-              '<div>📅 ' + (pa.fecha || '') + ' — <strong>Abono:</strong> $' + (parseFloat(pa.monto) || 0).toFixed(2) + ' (' + (pa.tipoPago || 'Efectivo') + ')<br><em>Cuota: ' + (pa.cuotaInfo || 'N/A') + ' | GPS: ' + (pa.gps || 'N/A') + ' | Atraso: $' + (parseFloat(pa.montoAtraso) || 0).toFixed(2) + ' | Nota: ' + (pa.nota || '') + '</em></div>' +
-              '<div style="display:flex; gap:4px;">' +
-                '<button class="btn btn-warning btn-sm" onclick="imprimirReciboDirecto(' + pa.id + ')">🖨️</button>' +
-                '<button class="btn btn-whatsapp btn-sm" onclick="enviarReciboWhatsAppDirecto(' + pa.id + ')">📲</button>' +
-                btnBorrarPagoHtml +
+          var pagosHtml = pagosP.length === 0 ? '<p style="font-size:0.80rem; color:#475569;">No hay pagos registrados.</p>' :
+            pagosP.map(function(pa) {
+              var btnBorrarPagoHtml = verificarPermisoEdicion() ? 
+                '<button class="btn btn-danger btn-sm" onclick="eliminarPagoDirectoAdmin(' + pa.id + ',' + cliente.id + ')">🗑️</button>' :
+                '<button class="btn btn-danger btn-sm" onclick="solicitarEliminarElementoCobrador(' + pa.id + ', \'pago\')">🗑️ Solicitar Borrar</button>';
+
+              return '<div style="font-size:0.8rem; background:#f8fafc; padding:10px; border-radius:6px; margin-top:8px; border-left:3px solid var(--success); display:flex; justify-content:space-between; align-items:center;">' +
+                '<div>📅 ' + (pa.fecha || '') + ' — <strong>Abono:</strong> $' + (parseFloat(pa.monto) || 0).toFixed(2) + ' (' + (pa.tipoPago || 'Efectivo') + ')<br><em>Cuota: ' + (pa.cuotaInfo || 'N/A') + ' | GPS: ' + (pa.gps || 'N/A') + ' | Atraso: $' + (parseFloat(pa.montoAtraso) || 0).toFixed(2) + ' | Nota: ' + (pa.nota || '') + '</em></div>' +
+                '<div style="display:flex; gap:4px;">' +
+                  '<button class="btn btn-warning btn-sm" onclick="imprimirReciboDirecto(' + pa.id + ')">🖨️</button>' +
+                  '<button class="btn btn-whatsapp btn-sm" onclick="enviarReciboWhatsAppDirecto(' + pa.id + ')">📲</button>' +
+                  btnBorrarPagoHtml +
+                '</div>' +
+              '</div>';
+            }).join('');
+
+          var notasHtml = notasP.length === 0 ? '<p style="font-size:0.80rem; color:#475569;">No hay notas registradas.</p>' :
+            notasP.map(function(no) {
+              var btnBorrarNotaHtml = verificarPermisoEdicion() ? 
+                '<button class="btn btn-danger btn-sm" onclick="eliminarNota(' + no.id + ',' + cliente.id + ')">🗑️</button>' :
+                '<button class="btn btn-danger btn-sm" onclick="solicitarEliminarElementoCobrador(' + no.id + ', \'nota\')">🗑️ Solicitar Borrar</button>';
+
+              return '<div style="font-size:0.8rem; background:#fef3c7; padding:10px; border-radius:6px; margin-top:8px; border-left:3px solid var(--warning); display:flex; justify-content:space-between; align-items:center;">' +
+                '<div>📅 ' + no.fecha + ' — <em>' + no.texto + '</em></div>' +
+                btnBorrarNotaHtml +
+              '</div>';
+            }).join('');
+
+          var pctPagado = totalNumCuotas > 0 ? Math.min(100, Math.round((cuotasPagadasEfectivas / totalNumCuotas) * 100)) : 0;
+          var colorBarra = pctPagado >= 70 ? '#16a34a' : (pctPagado >= 30 ? '#d97706' : '#dc2626');
+
+          html += '<div class="loan-title-bar">' +
+              '<span>Préstamo #' + ((p && p.id != null) ? String(p.id).slice(-6) : 'S/N') + '</span>' +
+              '<span class="days-badge" style="background:' + estadoPrestamoColor + ';">' + estadoPrestamoTexto + '</span>' +
+            '</div>' +
+
+            '<div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;">' +
+              '<button class="btn btn-success btn-sm" style="flex:1; min-width:120px;" onclick="abrirModalCobro(' + p.id + ', ' + valorCuotaReal + ', ' + moraCalculada + ', ' + numCuotaActual + ', ' + totalNumCuotas + ')">💵 Cobrar Cuota</button>' +
+              '<button class="btn btn-warning btn-sm" style="flex:1; min-width:120px;" onclick="abrirModalNota(' + p.id + ')">📝 Crear Nota</button>' +
+              '<button class="btn btn-secondary btn-sm" style="flex:1; min-width:120px; background:#1e3a8a;" onclick="abrirModalRenovacion(' + p.id + ')">🔄 Renovar</button>' +
+              (verificarPermisoEdicion() ? '<button class="btn btn-danger btn-sm" style="flex:1; min-width:120px;" onclick="abrirModalMora(' + p.id + ')">⚖️ Editar Mora</button>' : '') +
+            '</div>' +
+
+            '<div class="loan-grid-table">' +
+              '<div class="loan-grid-row"><div class="loan-grid-label">MODALIDAD</div><div class="loan-grid-val">' + String(p.plazo || '').replace(/_/g, ' ').toUpperCase() + '</div></div>' +
+              '<div class="loan-grid-row"><div class="loan-grid-label">CAPITAL $</div><div class="loan-grid-val">' + capitalPrestado.toFixed(2) + '</div></div>' +
+              '<div class="loan-grid-row"><div class="loan-grid-label">MONTO CUOTA $</div><div class="loan-grid-val" style="color:var(--primary); font-weight:700;">' + valorCuotaReal.toFixed(2) + '</div></div>' +
+              '<div class="loan-grid-row"><div class="loan-grid-label">SEM. PAGADAS</div><div class="loan-grid-val" style="color:var(--success); font-weight:700;">' + cuotasPagadasEfectivas + ' / ' + totalNumCuotas + ' sem.</div></div>' +
+              '<div class="loan-grid-row"><div class="loan-grid-label">CUOTA ACTUAL</div><div class="loan-grid-val" style="color:var(--primary); font-weight:700;">#' + numCuotaActual + ' de ' + totalNumCuotas + '</div></div>' +
+              '<div class="loan-grid-row"><div class="loan-grid-label">TOTAL PAGADO $</div><div class="loan-grid-val" style="color:var(--success); font-weight:700;">' + totalPagado.toFixed(2) + '</div></div>' +
+              '<div class="loan-grid-row"><div class="loan-grid-label">BALANCE PEND. $</div><div class="loan-grid-val" style="color:var(--danger); font-weight:700;">' + balanceRealPendiente.toFixed(2) + '</div></div>' +
+              '<div class="loan-grid-row"><div class="loan-grid-label">MORA $</div><div class="loan-grid-val" style="color:var(--danger); font-weight:700;">' + moraCalculada.toFixed(2) + '</div></div>' +
+              '<div class="loan-grid-row" style="border:2px solid var(--danger);"><div class="loan-grid-label" style="background:var(--danger);">MONTO EN ATRASO $</div><div class="loan-grid-val" style="color:var(--danger); font-size:0.95rem; font-weight:800;">' + montoEnAtrasoActual.toFixed(2) + '</div></div>' +
+              '<div class="loan-grid-row"><div class="loan-grid-label">SEMANAS ATRASO</div><div class="loan-grid-val" style="color:var(--danger); font-weight:700;">' + semanasAtrasoCliente + ' sem.</div></div>' +
+              '<div class="loan-grid-row"><div class="loan-grid-label">ÚLTIMO PAGO</div><div class="loan-grid-val" style="font-weight:700;">' + ultimoPagoFecha + '</div></div>' +
+              '<div class="loan-grid-row"><div class="loan-grid-label">FECHA INICIO</div><div class="loan-grid-val">' + (p.fechaInicio || 'N/A') + '</div></div>' +
+              '<div class="loan-grid-row"><div class="loan-grid-label">FECHA TÉRMINO</div><div class="loan-grid-val" style="color:var(--accent); font-weight:700;">' + (p.fechaTermino || 'N/A') + '</div></div>' +
+            '</div>' +
+
+            '<div style="margin:14px 0 8px 0;">' +
+              '<div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text-muted); margin-bottom:4px;">' +
+                '<span>Progreso del préstamo</span><span style="font-weight:700; color:' + colorBarra + ';">' + pctPagado + '%</span>' +
               '</div>' +
-            '</div>';
-          }).join('');
-
-        var notasHtml = notasP.length === 0 ? '<p style="font-size:0.80rem; color:#475569;">No hay notas registradas.</p>' :
-          notasP.map(function(no) {
-            var btnBorrarNotaHtml = verificarPermisoEdicion() ? 
-              '<button class="btn btn-danger btn-sm" onclick="eliminarNota(' + no.id + ',' + cliente.id + ')">🗑️</button>' :
-              '<button class="btn btn-danger btn-sm" onclick="solicitarEliminarElementoCobrador(' + no.id + ', \'nota\')">🗑️ Solicitar Borrar</button>';
-
-            return '<div style="font-size:0.8rem; background:#fef3c7; padding:10px; border-radius:6px; margin-top:8px; border-left:3px solid var(--warning); display:flex; justify-content:space-between; align-items:center;">' +
-              '<div>📅 ' + no.fecha + ' — <em>' + no.texto + '</em></div>' +
-              btnBorrarNotaHtml +
-            '</div>';
-          }).join('');
-
-        var pctPagado = totalNumCuotas > 0 ? Math.min(100, Math.round((cuotasPagadasEfectivas / totalNumCuotas) * 100)) : 0;
-        var colorBarra = pctPagado >= 70 ? '#16a34a' : (pctPagado >= 30 ? '#d97706' : '#dc2626');
-
-        html += '<div class="loan-title-bar">' +
-            '<span>Préstamo #' + ((p && p.id != null) ? String(p.id).slice(-6) : 'S/N') + '</span>' +
-            '<span class="days-badge" style="background:' + estadoPrestamoColor + ';">' + estadoPrestamoTexto + '</span>' +
-          '</div>' +
-
-          '<div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;">' +
-            '<button class="btn btn-success btn-sm" style="flex:1; min-width:120px;" onclick="abrirModalCobro(' + p.id + ', ' + valorCuotaReal + ', ' + moraCalculada + ', ' + numCuotaActual + ', ' + totalNumCuotas + ')">💵 Cobrar Cuota</button>' +
-            '<button class="btn btn-warning btn-sm" style="flex:1; min-width:120px;" onclick="abrirModalNota(' + p.id + ')">📝 Crear Nota</button>' +
-            '<button class="btn btn-secondary btn-sm" style="flex:1; min-width:120px; background:#1e3a8a;" onclick="abrirModalRenovacion(' + p.id + ')">🔄 Renovar</button>' +
-            (verificarPermisoEdicion() ? '<button class="btn btn-danger btn-sm" style="flex:1; min-width:120px;" onclick="abrirModalMora(' + p.id + ')">⚖️ Editar Mora</button>' : '') +
-          '</div>' +
-
-          '<div class="loan-grid-table">' +
-            '<div class="loan-grid-row"><div class="loan-grid-label">MODALIDAD</div><div class="loan-grid-val">' + String(p.plazo || '').replace(/_/g, ' ').toUpperCase() + '</div></div>' +
-            '<div class="loan-grid-row"><div class="loan-grid-label">CAPITAL $</div><div class="loan-grid-val">' + capitalPrestado.toFixed(2) + '</div></div>' +
-            '<div class="loan-grid-row"><div class="loan-grid-label">MONTO CUOTA $</div><div class="loan-grid-val" style="color:var(--primary); font-weight:700;">' + valorCuotaReal.toFixed(2) + '</div></div>' +
-            '<div class="loan-grid-row"><div class="loan-grid-label">SEM. PAGADAS</div><div class="loan-grid-val" style="color:var(--success); font-weight:700;">' + cuotasPagadasEfectivas + ' / ' + totalNumCuotas + ' sem.</div></div>' +
-            '<div class="loan-grid-row"><div class="loan-grid-label">CUOTA ACTUAL</div><div class="loan-grid-val" style="color:var(--primary); font-weight:700;">#' + numCuotaActual + ' de ' + totalNumCuotas + '</div></div>' +
-            '<div class="loan-grid-row"><div class="loan-grid-label">TOTAL PAGADO $</div><div class="loan-grid-val" style="color:var(--success); font-weight:700;">' + totalPagado.toFixed(2) + '</div></div>' +
-            '<div class="loan-grid-row"><div class="loan-grid-label">BALANCE PEND. $</div><div class="loan-grid-val" style="color:var(--danger); font-weight:700;">' + balanceRealPendiente.toFixed(2) + '</div></div>' +
-            '<div class="loan-grid-row"><div class="loan-grid-label">MORA $</div><div class="loan-grid-val" style="color:var(--danger); font-weight:700;">' + moraCalculada.toFixed(2) + '</div></div>' +
-            '<div class="loan-grid-row" style="border:2px solid var(--danger);"><div class="loan-grid-label" style="background:var(--danger);">MONTO EN ATRASO $</div><div class="loan-grid-val" style="color:var(--danger); font-size:0.95rem; font-weight:800;">' + montoEnAtrasoActual.toFixed(2) + '</div></div>' +
-            '<div class="loan-grid-row"><div class="loan-grid-label">SEMANAS ATRASO</div><div class="loan-grid-val" style="color:var(--danger); font-weight:700;">' + semanasAtrasoCliente + ' sem.</div></div>' +
-            '<div class="loan-grid-row"><div class="loan-grid-label">ÚLTIMO PAGO</div><div class="loan-grid-val" style="font-weight:700;">' + ultimoPagoFecha + '</div></div>' +
-            '<div class="loan-grid-row"><div class="loan-grid-label">FECHA INICIO</div><div class="loan-grid-val">' + (p.fechaInicio || 'N/A') + '</div></div>' +
-            '<div class="loan-grid-row"><div class="loan-grid-label">FECHA TÉRMINO</div><div class="loan-grid-val" style="color:var(--accent); font-weight:700;">' + (p.fechaTermino || 'N/A') + '</div></div>' +
-          '</div>' +
-
-          '<div style="margin:14px 0 8px 0;">' +
-            '<div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text-muted); margin-bottom:4px;">' +
-              '<span>Progreso del préstamo</span><span style="font-weight:700; color:' + colorBarra + ';">' + pctPagado + '%</span>' +
+              '<div style="height:10px; background:#fee2e2; border-radius:999px; overflow:hidden;">' +
+                '<div style="height:100%; width:' + pctPagado + '%; background:' + colorBarra + '; border-radius:999px; transition:width 0.3s;"></div>' +
+              '</div>' +
             '</div>' +
-            '<div style="height:10px; background:#fee2e2; border-radius:999px; overflow:hidden;">' +
-              '<div style="height:100%; width:' + pctPagado + '%; background:' + colorBarra + '; border-radius:999px; transition:width 0.3s;"></div>' +
-            '</div>' +
-          '</div>' +
 
-          '<div class="card" style="margin-top: 15px;">' +
-            '<h3>Historial de Abonos</h3>' +
-            '<div style="margin-bottom: 12px;">' + pagosHtml + '</div>' +
-            '<h3 style="margin-top:14px;">Notas de Seguimiento</h3>' +
-            '<div>' + notasHtml + '</div>' +
-          '</div>';
-      
-      
+            '<div class="card" style="margin-top: 15px;">' +
+              '<h3>Historial de Abonos</h3>' +
+              '<div style="margin-bottom: 12px;">' + pagosHtml + '</div>' +
+              '<h3 style="margin-top:14px;">Notas de Seguimiento</h3>' +
+              '<div>' + notasHtml + '</div>' +
+            '</div>';
+        
         } catch (errPrestamo) {
-    console.error('Error procesando préstamo #' + (p && p.id != null ? p.id : 'S/N'), errPrestamo);
-    html += '<div style="background:#fef2f2; border:1px solid #fecaca; padding:12px; border-radius:8px; margin-bottom:10px; color:#991b1b;">' +
-      '<strong>⚠️ Préstamo con datos incompletos (#' + ((p && p.id != null) ? String(p.id).slice(-6) : 'S/N') + ')</strong><br>' +
-      '<small>' + (errPrestamo && errPrestamo.message ? errPrestamo.message : errPrestamo) + '</small>' +
-    '</div>';
-  }
-}); // 
-      
-      
+          console.error('Error procesando préstamo #' + (p && p.id != null ? p.id : 'S/N'), errPrestamo);
+          html += '<div style="background:#fef2f2; border:1px solid #fecaca; padding:12px; border-radius:8px; margin-bottom:10px; color:#991b1b;">' +
+            '<strong>⚠️ Préstamo con datos incompletos (#' + ((p && p.id != null) ? String(p.id).slice(-6) : 'S/N') + ')</strong><br>' +
+            '<small>' + (errPrestamo && errPrestamo.message ? errPrestamo.message : errPrestamo) + '</small>' +
+          '</div>';
+        }
+      });
+    }
 
     contenedorPerfil.innerHTML = html;
     contenedorPerfil.style.display = 'block';
@@ -6155,10 +6159,7 @@ if (tabId === 'resumen') {
 }
     
     
-    
-    
-  
-
+   
 
     function abrirModalMora(prestamoId) {
       prestamoActualId = prestamoId;
