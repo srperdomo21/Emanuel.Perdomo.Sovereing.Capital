@@ -3351,8 +3351,15 @@ async function sincronizarConNube() {
         hoyObj = new Date();
         hoyObj.setHours(0,0,0,0);
       }
-      var pagosP = cobrosDB.filter(function(cp) { return cp.prestamoId == p.id; });
-      var totalPagado = pagosP.reduce(function(acc, curr) { return acc + curr.monto; }, 0);
+      var pagosP = cobrosDB.filter(function(cp) { return cp.prestamoId == p.id; })
+  .sort(function(a, b) {
+    var ta = a.timestamp || (a.fecha ? new Date(a.fecha).getTime() : 0) || 0;
+    var tb = b.timestamp || (b.fecha ? new Date(b.fecha).getTime() : 0) || 0;
+    return ta - tb;
+  });
+      var totalPagado = pagosP.reduce(function(acc, curr) {
+  return acc + (parseFloat(curr.monto) || 0);
+}, 0);
 
       var fechaInicioObj = new Date(p.fechaInicio + 'T00:00:00');
       var diffDiasInicio = Math.floor((hoyObj - fechaInicioObj) / (1000 * 60 * 60 * 24));
@@ -5988,6 +5995,7 @@ if (tabId === 'resumen') {
       hoy.setHours(0,0,0,0);
 
       prestamosCliente.forEach(function(p) {
+  try {
         prestamoActualId = p.id;
         var pagosP = cobrosDB.filter(function(cp) { return cp.prestamoId == p.id; });
         var notasP = notasDB.filter(function(np) { return np.prestamoId == p.id; });
@@ -6078,7 +6086,7 @@ if (tabId === 'resumen') {
         var colorBarra = pctPagado >= 70 ? '#16a34a' : (pctPagado >= 30 ? '#d97706' : '#dc2626');
 
         html += '<div class="loan-title-bar">' +
-            '<span>Préstamo #' + p.id.toString().slice(-6) + '</span>' +
+            '<span>Préstamo #' + ((p && p.id != null) ? String(p.id).slice(-6) : 'S/N') + '</span>' +
             '<span class="days-badge" style="background:' + estadoPrestamoColor + ';">' + estadoPrestamoTexto + '</span>' +
           '</div>' +
 
@@ -6120,8 +6128,18 @@ if (tabId === 'resumen') {
             '<h3 style="margin-top:14px;">Notas de Seguimiento</h3>' +
             '<div>' + notasHtml + '</div>' +
           '</div>';
-      });
-    }
+      
+      
+        } catch (errPrestamo) {
+    console.error('Error procesando préstamo #' + (p && p.id != null ? p.id : 'S/N'), errPrestamo);
+    html += '<div style="background:#fef2f2; border:1px solid #fecaca; padding:12px; border-radius:8px; margin-bottom:10px; color:#991b1b;">' +
+      '<strong>⚠️ Préstamo con datos incompletos (#' + ((p && p.id != null) ? String(p.id).slice(-6) : 'S/N') + ')</strong><br>' +
+      '<small>' + (errPrestamo && errPrestamo.message ? errPrestamo.message : errPrestamo) + '</small>' +
+    '</div>';
+  }
+}); // 
+      
+      
 
     contenedorPerfil.innerHTML = html;
     contenedorPerfil.style.display = 'block';
