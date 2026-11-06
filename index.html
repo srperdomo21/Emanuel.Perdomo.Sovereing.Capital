@@ -2794,37 +2794,24 @@ var db = null;
 
 async function sincronizarConNube() {
   try {
-    console.log("Iniciando sincronización con Supabase...");
+    console.log("🔄 Iniciando sincronización con Supabase...");
     
-    // Ponemos un límite de tiempo de 8 segundos para que no se quede cargando para siempre
-    const timeout = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error("Tiempo de espera agotado. Revisa tu internet o el estado de Supabase.")), 8000)
-    );
-
+    // 1. Descargar Empresas
     const fetchEmpresas = supabase.from('empresas').select('*').order('id');
-    const { data: empresas, error: errEmp } = await Promise.race([fetchEmpresas, timeout]);
+    const { data: empresas, error: errEmp } = await Promise.race([
+        fetchEmpresas, 
+        new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout de red")), 10000))
+    ]);
 
     if (errEmp) throw errEmp;
-
-    if (empresas && empresas.length > 0) {
-      empresasGlobalesDB = empresas;
-    } else {
-      empresasGlobalesDB = [];
-      console.warn("Supabase no devolvió ninguna empresa.");
-    }
-
-    if (typeof actualizarSelectsLoginEmpresa === 'function') {
-      actualizarSelectsLoginEmpresa();
-    }
+    empresasGlobalesDB = empresas || [];
     
+    if (typeof actualizarSelectsLoginEmpresa === 'function') actualizarSelectsLoginEmpresa();
 
-    if (!empresaIdActual) {
-      console.warn('Empresa activa no encontrada en la nube.');
-      return; // Si no hay empresa seleccionada, detenemos aquí
-    }
+    if (!empresaIdActual) return; 
 
-    // 3. Cargar TODAS las tablas en paralelo
-    const [clientes, prestamos, cobros, gastos, rutas, empleados, cobradores, notas, notificaciones, inversionistas, control] = await Promise.all([
+    // 2. Cargar TODAS las tablas en paralelo
+    const promesas = [
       supabase.from('clientes').select('*').eq('empresa_id', empresaIdActual),
       supabase.from('prestamos').select('*').eq('empresa_id', empresaIdActual),
       supabase.from('cobros').select('*').eq('empresa_id', empresaIdActual),
@@ -2836,45 +2823,51 @@ async function sincronizarConNube() {
       supabase.from('notificaciones').select('*').eq('empresa_id', empresaIdActual),
       supabase.from('inversionistas').select('*').eq('empresa_id', empresaIdActual),
       supabase.from('control_dia').select('*').eq('empresa_id', empresaIdActual).limit(1)
-    ]).then(arr => arr.map(r => r.data));
+    ];
 
-    // 4. Solo reemplazar si Supabase trae algo (offline-first)
-    if (clientes?.length) clientesDB = clientes;
-    if (prestamos?.length) prestamosDB = prestamos;
-    if (cobros?.length) cobrosDB = cobros;
-    if (gastos?.length) gastosDB = gastos;
-    if (rutas?.length) zonasDB = rutas;
-    if (empleados?.length) empleadosDB = empleados;
-    if (cobradores?.length) cobradoresDB = cobradores;
-    if (notas?.length) notasDB = notas;
-    if (notificaciones?.length) notificacionesDB = notificaciones;
-    if (inversionistas?.length) inversionistasDB = inversionistas;
-    if (control?.length) controlDiaDB = control[0];
+    const resultados = await Promise.all(promesas);
+    
+    // Verificar si hubo errores en alguna tabla
+    resultados.forEach((res, index) => {
+      if (res.error) {
+        console.error(`Error cargando tabla índice ${index}:`, res.error.message);
+      }
+    });
+
+    // 3. ASIGNACIÓN DIRECTA (Sobrescribe local con lo que hay en la nube, incluso si está vacío)
+    clientesDB = resultados[0].data || [];
+    prestamosDB = resultados[1].data || [];
+    cobrosDB = resultados[2].data || [];
+    gastosDB = resultados[3].data || [];
+    zonasDB = resultados[4].data || [];
+    empleadosDB = resultados[5].data || [];
+    cobradoresDB = resultados[6].data || [];
+    notasDB = resultados[7].data || [];
+    notificacionesDB = resultados[8].data || [];
+    inversionistasDB = resultados[9].data || [];
+    controlDiaDB = (resultados[10].data && resultados[10].data.length > 0) ? resultados[10].data[0] : { abierto: false, fondoInicial: 0, fecha: '', empleado: '', zona: '' };
 
     guardarEnLocalStorageLocal();
     actualizarBadgeSync('ok');
     
-    // SOLO refrescamos toda la interfaz si el usuario ya inició sesión
+    // Refrescar interfaz
     if (typeof rolUsuarioActual !== 'undefined' && rolUsuarioActual !== '') {
       if (typeof refrescarTodaLaInterfaz === 'function') refrescarTodaLaInterfaz();
     }
 
-    // 5. Arrancar realtime
     inicializarRealtime();
-    console.log('✅ Supabase cargado y realtime activo');
+    console.log('✅ Supabase cargado correctamente');
     
   } catch (error) {
-    console.error('❌ Error cargando datos:', error.message || error);
+    console.error('❌ Error crítico cargando datos:', error.message || error);
     actualizarBadgeSync('error');
     
-    // SI HAY UN ERROR, MOSTRARLO EN EL SELECT PARA QUE NO SE QUEDE PENSANDO
     var selectLogin = document.getElementById('loginEmpresaSelect');
-    if (selectLogin) {
+    if (selectLogin && (!selectLogin.value || selectLogin.value === '')) {
       selectLogin.innerHTML = '<option value="">❌ Error de conexión. Revisa tu internet.</option>';
     }
   }
 }
-
 
 
 
@@ -3748,8 +3741,14 @@ const MAPA_TABLAS_SUPABASE = {
 };
 
 // ============ GUARDAR: local + Supabase (upsert + borrar faltantes) ============
+
+
+
+
+
+
 async function guardarDatosEnNube() {
-  guardarEnLocalStorageLocal();
+  guardarEnLocalStorageLocal(); // Siempre guarda local primero
 
   if (!supabase || !empresaIdActual) {
     actualizarBadgeSync('local');
@@ -3757,90 +3756,153 @@ async function guardarDatosEnNube() {
   }
 
   try {
-    // Usamos Promise.all para intentar guardar todas las tablas, pero capturando el error individual
-    const resultados = await Promise.all(
-      Object.entries(MAPA_TABLAS_SUPABASE).map(async ([tabla, cfg]) => {
-        try {
-          await sincronizarTablaCompleta(tabla, cfg.get());
-          return { tabla, ok: true };
-        } catch (err) {
-          console.error(`❌ ERROR EN TABLA "${tabla}":`, err.message || err);
-          return { tabla, ok: false };
-        }
-      })
-    );
+    actualizarBadgeSync('guardando');
+    
+    // Sincronizamos tablas importantes
+    const tablasASincronizar = [
+      { nombre: 'clientes', datos: clientesDB },
+      { nombre: 'prestamos', datos: prestamosDB },
+      { nombre: 'cobros', datos: cobrosDB },
+      { nombre: 'gastos', datos: gastosDB },
+      { nombre: 'rutas', datos: zonasDB },
+      { nombre: 'cobradores', datos: cobradoresDB },
+      { nombre: 'empleados', datos: empleadosDB },
+      { nombre: 'notas', datos: notasDB },
+      { nombre: 'inversionistas', datos: inversionistasDB }
+    ];
 
-    const fallidas = resultados.filter(r => !r.ok);
-    if (fallidas.length > 0) {
-      console.warn('⚠️ Tablas con error:', fallidas.map(f => f.tabla).join(', '));
-      actualizarBadgeSync('error');
-      // Mostrar alerta una sola vez para que el usuario sepa qué tabla falló
-      alert("⚠️ No se pudo sincronizar la(s) tabla(s): " + fallidas.map(f => f.tabla).join(', ') + "\n\nRevisa la consola para más detalles.");
-    } else {
-      await guardarControlDiaSupabase();
-      actualizarBadgeSync('ok');
+    for (let tabla of tablasASincronizar) {
+      if (tabla.datos && tabla.datos.length > 0) {
+        await sincronizarTablaCompleta(tabla.nombre, tabla.datos);
+      }
     }
+
+    await guardarControlDiaSupabase();
+    actualizarBadgeSync('ok');
+    
   } catch (err) {
-    console.warn('⚠️ Error general guardando en Supabase:', err);
+    console.error('⚠️ Error general guardando en Supabase:', err);
     actualizarBadgeSync('error');
   }
 }
 
 async function sincronizarTablaCompleta(nombreTabla, arrayLocal) {
-  const localArr = arrayLocal || [];
+  if (!arrayLocal || arrayLocal.length === 0) return;
 
-  // Paso A: IDs que ya existen hoy en la nube
-  const { data: existentes, error: errExist } = await supabase
-    .from(nombreTabla)
-    .select('id')
-    .eq('empresa_id', empresaIdActual);
-
-  if (errExist) throw errExist;
-
-  // Paso B: Upsert (insertar lo nuevo + actualizar lo existente)
-  if (localArr.length > 0) {
-  
-    const registros = localArr.map(item => {
-  const nuevoItem = { ...item, empresa_id: empresaIdActual };
-  
-  // Arreglo para guardar las contraseñas donde Supabase las espera
-  if (nombreTabla === 'cobradores' || nombreTabla === 'empleados') {
-    if (nuevoItem.password && !nuevoItem.password_hash) {
-      nuevoItem.password_hash = nuevoItem.password;
+  // Preparamos los datos inyectando el empresa_id y limpiando campos locales
+  const registros = arrayLocal.map(item => {
+    const nuevoItem = { ...item, empresa_id: empresaIdActual };
+    
+    // Mapeo especial para contraseñas
+    if (nombreTabla === 'cobradores' || nombreTabla === 'empleados') {
+      if (nuevoItem.password && !nuevoItem.password_hash) {
+        nuevoItem.password_hash = nuevoItem.password;
+      }
+      delete nuevoItem.password; 
     }
-    delete nuevoItem.password; 
-  }
-  
-  return nuevoItem;
-});
+    
+    // Supabase no acepta "undefined", lo convertimos a null
+    Object.keys(nuevoItem).forEach(key => {
+      if (nuevoItem[key] === undefined) nuevoItem[key] = null;
+    });
 
-const { error: errUp } = await supabase
-  .from(nombreTabla)
-  .upsert(registros, { onConflict: 'id' });
-  
-if (errUp) throw errUp;
-    
-    
-    
-    
-    
-  }
+    return nuevoItem;
+  });
 
-  // Paso C: Borrar de la nube lo que ya no está en local
-  const idsLocalSet = new Set(localArr.map(x => String(x.id)));
-  const idsABorrar = (existentes || [])
-    .map(x => x.id)
-    .filter(id => !idsLocalSet.has(String(id)));
+  // Hacemos el UPSERT
+  const { error } = await supabase
+    .from(nombreTabla)
+    .upsert(registros, { onConflict: 'id' });
 
-  if (idsABorrar.length > 0) {
-    const { error: errDel } = await supabase
-      .from(nombreTabla)
-      .delete()
-      .in('id', idsABorrar)
-      .eq('empresa_id', empresaIdActual);
-    if (errDel) throw errDel;
+  if (error) {
+    console.error(`❌ ERROR en tabla "${nombreTabla}":`, error.message);
+    // Si el error es porque falta una columna en Supabase, lo avisamos
+    if (error.code === 'PGRST204') {
+      console.warn(`Aviso: La tabla ${nombreTabla} no tiene las mismas columnas que tu objeto JS. Revisa tu base de datos.`);
+    }
+    throw error;
   }
 }
+
+async function guardarDatosEnNube() {
+  guardarEnLocalStorageLocal(); // Siempre guarda local primero
+
+  if (!supabase || !empresaIdActual) {
+    actualizarBadgeSync('local');
+    return;
+  }
+
+  try {
+    actualizarBadgeSync('guardando');
+    
+    // Sincronizamos tablas importantes
+    const tablasASincronizar = [
+      { nombre: 'clientes', datos: clientesDB },
+      { nombre: 'prestamos', datos: prestamosDB },
+      { nombre: 'cobros', datos: cobrosDB },
+      { nombre: 'gastos', datos: gastosDB },
+      { nombre: 'rutas', datos: zonasDB },
+      { nombre: 'cobradores', datos: cobradoresDB },
+      { nombre: 'empleados', datos: empleadosDB },
+      { nombre: 'notas', datos: notasDB },
+      { nombre: 'inversionistas', datos: inversionistasDB }
+    ];
+
+    for (let tabla of tablasASincronizar) {
+      if (tabla.datos && tabla.datos.length > 0) {
+        await sincronizarTablaCompleta(tabla.nombre, tabla.datos);
+      }
+    }
+
+    await guardarControlDiaSupabase();
+    actualizarBadgeSync('ok');
+    
+  } catch (err) {
+    console.error('⚠️ Error general guardando en Supabase:', err);
+    actualizarBadgeSync('error');
+  }
+}
+
+async function sincronizarTablaCompleta(nombreTabla, arrayLocal) {
+  if (!arrayLocal || arrayLocal.length === 0) return;
+
+  // Preparamos los datos inyectando el empresa_id y limpiando campos locales
+  const registros = arrayLocal.map(item => {
+    const nuevoItem = { ...item, empresa_id: empresaIdActual };
+    
+    // Mapeo especial para contraseñas
+    if (nombreTabla === 'cobradores' || nombreTabla === 'empleados') {
+      if (nuevoItem.password && !nuevoItem.password_hash) {
+        nuevoItem.password_hash = nuevoItem.password;
+      }
+      delete nuevoItem.password; 
+    }
+    
+    // Supabase no acepta "undefined", lo convertimos a null
+    Object.keys(nuevoItem).forEach(key => {
+      if (nuevoItem[key] === undefined) nuevoItem[key] = null;
+    });
+
+    return nuevoItem;
+  });
+
+  // Hacemos el UPSERT
+  const { error } = await supabase
+    .from(nombreTabla)
+    .upsert(registros, { onConflict: 'id' });
+
+  if (error) {
+    console.error(`❌ ERROR en tabla "${nombreTabla}":`, error.message);
+    // Si el error es porque falta una columna en Supabase, lo avisamos
+    if (error.code === 'PGRST204') {
+      console.warn(`Aviso: La tabla ${nombreTabla} no tiene las mismas columnas que tu objeto JS. Revisa tu base de datos.`);
+    }
+    throw error;
+  }
+}
+
+
+
 
 async function guardarControlDiaSupabase() {
   if (!empresaIdActual) return;
