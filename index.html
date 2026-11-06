@@ -3824,82 +3824,7 @@ async function sincronizarTablaCompleta(nombreTabla, arrayLocal) {
   }
 }
 
-async function guardarDatosEnNube() {
-  guardarEnLocalStorageLocal(); // Siempre guarda local primero
 
-  if (!supabase || !empresaIdActual) {
-    actualizarBadgeSync('local');
-    return;
-  }
-
-  try {
-    actualizarBadgeSync('guardando');
-    
-    // Sincronizamos tablas importantes
-    const tablasASincronizar = [
-      { nombre: 'clientes', datos: clientesDB },
-      { nombre: 'prestamos', datos: prestamosDB },
-      { nombre: 'cobros', datos: cobrosDB },
-      { nombre: 'gastos', datos: gastosDB },
-      { nombre: 'rutas', datos: zonasDB },
-      { nombre: 'cobradores', datos: cobradoresDB },
-      { nombre: 'empleados', datos: empleadosDB },
-      { nombre: 'notas', datos: notasDB },
-      { nombre: 'inversionistas', datos: inversionistasDB }
-    ];
-
-    for (let tabla of tablasASincronizar) {
-      if (tabla.datos && tabla.datos.length > 0) {
-        await sincronizarTablaCompleta(tabla.nombre, tabla.datos);
-      }
-    }
-
-    await guardarControlDiaSupabase();
-    actualizarBadgeSync('ok');
-    
-  } catch (err) {
-    console.error('⚠️ Error general guardando en Supabase:', err);
-    actualizarBadgeSync('error');
-  }
-}
-
-async function sincronizarTablaCompleta(nombreTabla, arrayLocal) {
-  if (!arrayLocal || arrayLocal.length === 0) return;
-
-  // Preparamos los datos inyectando el empresa_id y limpiando campos locales
-  const registros = arrayLocal.map(item => {
-    const nuevoItem = { ...item, empresa_id: empresaIdActual };
-    
-    // Mapeo especial para contraseñas
-    if (nombreTabla === 'cobradores' || nombreTabla === 'empleados') {
-      if (nuevoItem.password && !nuevoItem.password_hash) {
-        nuevoItem.password_hash = nuevoItem.password;
-      }
-      delete nuevoItem.password; 
-    }
-    
-    // Supabase no acepta "undefined", lo convertimos a null
-    Object.keys(nuevoItem).forEach(key => {
-      if (nuevoItem[key] === undefined) nuevoItem[key] = null;
-    });
-
-    return nuevoItem;
-  });
-
-  // Hacemos el UPSERT
-  const { error } = await supabase
-    .from(nombreTabla)
-    .upsert(registros, { onConflict: 'id' });
-
-  if (error) {
-    console.error(`❌ ERROR en tabla "${nombreTabla}":`, error.message);
-    // Si el error es porque falta una columna en Supabase, lo avisamos
-    if (error.code === 'PGRST204') {
-      console.warn(`Aviso: La tabla ${nombreTabla} no tiene las mismas columnas que tu objeto JS. Revisa tu base de datos.`);
-    }
-    throw error;
-  }
-}
 
 
 
@@ -4279,6 +4204,12 @@ async function realizarLogin(e) {
   if (rol === 'SuperAdmin') {
   if (claveMaestra || password === 'SuperAdmin21') {
     empresaActual = empresaNombre; // ✅ ¡ESTA LÍNEA FALTABA!
+    var empObjSuper = empresasGlobalesDB.find(function(e) { return e.nombre === empresaNombre; });
+empresaIdActual = empObjSuper ? empObjSuper.id : null;
+    
+    
+    
+    
     rolUsuarioActual = 'SuperAdmin';
     nombreUsuarioActual = 'Super Administrador';
     zonaUsuarioActual = 'Todas las Zonas (Global)';
@@ -4357,6 +4288,7 @@ async function realizarLogin(e) {
         localStorage.setItem('psc_sesion_activa', 'true'); // FIX: Evita que pida login al recargar
 
         empresaActual = empresa.nombre;
+        empresaIdActual = empresa.id;
         rolUsuarioActual = 'admin';
         nombreUsuarioActual = 'Administrador de ' + empresa.nombre;
         zonaUsuarioActual = 'Todas las Zonas (Oficina)';
@@ -4476,6 +4408,8 @@ if (rol === 'cobrador') {
     localStorage.setItem('psc_sesion_activa', 'true');
 
     empresaActual = empresa.nombre;
+    empresaIdActual = empresa.id;
+   
     rolUsuarioActual = rol;
     nombreUsuarioActual = nombrePersona;
     zonaUsuarioActual = zonaPersona || (usuarioDB.zonas ? usuarioDB.zonas[0] : '');
@@ -6426,21 +6360,19 @@ if (tabId === 'resumen') {
       prestamosDB.push(nuevoPrestamo);
 guardarEnLocalStorageLocal();
 
-if (supabase && empresaIdActual) {
-    // AGREGAMOS EL EMPRESA_ID AL OBJETO
-    let datosRPC = Object.assign({}, nuevoPrestamo, { empresa_id: empresaIdActual });
-    
-    supabase.rpc('insertar_prestamo_rpc', { datos: datosRPC }).then(function(res) {
-        if (res.error) console.error("Error RPC Renovación:", res.error);
-        else actualizarBadgeSync('ok');
-    }).catch(function(err) { console.error("Error red:", err); });
-} else {
-    actualizarBadgeSync('local');
-}
+// 👇 AGREGA ESTA LÍNEA AQUÍ 👇
+guardarDatosEnNube();
 
 cerrarModalRenovacion();
 alert("Renovacion procesada con exito!");
 imprimirContratoDetalle(nuevoPrestamo);
+
+
+
+
+
+
+
       
       
       
@@ -6943,27 +6875,7 @@ window.ocultarFormularioCliente = ocultarFormularioCliente;
       guardarDatosEnNube();
 
       // Intentar subir también a Supabase para que no se pierda en el próximo sync
-      try {
-        if (typeof supabase !== 'undefined' && supabase && typeof empresaIdActual !== 'undefined' && empresaIdActual) {
-          supabase.from('clientes').upsert([{
-            id: nuevo.id,
-            empresa_id: empresaIdActual,
-            nombre: nuevo.nombre,
-            apodo: nuevo.apodo || '',
-            cedula: nuevo.cedula || '',
-            telefono: nuevo.telefono || '',
-            zona: nuevo.zona || '',
-            direccion: nuevo.direccion || '',
-            provincia: nuevo.provincia || '',
-            ciudad: nuevo.ciudad || '',
-            sector: nuevo.sector || '',
-            calle: nuevo.calle || '',
-            estado: 'Activo'
-          }], { onConflict: 'id' }).then(function(res) {
-            if (res && res.error) console.warn('Supabase clientes upsert:', res.error);
-          }).catch(function(err) { console.warn('Supabase clientes error:', err); });
-        }
-      } catch (eSupa) { console.warn('No se pudo subir cliente a Supabase:', eSupa); }
+      
 
       document.getElementById('formCliente').reset();
       var prevCed = document.getElementById('previewCedula');
