@@ -4467,6 +4467,32 @@ if (rol === 'cobrador') {
         if (typeof actualizarBadgeSync === 'function') actualizarBadgeSync(navigator.onLine ? 'ok' : 'error');
       } catch(e) { console.warn('UI post-login:', e); }
     }
+    
+    
+    function cerrarSesion() {
+  if (confirm("¿Estás seguro que deseas cerrar sesión en el sistema?")) {
+    // 1. Detener el GPS si un cobrador estaba en ruta
+    if (typeof detenerSeguimientoGPS === 'function') {
+      detenerSeguimientoGPS();
+    }
+
+    // 2. Limpiar todas las variables de sesión guardadas en el teléfono/PC
+    localStorage.removeItem('psc_sesion_activa');
+    localStorage.removeItem('psc_rol_activo');
+    localStorage.removeItem('psc_nombre_usuario');
+    localStorage.removeItem('psc_zona_usuario');
+    localStorage.removeItem('psc_sesion');
+    localStorage.removeItem('psc_ultima_pestana');
+
+    // 3. Recargar la página para que vuelva a aparecer la pantalla de Login
+    window.location.reload();
+  }
+}
+    
+    
+    
+    
+    
 
    function actualizarInterfazPorRol() {
   var badgeRol = document.getElementById('badgeRolHeader');
