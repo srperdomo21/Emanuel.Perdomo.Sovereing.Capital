@@ -2808,6 +2808,14 @@ async function sincronizarConNube() {
     
     if (typeof actualizarSelectsLoginEmpresa === 'function') actualizarSelectsLoginEmpresa();
 
+    // 🔥 ARREGLO: Recuperar el ID de la empresa si se recargó la página
+    if (!empresaIdActual && empresaActual) {
+      const empEncontrada = empresasGlobalesDB.find(function(e) { return e.nombre === empresaActual; });
+      if (empEncontrada) {
+        empresaIdActual = empEncontrada.id;
+      }
+    }
+
     if (!empresaIdActual) return; 
 
     // 2. Cargar TODAS las tablas en paralelo
@@ -2827,14 +2835,7 @@ async function sincronizarConNube() {
 
     const resultados = await Promise.all(promesas);
     
-    // Verificar si hubo errores en alguna tabla
-    resultados.forEach((res, index) => {
-      if (res.error) {
-        console.error(`Error cargando tabla índice ${index}:`, res.error.message);
-      }
-    });
-
-    // 3. ASIGNACIÓN DIRECTA (Sobrescribe local con lo que hay en la nube, incluso si está vacío)
+    // 3. ASIGNACIÓN DIRECTA
     clientesDB = resultados[0].data || [];
     prestamosDB = resultados[1].data || [];
     cobrosDB = resultados[2].data || [];
@@ -2855,21 +2856,14 @@ async function sincronizarConNube() {
       if (typeof refrescarTodaLaInterfaz === 'function') refrescarTodaLaInterfaz();
     }
 
-    inicializarRealtime();
+    if (typeof inicializarRealtime === 'function') inicializarRealtime();
     console.log('✅ Supabase cargado correctamente');
     
   } catch (error) {
     console.error('❌ Error crítico cargando datos:', error.message || error);
     actualizarBadgeSync('error');
-    
-    var selectLogin = document.getElementById('loginEmpresaSelect');
-    if (selectLogin && (!selectLogin.value || selectLogin.value === '')) {
-      selectLogin.innerHTML = '<option value="">❌ Error de conexión. Revisa tu internet.</option>';
-    }
   }
 }
-
-
 
 
 
@@ -3789,11 +3783,9 @@ async function guardarDatosEnNube() {
 async function sincronizarTablaCompleta(nombreTabla, arrayLocal) {
   if (!arrayLocal || arrayLocal.length === 0) return;
 
-  // Preparamos los datos inyectando el empresa_id y limpiando campos locales
   const registros = arrayLocal.map(item => {
     const nuevoItem = { ...item, empresa_id: empresaIdActual };
     
-    // Mapeo especial para contraseñas
     if (nombreTabla === 'cobradores' || nombreTabla === 'empleados') {
       if (nuevoItem.password && !nuevoItem.password_hash) {
         nuevoItem.password_hash = nuevoItem.password;
@@ -3801,7 +3793,6 @@ async function sincronizarTablaCompleta(nombreTabla, arrayLocal) {
       delete nuevoItem.password; 
     }
     
-    // Supabase no acepta "undefined", lo convertimos a null
     Object.keys(nuevoItem).forEach(key => {
       if (nuevoItem[key] === undefined) nuevoItem[key] = null;
     });
@@ -3809,20 +3800,15 @@ async function sincronizarTablaCompleta(nombreTabla, arrayLocal) {
     return nuevoItem;
   });
 
-  // Hacemos el UPSERT
-  const { error } = await supabase
-    .from(nombreTabla)
-    .upsert(registros, { onConflict: 'id' });
+  const { error } = await supabase.from(nombreTabla).upsert(registros, { onConflict: 'id' });
 
   if (error) {
     console.error(`❌ ERROR en tabla "${nombreTabla}":`, error.message);
-    // Si el error es porque falta una columna en Supabase, lo avisamos
-    if (error.code === 'PGRST204') {
-      console.warn(`Aviso: La tabla ${nombreTabla} no tiene las mismas columnas que tu objeto JS. Revisa tu base de datos.`);
-    }
+    alert(`⚠️ Error al guardar en "${nombreTabla}":\n${error.message}`); // Alerta para ver el error
     throw error;
   }
 }
+
 
 
 
@@ -3845,28 +3831,39 @@ let canalesRealtime = [];
 function inicializarRealtime() {
   if (!supabase || !empresaIdActual) return;
 
-  // Limpiar canales previos
   canalesRealtime.forEach(ch => { try { supabase.removeChannel(ch); } catch (e) {} });
   canalesRealtime = [];
 
   Object.keys(MAPA_TABLAS_SUPABASE).forEach(nombreTabla => {
-    const canal = supabase
-      .channel(`rt:${nombreTabla}:${empresaIdActual}`)
-      .on('postgres_changes',
-        { event: '*', schema: 'public', table: nombreTabla, filter: `empresa_id=eq.${empresaIdActual}` },
-        payload => manejarCambioRealtime(nombreTabla, payload)
-      )
-      .subscribe();
-    canalesRealtime.push(canal);
-  });
+  const canal = supabase
+    .channel(`rt:${nombreTabla}:${empresaIdActual}`)
+    .on('postgres_changes',
+      { event: '*', schema: 'public', table: nombreTabla }, 
+      payload => {
+        // Corrección: Validar si payload.new y payload.old existen antes de leer
+        const newEmpId = payload.new ? payload.new.empresa_id : null;
+        const oldEmpId = payload.old ? payload.old.empresa_id : null;
+        
+        if (String(newEmpId) === String(empresaIdActual) || String(oldEmpId) === String(empresaIdActual)) {
+          manejarCambioRealtime(nombreTabla, payload);
+        }
+      }
+    )
+    .subscribe();
+  canalesRealtime.push(canal);
+});
 
-  // 🛰️ Canal exclusivo para ubicaciones en vivo (no toca el canal principal)
+
   try {
     const canalUbic = supabase
       .channel('rt:ubicaciones:' + empresaIdActual)
       .on('postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'ubicaciones_cobradores', filter: 'empresa_id=eq.' + empresaIdActual },
-        payload => { try { manejarUbicacionRealtime(payload); } catch(e){} }
+        { event: 'INSERT', schema: 'public', table: 'ubicaciones_cobradores' },
+        payload => { 
+          if (String(payload.new.empresa_id) === String(empresaIdActual)) {
+            try { manejarUbicacionRealtime(payload); } catch(e){} 
+          }
+        }
       )
       .subscribe();
     canalesRealtime.push(canalUbic);
@@ -3874,6 +3871,11 @@ function inicializarRealtime() {
 
   console.log('🔴 Realtime conectado a Supabase');
 }
+
+
+
+
+
 
 // 🛰️ Actualiza marcador del cobrador al llegar un punto nuevo
 function manejarUbicacionRealtime(payload) {
