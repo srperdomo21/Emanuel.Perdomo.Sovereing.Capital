@@ -2732,7 +2732,7 @@ function redondear(num) {
         <p><strong>Ruta:</strong> <span id="recRuta"></span></p>
         
         <p>--------------------------------</p>
-        <<p><strong>Cliente:</strong> <span id="recCliente"></span></p>
+        <p><strong>Cliente:</strong> <span id="recCliente"></span></p>
 <p><strong>Monto del Préstamo:</strong> $<span id="recMontoPrestamo"></span></p> <!-- AGREGADO AQUÍ -->
 <p><strong>Cuota:</strong> <span id="recCuotaInfo"></span></p>
         
@@ -3167,60 +3167,59 @@ async function sincronizarConNube() {
     }
 
     function imprimirPorBluetooth(tipo) {
-      if (tipo === 'CONTRATO') {
-        var texto = 
-          "PERDOMO SOVEREIGN CAPITAL\n" +
-          "San Francisco de Macoris | Tel: 849-581-9150\n" +
-          "CONTRATO DE PRESTAMO\n" +
-          "--------------------------------\n" +
-          "Financiera: " + empresaActual + "\n" +
-          "Cobrador: " + nombreUsuarioActual + "\n" +
-          "Ruta: " + zonaUsuarioActual + "\n" +
-          "--------------------------------\n" +
-          "Deudor: " + document.getElementById('pConNombre').innerText + "\n" +
-          "Cedula: " + document.getElementById('pConCedula').innerText + "\n" +
-          "Telefono: " + document.getElementById('pConTelefono').innerText + "\n" +
-          "--------------------------------\n" +
-          "Monto Capital: $" + document.getElementById('pConMonto').innerText + "\n" +
-          "Gasto Cierre: $" + document.getElementById('pConGasto').innerText + "\n" +
-          "Neto Entregar: $" + document.getElementById('pConNeto').innerText + "\n" +
-          "Plazo: " + document.getElementById('pConPlazo').innerText + "\n" +
-          "Cuota: $" + document.getElementById('pConCuota').innerText + "\n" +
-          "Total Pagar: $" + document.getElementById('pConTotal').innerText + "\n" +
-          "Emision: " + document.getElementById('pConFecha').innerText + "\n" +
-          "Fecha Termino: " + document.getElementById('pConFechaTermino').innerText + "\n" +
-          "--------------------------------\n" +
-          "No somos responsables de dinero entregado sin recibo.";
-        enviarComandosBluetooth(texto);
-      } else if (tipo === 'RECIBO') {
-        var texto = 
-          "PERDOMO SOVEREIGN CAPITAL\n" +
-          "San Francisco de Macoris | Tel: 849-581-9150\n" +
-          "RECIBO DE PAGO\n" +
-          "--------------------------------\n" +
-          "Financiera: " + empresaActual + "\n" +
-          "Cobrador: " + document.getElementById('recCobrador').innerText + "\n" +
-          "Ruta: " + document.getElementById('recRuta').innerText + "\n" +
-          
-          "--------------------------------\n" +
-          "Cliente: " + document.getElementById('recCliente').innerText + "\n" +
-          "Cuota: " + document.getElementById('recCuotaInfo').innerText + "\n" +
-          "Monto Pagado: $" + document.getElementById('recMonto').innerText + "\n" +
-          "Monto en Atraso: $" + document.getElementById('recAtraso').innerText + "\n" +
-          "Mora: $" + document.getElementById('recMora').innerText + "\n" +
-          "Falta por Pagar: $" + document.getElementById('recBalance').innerText + "\n" +
-          "--------------------------------\n" +
-          "Fecha de Pago: " + document.getElementById('recFecha').innerText + "\n" +
-          "Fecha Inicio Prestamo: " + document.getElementById('recFechaInicio').innerText + "\n" +
-          "Fecha Termino Prestamo: " + document.getElementById('recFechaTermino').innerText + "\n" +
-          "Nota: " + document.getElementById('recNota').innerText + "\n" +
-          "--------------------------------\n" +
-          "No somos responsables de dinero entregado sin recibo.\n" +
-          "Gracias por su pago!";
-        enviarComandosBluetooth(texto);
-      }
-    }
-
+  if (tipo === 'CONTRATO') {
+    var texto = 
+      "PERDOMO SOVEREIGN CAPITAL\n" +
+      "San Francisco de Macoris | Tel: 849-581-9150\n" +
+      "CONTRATO DE PRESTAMO\n" +
+      "--------------------------------\n" +
+      "Financiera: " + empresaActual + "\n" +
+      "Cobrador: " + nombreUsuarioActual + "\n" +
+      "Ruta: " + zonaUsuarioActual + "\n" +
+      "--------------------------------\n" +
+      "Deudor: " + document.getElementById('pConNombre').innerText + "\n" +
+      "Cedula: " + document.getElementById('pConCedula').innerText + "\n" +
+      "Telefono: " + document.getElementById('pConTelefono').innerText + "\n" +
+      "--------------------------------\n" +
+      "Monto Capital: $" + document.getElementById('pConMonto').innerText + "\n" +
+      "Gasto Cierre: $" + document.getElementById('pConGasto').innerText + "\n" +
+      "Neto Entregar: $" + document.getElementById('pConNeto').innerText + "\n" +
+      "Plazo: " + document.getElementById('pConPlazo').innerText + "\n" +
+      "Cuota: $" + document.getElementById('pConCuota').innerText + "\n" +
+      "Total Pagar: $" + document.getElementById('pConTotal').innerText + "\n" +
+      "Emision: " + document.getElementById('pConFecha').innerText + "\n" +
+      "Fecha Termino: " + document.getElementById('pConFechaTermino').innerText + "\n" +
+      "--------------------------------\n" +
+      "No somos responsables de dinero entregado sin recibo.";
+    enviarComandosBluetooth(texto);
+  } else if (tipo === 'RECIBO') {
+    var texto = 
+      "PERDOMO SOVEREIGN CAPITAL\n" +
+      "San Francisco de Macoris | Tel: 849-581-9150\n" +
+      "RECIBO DE PAGO\n" +
+      "--------------------------------\n" +
+      "Financiera: " + empresaActual + "\n" +
+      "Cobrador: " + document.getElementById('recCobrador').innerText + "\n" +
+      "Ruta: " + document.getElementById('recRuta').innerText + "\n" +
+      "--------------------------------\n" +
+      "Cliente: " + document.getElementById('recCliente').innerText + "\n" +
+      "Monto del Prestamo: $" + document.getElementById('recMontoPrestamo').innerText + "\n" +
+      "Cuota: " + document.getElementById('recCuotaInfo').innerText + "\n" +
+      "Monto Pagado: $" + document.getElementById('recMonto').innerText + "\n" +
+      "Monto en Atraso: $" + document.getElementById('recAtraso').innerText + "\n" +
+      "Mora: $" + document.getElementById('recMora').innerText + "\n" +
+      "Falta por Pagar: $" + document.getElementById('recBalance').innerText + "\n" +
+      "--------------------------------\n" +
+      "Fecha de Pago: " + document.getElementById('recFecha').innerText + "\n" +
+      "Fecha Inicio Prestamo: " + document.getElementById('recFechaInicio').innerText + "\n" +
+      "Fecha Termino Prestamo: " + document.getElementById('recFechaTermino').innerText + "\n" +
+      "Nota: " + document.getElementById('recNota').innerText + "\n" +
+      "--------------------------------\n" +
+      "No somos responsables de dinero entregado sin recibo.\n" +
+      "Gracias por su pago!";
+    enviarComandosBluetooth(texto);
+  }
+}
     function verificarModalidadNuevo() {
       var plazo = document.getElementById('pPlazo').value;
       var divCustom = document.getElementById('divPlazoPersonalizadoNuevo');
@@ -6547,39 +6546,41 @@ imprimirContratoDetalle(nuevoPrestamo);
     }
 
     function enviarReciboWhatsAppDirecto(pagoId) {
-      var pago = cobrosDB.find(function(cp) { return cp.id == pagoId; });
-      if (!pago) return;
-      var prestamo = prestamosDB.find(function(p) { return p.id == pago.prestamoId; });
-      var cliente = clientesDB.find(function(c) { return c.id == (prestamo ? prestamo.clienteId : 0); });
-      var rutaClienteReal = cliente ? cliente.zona : zonaUsuarioActual;
+  var pago = cobrosDB.find(function(cp) { return cp.id == pagoId; });
+  if (!pago) return;
+  var prestamo = prestamosDB.find(function(p) { return p.id == pago.prestamoId; });
+  var cliente = clientesDB.find(function(c) { return c.id == (prestamo ? prestamo.clienteId : 0); });
+  var rutaClienteReal = cliente ? cliente.zona : zonaUsuarioActual;
 
-      var atrasoValor = pago.montoAtraso !== undefined ? pago.montoAtraso : (prestamo ? calcularMontoAtrasoPrestamo(prestamo) : 0);
+  var atrasoValor = pago.montoAtraso !== undefined ? pago.montoAtraso : (prestamo ? calcularMontoAtrasoPrestamo(prestamo) : 0);
 
-      var tel = pago.telefonoCliente ? pago.telefonoCliente.replace(/[^0-9]/g, '') : '';
-      var textoWA = encodeURIComponent(
-        "PERDOMO SOVEREIGN CAPITAL (" + empresaActual + ")\n" +
-        "San Francisco de Macoris | Tel: 849-581-9150\n" +
-        "Cobrador: " + nombreUsuarioActual + " | Ruta: " + rutaClienteReal + "\n" +
-        
-        "--------------------------------\n" +
-        "RECIBO DE PAGO OFICIAL\n" +
-        "Cliente: " + pago.clienteNombre + "\n" +
-        "Cuota: " + pago.cuotaInfo + "\n" +
-        "Monto Pagado: $" + pago.monto.toFixed(2) + "\n" +
-        "Monto en Atraso: $" + atrasoValor.toFixed(2) + "\n" +
-        "Mora: $" + pago.mora.toFixed(2) + "\n" +
-        "Falta por Pagar: $" + pago.balanceRestante.toFixed(2) + "\n" +
-        "--------------------------------\n" +
-        "Fecha de Pago: " + pago.fecha + "\n" +
-        "Fecha Inicio Prestamo: " + (prestamo ? (prestamo.fechaInicio || 'N/A') : 'N/A') + "\n" +
-        "Fecha Termino Prestamo: " + (prestamo ? (prestamo.fechaTermino || 'N/A') : 'N/A') + "\n" +
-        "Nota: " + pago.nota + "\n" +
-        "--------------------------------\n" +
-        "No somos responsables de dinero entregado sin recibo.\n" +
-        "Gracias por su pago!"
-      );
-      window.open("https://wa.me/" + tel + "?text=" + textoWA, "_blank");
-    }
+  var tel = pago.telefonoCliente ? pago.telefonoCliente.replace(/[^0-9]/g, '') : '';
+  var textoWA = encodeURIComponent(
+    "PERDOMO SOVEREIGN CAPITAL (" + empresaActual + ")\n" +
+    "San Francisco de Macoris | Tel: 849-581-9150\n" +
+    "Cobrador: " + nombreUsuarioActual + " | Ruta: " + rutaClienteReal + "\n" +
+    "--------------------------------\n" +
+    "RECIBO DE PAGO OFICIAL\n" +
+    "Cliente: " + pago.clienteNombre + "\n" +
+    "Monto del Prestamo: $" + (prestamo ? prestamo.monto.toFixed(2) : '0.00') + "\n" +
+    "Cuota: " + pago.cuotaInfo + "\n" +
+    "Monto Pagado: $" + pago.monto.toFixed(2) + "\n" +
+    "Monto en Atraso: $" + atrasoValor.toFixed(2) + "\n" +
+    "Mora: $" + pago.mora.toFixed(2) + "\n" +
+    "Falta por Pagar: $" + pago.balanceRestante.toFixed(2) + "\n" +
+    "--------------------------------\n" +
+    "Fecha de Pago: " + pago.fecha + "\n" +
+    "Fecha Inicio Prestamo: " + (prestamo ? (prestamo.fechaInicio || 'N/A') : 'N/A') + "\n" +
+    "Fecha Termino Prestamo: " + (prestamo ? (prestamo.fechaTermino || 'N/A') : 'N/A') + "\n" +
+    "Nota: " + pago.nota + "\n" +
+    "--------------------------------\n" +
+    "No somos responsables de dinero entregado sin recibo.\n" +
+    "Gracias por su pago!"
+  );
+  window.open("https://wa.me/" + tel + "?text=" + textoWA, "_blank");
+}
+
+
 
     function seleccionarNotaChip(btn, valor) {
       document.getElementById('notaSelect').value = valor;
