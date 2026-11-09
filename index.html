@@ -2730,10 +2730,12 @@ function redondear(num) {
         <p><strong>Financiera:</strong> <span id="recEmpresa"></span></p>
         <p><strong>Cobrador:</strong> <span id="recCobrador"></span></p>
         <p><strong>Ruta:</strong> <span id="recRuta"></span></p>
-        <p><strong>GPS:</strong> <span id="recGps"></span></p>
+        
         <p>--------------------------------</p>
-        <p><strong>Cliente:</strong> <span id="recCliente"></span></p>
-        <p><strong>Cuota:</strong> <span id="recCuotaInfo"></span></p>
+        <<p><strong>Cliente:</strong> <span id="recCliente"></span></p>
+<p><strong>Monto del Préstamo:</strong> $<span id="recMontoPrestamo"></span></p> <!-- AGREGADO AQUÍ -->
+<p><strong>Cuota:</strong> <span id="recCuotaInfo"></span></p>
+        
         <p><strong>Monto Pagado:</strong> $<span id="recMonto"></span></p>
         <p><strong>Monto en Atraso:</strong> $<span id="recAtraso" style="color:var(--danger); font-weight:700;">0.00</span></p>
         <p><strong>Mora:</strong> $<span id="recMora" style="color:var(--danger); font-weight:700;"></span></p>
@@ -3199,7 +3201,7 @@ async function sincronizarConNube() {
           "Financiera: " + empresaActual + "\n" +
           "Cobrador: " + document.getElementById('recCobrador').innerText + "\n" +
           "Ruta: " + document.getElementById('recRuta').innerText + "\n" +
-          "GPS: " + document.getElementById('recGps').innerText + "\n" +
+          
           "--------------------------------\n" +
           "Cliente: " + document.getElementById('recCliente').innerText + "\n" +
           "Cuota: " + document.getElementById('recCuotaInfo').innerText + "\n" +
@@ -6522,9 +6524,10 @@ imprimirContratoDetalle(nuevoPrestamo);
       document.getElementById('recEmpresa').innerText = empresaActual;
       document.getElementById('recCobrador').innerText = nombreUsuarioActual;
       document.getElementById('recRuta').innerText = rutaClienteReal;
-      document.getElementById('recGps').innerText = pago.gps || 'GPS Validado';
+      
       document.getElementById('recCliente').innerText = pago.clienteNombre;
-      document.getElementById('recCuotaInfo').innerText = pago.cuotaInfo;
+         document.getElementById('recMontoPrestamo').innerText = prestamo ? prestamo.monto.toFixed(2) : '0.00';
+          document.getElementById('recCuotaInfo').innerText = pago.cuotaInfo;
       document.getElementById('recMonto').innerText = pago.monto.toFixed(2);
       document.getElementById('recAtraso').innerText = atrasoValor.toFixed(2);
       document.getElementById('recMora').innerText = pago.mora.toFixed(2);
@@ -6557,7 +6560,7 @@ imprimirContratoDetalle(nuevoPrestamo);
         "PERDOMO SOVEREIGN CAPITAL (" + empresaActual + ")\n" +
         "San Francisco de Macoris | Tel: 849-581-9150\n" +
         "Cobrador: " + nombreUsuarioActual + " | Ruta: " + rutaClienteReal + "\n" +
-        "GPS: " + (pago.gps || 'Validado') + "\n" +
+        
         "--------------------------------\n" +
         "RECIBO DE PAGO OFICIAL\n" +
         "Cliente: " + pago.clienteNombre + "\n" +
