@@ -6736,24 +6736,43 @@ var cuotaInfoTexto = (cuotaInicio === cuotaFin) ?
       alert("Nota guardada con exito.");
     }
 
+    
     function eliminarPagoDirectoAdmin(pagoId, clienteId) {
-      if(confirm("Deseas eliminar este registro de pago directamente?")) {
-        cobrosDB = cobrosDB.filter(function(cp) { return cp.id !== pagoId; });
-        guardarDatosEnNube();
-        if (clienteId) verPerfilCreditoCliente(clienteId, 'clientes');
-        renderListadoGeneral();
-      }
+  if(confirm("Deseas eliminar este registro de pago directamente?")) {
+    // 1. Borrar de la NUBE (Supabase) primero
+    if (typeof supabase !== 'undefined' && supabase && typeof empresaIdActual !== 'undefined' && empresaIdActual) {
+      supabase.from('cobros').delete().eq('id', pagoId).eq('empresa_id', empresaIdActual).then(function(res){
+          if(res.error) console.error('Error borrando en Supabase:', res.error);
+      });
     }
+
+    // 2. Borrar del teléfono (Local)
+    cobrosDB = cobrosDB.filter(function(cp) { return cp.id !== pagoId; });
+    guardarDatosEnNube(); 
+    
+    // 3. Refrescar pantalla
+    if (clienteId) verPerfilCreditoCliente(clienteId, 'clientes');
+    renderListadoGeneral();
+    alert("✅ Pago eliminado definitivamente.");
+  }
+}
+    
+    
 
     function eliminarNota(notaId, clienteId) {
-      if(confirm("Deseas eliminar esta nota?")) {
-        notasDB = notasDB.filter(function(np) { return np.id !== notaId; });
-        guardarDatosEnNube();
-        if (clienteId) verPerfilCreditoCliente(clienteId, 'clientes');
-        renderListadoGeneral();
-      }
+  if(confirm("Deseas eliminar esta nota?")) {
+    // Borrar de Supabase
+    if (typeof supabase !== 'undefined' && supabase && typeof empresaIdActual !== 'undefined' && empresaIdActual) {
+      supabase.from('notas').delete().eq('id', notaId).eq('empresa_id', empresaIdActual).then(function(res){});
     }
-
+    
+    notasDB = notasDB.filter(function(np) { return np.id !== notaId; });
+    guardarDatosEnNube();
+    if (clienteId) verPerfilCreditoCliente(clienteId, 'clientes');
+    renderListadoGeneral();
+    alert("✅ Nota eliminada definitivamente.");
+  }
+}
     function cerrarPerfilCliente() {
       document.getElementById('perfilClienteDetalle').style.display = 'none';
       document.getElementById('seccionEditarCliente').style.display = 'none';
@@ -6917,20 +6936,29 @@ window.ocultarFormularioCliente = ocultarFormularioCliente;
     window.limpiarRegistrosViejos = limpiarRegistrosViejos;
 
     function eliminarPrestamoDirecto(prestamoId) {
-      if (!verificarPermisoEdicion()) {
-        solicitarEliminarElementoCobrador(prestamoId, 'prestamo');
-        return;
-      }
-      if (confirm("Estas seguro de eliminar este prestamo?")) {
-        prestamosDB = prestamosDB.filter(function(p) { return p.id !== prestamoId; });
-        cobrosDB = cobrosDB.filter(function(c) { return c.prestamoId !== prestamoId; });
-        notasDB = notasDB.filter(function(n) { return n.prestamoId !== prestamoId; });
-        guardarDatosEnNube();
-        renderListadoGeneral();
-        renderClientes();
-        alert("Prestamo eliminado correctamente.");
-      }
+  if (!verificarPermisoEdicion()) {
+    solicitarEliminarElementoCobrador(prestamoId, 'prestamo');
+    return;
+  }
+  if (confirm("Estas seguro de eliminar este prestamo?")) {
+    // Borrar de Supabase
+    if (typeof supabase !== 'undefined' && supabase && typeof empresaIdActual !== 'undefined' && empresaIdActual) {
+      supabase.from('prestamos').delete().eq('id', prestamoId).eq('empresa_id', empresaIdActual).then(function(res){});
+      supabase.from('cobros').delete().eq('prestamo_id', prestamoId).eq('empresa_id', empresaIdActual).then(function(res){});
+      supabase.from('notas').delete().eq('prestamo_id', prestamoId).eq('empresa_id', empresaIdActual).then(function(res){});
     }
+
+    // Borrar localmente
+    prestamosDB = prestamosDB.filter(function(p) { return p.id !== prestamoId; });
+    cobrosDB = cobrosDB.filter(function(c) { return c.prestamoId !== prestamoId; });
+    notasDB = notasDB.filter(function(n) { return n.prestamoId !== prestamoId; });
+    guardarDatosEnNube();
+    
+    renderListadoGeneral();
+    renderClientes();
+    alert("✅ Préstamo eliminado definitivamente.");
+  }
+}
 
     function cargarSelectClientes() {
       var select = document.getElementById('pClienteSelect');
