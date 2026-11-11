@@ -962,6 +962,9 @@ function redondear(num) {
       
       <button class="sidebar-btn solo-admin-emp" onclick="showTabFromMenu('clientesAfuera')" style="background:#f1f5f9; color:#0f172a; font-weight:700;">🚪 Clientes Afuera (Saldados)</button>
       
+      <button class="sidebar-btn solo-admin-emp" onclick="showTabFromMenu('contratosTab')" style="background:#eff6ff; color:#1e3a8a; font-weight:700;">⚖️ Contratos de Préstamo</button>
+      
+      
     
     <button class="sidebar-btn solo-admin-emp" onclick="showTabFromMenu('businessIntelligenceTab')" style="background:#eff6ff; color:var(--primary); font-weight:700;">🧠 Inteligencia de Negocios (BI)</button>  
 
@@ -1835,7 +1838,36 @@ function redondear(num) {
   </div>
 </div>
 
+<!-- NUEVO APARTADO: CONTRATOS LEGALES -->
+<div id="contratosTab" class="tab-content">
+  <div class="card" id="vistaListaContratos">
+    <h3 style="color:var(--primary);">⚖️ Gestión de Contratos Legales</h3>
+    <p style="font-size:0.85rem; color:#475569; margin-bottom:15px;">Aquí se guardan los contratos de todos los préstamos generados en el sistema. Puedes buscarlos por cliente y descargarlos/imprimirlos en formato legal.</p>
+    
+    <div class="search-filter-bar">
+      <div class="search-box">
+        <span>🔍</span>
+        <input type="text" id="inputBusquedaContrato" placeholder="Buscar contrato por cliente o cédula..." oninput="renderContratos()">
+      </div>
+    </div>
+    
+    <div id="listaContratosDiv" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:12px;">
+      <!-- Aquí se cargarán los contratos -->
+    </div>
+  </div>
 
+  <!-- VISOR DE CONTRATO (OCULTO HASTA QUE SE SELECCIONE UNO) -->
+  <div id="vistaContratoImpresion" style="display:none; background:white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); font-family: 'Times New Roman', serif; color: black; line-height: 1.5; text-align: justify;">
+    <div id="contenidoContratoHTML">
+      <!-- El contrato generado se inyecta aquí -->
+    </div>
+    <br><br>
+    <div class="no-print" style="display:flex; gap:10px; justify-content:center;">
+      <button class="btn btn-secondary" onclick="cerrarContrato()">← Volver a la Lista</button>
+      <button class="btn btn-success" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button>
+    </div>
+  </div>
+</div>
 
 
 
@@ -2192,44 +2224,8 @@ function redondear(num) {
 
 </div>
     
-    <!-- ============ FIN MÓDULO REPORTES ============ -->
-
-<!-- ============ MÓDULO BURÓ DE CRÉDITO ============ -->
-<div id="buroCreditoTab" class="tab-content">
-  <div class="card" style="background:linear-gradient(135deg,#0f172a,#1e3a8a); color:white;">
-    <h3 style="color:white !important; margin-bottom:8px;">🏦 Buró de Crédito Interno</h3>
-    <p style="font-size:0.85rem; opacity:0.9;">Evalúa el comportamiento de pago de tus clientes con un Score del 0 al 1000 para decidir si otorgar préstamos y de qué monto.</p>
-  </div>
-
-  <div class="search-filter-bar">
-    <div class="search-box">
-      <span>🔍</span>
-      <input type="text" id="inputBusquedaBuro" placeholder="Buscar cliente para ver su Score..." oninput="renderBuroCredito()">
-    </div>
-  </div>
-
-  <div class="card">
-    <h3>Ranking de Clientes</h3>
-    <div id="listaBuroClientes" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:12px;">
-      Cargando evaluación...
-    </div>
-  </div>
-</div>
-<!-- ============ FIN BURÓ ============ -->
-
-
-
-
-  </div> <!-- ESTE ES EL CIERRE DE seccionModuloPrincipal -->
-
-</div> <!-- ESTE ES EL CIERRE DEL CONTAINER -->              
-                           
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- COBROS GENERALES (HISTORIAL COMPLETO) -->
+    
+!-- COBROS GENERALES (HISTORIAL COMPLETO) -->
       <div id="cobrosGeneralesTab" class="tab-content">
         <div class="card">
           <h3 style="color:var(--primary);">💰 Cobros Generales — Historial Completo</h3>
@@ -2247,6 +2243,18 @@ function redondear(num) {
     </div>
 
   </div>
+
+
+
+
+
+
+  </div> <!-- ESTE ES EL CIERRE DE seccionModuloPrincipal -->
+
+</div> <!-- ESTE ES EL CIERRE DEL CONTAINER -->              
+                           
+           
+      
 
   <!-- MODAL EDITAR COBRADOR -->
   <div id="modalEditarCobradorBox" class="modal-overlay">
@@ -4618,6 +4626,16 @@ async function pedirClaveBorrarTodo() {
       if (tabId === 'nuevoPrestamo') cargarSelectClientes();
       if (tabId === 'transferenciaRuta') cargarSelectTransferencia();
       if (tabId === 'zonasTab') renderZonasAdmin();
+      
+      
+    if (tabId === 'contratosTab') {
+  if (typeof renderContratos === 'function') renderContratos();
+  document.getElementById('vistaListaContratos').style.display = 'block';
+  document.getElementById('vistaContratoImpresion').style.display = 'none';
+} 
+        
+      
+      
       if (tabId === 'cobradoresTab') renderCobradoresAdmin();
       if (tabId === 'empleadosTab') renderEmpleadosAdmin();
       if (tabId === 'inversionistasTab') renderInversionistas();
@@ -7141,24 +7159,39 @@ window.ocultarFormularioCliente = ocultarFormularioCliente;
       } catch(eGps) { console.warn('GPS préstamo:', eGps); }
 
       prestamosDB.push(nuevoPrestamo);
-      guardarDatosEnNube();
-      imprimirContratoDetalle(nuevoPrestamo);
-      document.getElementById('formPrestamo').reset();
+guardarDatosEnNube();
+
+// 1. Se abre el contrato térmico como ya lo hacía
+imprimirContratoDetalle(nuevoPrestamo);
+
+// 2. Se actualiza la lista de contratos legales en la pestaña
+if (typeof renderContratos === 'function') renderContratos();
+
+// 3. Se pregunta si desea ver el contrato legal en PDF
+setTimeout(function() {
+    var quierePDF = confirm("✅ Préstamo guardado y Contrato Térmico generado.\n\n¿Deseas abrir también el Contrato Legal (PDF) para imprimirlo o guardarlo?");
+    if (quierePDF) {
+        showTab('contratosTab', document.querySelector('button[onclick*="contratosTab"]'));
+        verContratoLegal(nuevoPrestamo.id);
+    }
+}, 400);
+
+// 4. Se limpia el formulario (esto lo dejas tal cual lo tenías)
+document.getElementById('formPrestamo').reset();
+
+
+
+
+
+
+
+
       document.getElementById('pFechaInicio').valueAsDate = new Date();
       document.getElementById('previewFotoConfirmacion').style.display = 'none';
       fotoConfirmacionTemporal = "";
       calcularCuotaPreview();
 
-      // Abrir automáticamente la tarjeta del cliente con el préstamo nuevo
-      alert('✅ Préstamo registrado con éxito. Abriendo ficha del cliente...');
-      try {
-        showTab('clientes', document.querySelector('nav button[onclick*="clientes"]') || null);
-      } catch (eTab) {}
-      setTimeout(function() {
-        if (typeof verPerfilCreditoCliente === 'function') {
-          verPerfilCreditoCliente(cliente.id, 'clientes');
-        }
-      }, 350);
+      
     }
 
     function imprimirContratoDetalle(p) {
@@ -9649,6 +9682,201 @@ if (typeof window !== 'undefined') {
 })();
 
 console.log('%c[Mapa GPS] Módulo cargado. Ejecuta el SQL de setup en Supabase y prueba la pestaña 🗺️ Mapa y Seguimiento.', 'color:#16a34a;font-weight:bold');
+
+
+
+// ========== MÓDULO DE CONTRATOS LEGALES ==========
+// Función auxiliar para convertir montos a letras (Ej: 1500 -> MIL QUINIENTOS)
+function numeroALetras(num) {
+  const Unidades = ['', 'UN', 'DOS', 'TRES', 'CUATRO', 'CINCO', 'SEIS', 'SIETE', 'OCHO', 'NUEVE'];
+  const Decenas = ['', 'DIEZ', 'VEINTE', 'TREINTA', 'CUARENTA', 'CINCUENTA', 'SESENTA', 'SETENTA', 'OCHENTA', 'NOVENTA'];
+  const Centenas = ['', 'CIENTO', 'DOSCIENTOS', 'TRESCIENTOS', 'CUATROCIENTOS', 'QUINIENTOS', 'SEISCIENTOS', 'SETECIENTOS', 'OCHOCIENTOS', 'NOVECIENTOS'];
+  
+  if (num === 0) return 'CERO';
+  if (num === 100) return 'CIEN';
+  
+  let letras = '';
+  let centenas = Math.floor(num / 100);
+  let decenas = Math.floor((num % 100) / 10);
+  let unidades = num % 10;
+  
+  if (centenas > 0) letras += Centenas[centenas] + ' ';
+  
+  if (decenas === 1) {
+    const especiales = ['DIEZ', 'ONCE', 'DOCE', 'TRECE', 'CATORCE', 'QUINCE', 'DIECISEIS', 'DIECISIETE', 'DIECIOCHO', 'DIECINUEVE'];
+    letras += especiales[unidades] + ' ';
+  } else if (decenas === 2 && unidades > 0) {
+    letras += 'VEINTI' + Unidades[unidades] + ' ';
+  } else if (decenas > 0) {
+    letras += Decenas[decenas] + (unidades > 0 ? ' Y ' : ' ') + (unidades > 0 ? Unidades[unidades] : '');
+  } else if (unidades > 0) {
+    letras += Unidades[unidades];
+  }
+  return letras.trim();
+}
+
+function montoEnLetras(numero) {
+    numero = Math.floor(numero);
+    if(numero === 0) return 'CERO PESOS DOMINICANOS';
+    if(numero < 1000) return numeroALetras(numero) + ' PESOS DOMINICANOS';
+    if(numero < 1000000) {
+        let miles = Math.floor(numero / 1000);
+        let resto = numero % 1000;
+        let texto = (miles === 1 ? 'MIL' : numeroALetras(miles) + ' MIL');
+        if(resto > 0) texto += ' ' + numeroALetras(resto);
+        return texto + ' PESOS DOMINICANOS';
+    }
+    let millones = Math.floor(numero / 1000000);
+    let restoMillones = numero % 1000000;
+    let texto = (millones === 1 ? 'UN MILLON' : numeroALetras(millones) + ' MILLONES');
+    if(restoMillones > 0) {
+        if(restoMillones < 1000) texto += ' ' + numeroALetras(restoMillones);
+        else {
+            let miles = Math.floor(restoMillones / 1000);
+            let resto = restoMillones % 1000;
+            texto += ' ' + (miles === 1 ? 'MIL' : numeroALetras(miles) + ' MIL');
+            if(resto > 0) texto += ' ' + numeroALetras(resto);
+        }
+    }
+    return texto + ' PESOS DOMINICANOS';
+}
+
+
+function renderContratos() {
+  var cont = document.getElementById('listaContratosDiv');
+  if (!cont) return;
+  
+  var busqueda = (document.getElementById('inputBusquedaContrato') || {}).value || '';
+  busqueda = busqueda.toLowerCase().trim();
+
+  // Filtrar préstamos que ya existen en el sistema
+  var prestamosFiltrados = prestamosDB.filter(function(p) {
+    var cliente = clientesDB.find(function(c) { return c.id == p.clienteId; });
+    if (!cliente) return false;
+    var match = cliente.nombre.toLowerCase().indexOf(busqueda) !== -1 || (cliente.cedula && cliente.cedula.indexOf(busqueda) !== -1);
+    return match;
+  }).sort(function(a, b) { return b.id - a.id; }); // Ordenar del más reciente al más viejo
+
+  if (prestamosFiltrados.length === 0) {
+    cont.innerHTML = '<p style="color:#64748b; grid-column: 1 / -1; text-align:center; padding:20px;">No se encontraron contratos registrados.</p>';
+    return;
+  }
+
+  cont.innerHTML = prestamosFiltrados.map(function(p) {
+    var cliente = clientesDB.find(function(c) { return c.id == p.clienteId; });
+    // Verificar si ya tiene firma
+    var firmado = p.firma ? '<span style="color:var(--success); font-weight:700;">✅ Firmado</span>' : '<span style="color:var(--warning); font-weight:700;">⚠️ Sin Firma</span>';
+    
+    return '<div style="background:#fff; padding:14px; border-radius:10px; border:1px solid #e2e8f0; border-left:5px solid var(--primary); box-shadow:0 2px 5px rgba(0,0,0,0.05);">' +
+      '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">' +
+        '<strong style="font-size:1rem; color:#1e293b;">📄 ' + cliente.nombre + '</strong>' +
+      '</div>' +
+      '<div style="font-size:0.8rem; color:#475569; margin-bottom:10px;">' +
+        '🆔 Cédula: ' + cliente.cedula + '<br>' +
+        '💰 Monto: <strong>RD$ ' + p.monto.toFixed(2) + '</strong><br>' +
+        '📅 Inicio: ' + p.fechaInicio + '<br>' +
+        'Estado: ' + firmado +
+      '</div>' +
+      '<button class="btn btn-primary btn-sm" style="width:100%;" onclick="verContratoLegal(' + p.id + ')">⚖️ Ver Contrato Legal</button>' +
+    '</div>';
+  }).join('');
+}
+
+function verContratoLegal(prestamoId) {
+  var p = prestamosDB.find(function(item) { return item.id == prestamoId; });
+  if (!p) return alert("Préstamo no encontrado");
+  
+  var cliente = clientesDB.find(function(c) { return c.id == p.clienteId; });
+  if (!cliente) return alert("Cliente no encontrado");
+
+  var montoLetras = montoEnLetras(p.monto);
+  var fechaEmision = p.fechaInicio;
+  var fechaVenc = p.fechaTermino || 'N/A';
+  var idContrato = 'PSC-' + String(p.id).slice(-6);
+  
+  // Descomponer fecha para el párrafo final (AAAA-MM-DD)
+  var partesFecha = fechaEmision.split('-');
+  var anio = partesFecha.length === 3 ? partesFecha[0] : new Date().getFullYear();
+  var mesNum = partesFecha.length === 3 ? parseInt(partesFecha[1]) : (new Date().getMonth() + 1);
+  var dia = partesFecha.length === 3 ? partesFecha[2] : new Date().getDate();
+  
+  var meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+  var mesLetras = meses[mesNum - 1] || '';
+
+  var firmaHtml = p.firma ? '<img src="' + p.firma + '" style="max-height:60px; display:block; margin:auto;">' : '__________________________';
+
+  var html = `
+    <!-- ENCABEZADO / TABLA -->
+    <table style="width:100%; border-collapse: collapse; margin-bottom: 20px; font-size: 14px;">
+      <tr>
+        <td style="border: 1px solid #000; padding: 8px;"><strong>N° Contrato / ID:</strong><br>${idContrato}</td>
+        <td style="border: 1px solid #000; padding: 8px;"><strong>Fecha Emisión:</strong><br>${fechaEmision}</td>
+        <td style="border: 1px solid #000; padding: 8px;"><strong>Monto Aprobado:</strong><br>RD$ ${p.monto.toFixed(2)}</td>
+        <td style="border: 1px solid #000; padding: 8px;"><strong>Fecha Vencimiento:</strong><br>${fechaVenc}</td>
+      </tr>
+    </table>
+
+    <h2 style="text-align: center; font-size: 18px; margin-bottom: 20px;">CONTRATO DE PRÉSTAMO</h2>
+
+    <p style="margin-bottom: 15px;">Entre los suscritos a saber: De una parte, <strong>PERDOMO SOVEREIGN CAPITAL</strong>, sociedad comercial debidamente organizada y existente de conformidad con las leyes de la República Dominicana, constituida en San Francisco de Macorís, República Dominicana, quien para los fines y consecuencias legales del presente contrato se denominará <strong>EL ACREEDOR</strong>; y de la otra parte:</p>
+
+    <table style="width:100%; border-collapse: collapse; margin-bottom: 20px; font-size: 14px;">
+      <tr>
+        <td style="border: 1px solid #000; padding: 8px;"><strong>Deudor(a):</strong> ${cliente.nombre}</td>
+        <td style="border: 1px solid #000; padding: 8px;"><strong>Cédula Identidad:</strong> ${cliente.cedula}</td>
+      </tr>
+      <tr>
+        <td colspan="2" style="border: 1px solid #000; padding: 8px;"><strong>Domicilio / Dirección:</strong> ${cliente.direccion}</td>
+      </tr>
+    </table>
+
+    <p style="margin-bottom: 15px;">Quien en lo que sigue del presente acto se denominará <strong>EL DEUDOR</strong>. Las partes, en plena capacidad legal para obligarse y contratar, han convenido el siguiente contrato privado sujeto a las cláusulas descritas a continuación:</p>
+
+    <p style="margin-bottom: 10px;"><strong>1. PRIMERO (OBJETO Y MONTO):</strong> EL ACREEDOR entrega a título de préstamo de consumo en favor de EL DEUDOR, quien acepta a su entera satisfacción, la suma total de <strong>RD$ ${p.monto.toFixed(2)} (${montoLetras})</strong>. EL DEUDOR reconoce haber recibido dicha suma formalmente en la fecha consignada.</p>
+
+    <p style="margin-bottom: 10px;"><strong>2. SEGUNDO (PLAZOS Y VENCIMIENTO):</strong> EL DEUDOR se compromete a saldar la totalidad del capital junto a sus cargas financieras pactadas a más tardar el día <strong>${fechaVenc}</strong>. Los pagos se realizarán de forma regular según el calendario establecido en su hoja de ruta/sistema.</p>
+
+    <p style="margin-bottom: 10px;"><strong>3. TERCERO (DOMICILIO Y COBRO):</strong> Se establece formalmente como domicilio de cobro y cumplimiento de pago la dirección registrada de EL DEUDOR en <strong>${cliente.direccion}</strong>, o en su defecto, los canales y cuentas autorizadas por EL ACREEDOR.</p>
+
+    <p style="margin-bottom: 10px;"><strong>4. CUARTO (MORA E INCUMPLIMIENTO):</strong> La falta de pago de una (1) o más cuotas en las fechas acordadas constituirá a EL DEUDOR en mora de pleno derecho sin necesidad de requerimiento judicial previa. Esto facultará a EL ACREEDOR a exigir el cobro inmediato de la totalidad del saldo insoluto.</p>
+
+    <p style="margin-bottom: 20px;"><strong>5. QUINTO (VALOR PROBATORIO Y EJECUCIÓN):</strong> El presente documento firmante tiene fuerza obligatoria de acuerdo con las disposiciones del Código Civil de la República Dominicana, sirviendo el mismo como título formal de crédito.</p>
+
+    <p style="margin-bottom: 30px;">Hecho y firmado de buena fe en dos (2) ejemplares de un mismo tenor y efecto legal, en la ciudad de San Francisco de Macorís, República Dominicana, a los <strong>${dia}</strong> días del mes de <strong>${mesLetras}</strong> del año <strong>${anio}</strong>.</p>
+
+    <div style="display: flex; justify-content: space-between; margin-top: 60px; text-align: center;">
+      <div style="width: 45%;">
+        <br><br>
+        <p style="border-top: 1px solid #000; padding-top: 5px;"><strong>EL ACREEDOR</strong><br>PERDOMO SOVEREIGN CAPITAL<br>Firma Autorizada / Sello</p>
+      </div>
+      <div style="width: 45%;">
+        ${firmaHtml}
+        <p style="border-top: 1px solid #000; padding-top: 5px;"><strong>EL DEUDOR</strong><br>${cliente.nombre}<br>Cédula: ${cliente.cedula}</p>
+      </div>
+    </div>
+
+    <div style="margin-top: 40px; font-size: 11px; text-align: center; border-top: 1px dashed #999; padding-top: 10px;">
+      <strong>ACTO DE LEGALIZACIÓN DE FIRMAS (OPCIONAL NOTARIAL):</strong> Yo, Notario Público para los del Número del Municipio de San Francisco de Macorís, CERTIFICO y DOY FE que las firmas que anteceden fueron puestas en mi presencia libre y voluntariamente por las partes contratantes expresadas arriba, personas a quienes doy fe de conocer.
+    </div>
+  `;
+
+  document.getElementById('contenidoContratoHTML').innerHTML = html;
+  document.getElementById('vistaListaContratos').style.display = 'none';
+  document.getElementById('vistaContratoImpresion').style.display = 'block';
+}
+
+function cerrarContrato() {
+  document.getElementById('vistaContratoImpresion').style.display = 'none';
+  document.getElementById('vistaListaContratos').style.display = 'block';
+}
+
+
+
+
+
+
+
+
 </script>
 
 </body>
