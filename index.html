@@ -972,8 +972,7 @@ function redondear(num) {
 <button class="sidebar-btn" onclick="showTabFromMenu('buroCreditoTab')">🏦 Buró de Crédito (Score)</button>
 <!-- FIN DEL BOTÓN -->
 
-<button class="sidebar-btn solo-super-admin" onclick="showTabFromMenu('superAdminTab')" style="background:#eff6ff; color:var(--primary); display:none;">🏢 Actualizar y Crear Empresa</button>
-    
+
     
     
               
@@ -1787,7 +1786,7 @@ function redondear(num) {
                 </div>
                 <div class="form-group">
                   <label>Modalidad / Plazo Avanzado</label>
-                  <select id="editPrestamoPlazo" onchange="verificarModalidadEdit(); recalcalcularFechaTerminoEdit();">
+                  <select id="editPrestamoPlazo" onchange="verificarModalidadEdit(); recalcularFechaTerminoEdit();">
                     <option value="diario">Diario (Microcrédito Express)</option>
                     <option value="13_semanas">13 Semanas</option>
                     <option value="10_semanas">10 Semanas</option>
@@ -2225,7 +2224,7 @@ function redondear(num) {
 </div>
     
     
-!-- COBROS GENERALES (HISTORIAL COMPLETO) -->
+<!-- COBROS GENERALES (HISTORIAL COMPLETO) -->
       <div id="cobrosGeneralesTab" class="tab-content">
         <div class="card">
           <h3 style="color:var(--primary);">💰 Cobros Generales — Historial Completo</h3>
@@ -2245,6 +2244,74 @@ function redondear(num) {
   </div>
 
 
+<!-- ========== NUEVA PESTAÑA MAPA Y SEGUIMIENTO GPS ========== -->
+<div id="mapaTab" class="tab-content">
+  <div class="card" style="margin-bottom:12px;">
+    <h3 style="color:var(--primary); margin-bottom:8px;">🗺️ Mapa y Seguimiento en Tiempo Real</h3>
+    <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:10px;">
+      <span id="lblCobradoresEnLinea" style="font-weight:700; color:var(--success);">Cobradores en línea: 0</span>
+      <button class="btn btn-sm btn-success" onclick="centrarEnMiUbicacion()" style="width:auto;">🎯 Centrar en mi ubicación</button>
+      <button class="btn btn-sm btn-secondary" onclick="actualizarMapaCompleto()" style="width:auto;">🔄 Refrescar mapa</button>
+    </div>
+    <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:10px; font-size:0.85rem;">
+      <label><input type="checkbox" id="filtroMapaClientes" checked onchange="actualizarCapasMapa()"> 👤 Clientes</label>
+      <label><input type="checkbox" id="filtroMapaPrestamos" checked onchange="actualizarCapasMapa()"> 💰 Préstamos</label>
+      <label><input type="checkbox" id="filtroMapaCobros" checked onchange="actualizarCapasMapa()"> 💵 Cobros</label>
+      <label><input type="checkbox" id="filtroMapaNotas" checked onchange="actualizarCapasMapa()"> 📝 Notas</label>
+      <label><input type="checkbox" id="filtroMapaCobradores" checked onchange="actualizarCapasMapa()"> 🏍️ Cobradores en vivo</label>
+    </div>
+  </div>
+
+  <div id="mapaContainer" style="display:flex; flex-direction:row; gap:12px; flex-wrap:wrap;">
+    <div id="mapaLeaflet" style="flex:1 1 65%; min-height:420px; height:65vh; border-radius:12px; border:1px solid var(--border); z-index:1;"></div>
+    
+    <div class="card" style="flex:1 1 280px; max-width:340px; max-height:65vh; overflow-y:auto;">
+      <h3 style="font-size:0.95rem;">🏍️ Cobradores activos</h3>
+      <div id="listaCobradoresMapa" style="font-size:0.85rem; margin-bottom:12px;"></div>
+      
+      <div class="form-group">
+        <label>Ver ruta de cobrador</label>
+        <select id="selectCobradorRuta" onchange="cargarRutaCobradorSeleccionado()">
+          <option value="">-- Seleccionar --</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Período de ruta</label>
+        <select id="selectPeriodoRuta" onchange="cargarRutaCobradorSeleccionado()">
+          <option value="hoy">Hoy</option>
+          <option value="ayer">Ayer</option>
+          <option value="semana">Última semana</option>
+        </select>
+      </div>
+      <div id="infoRutaSeleccionada" style="font-size:0.8rem; color:var(--text-muted); margin-bottom:10px;"></div>
+      
+      <button class="btn btn-sm btn-success" onclick="guardarRecorridoActual()" style="margin-bottom:6px;">💾 Guardar Recorrido</button>
+      <button class="btn btn-sm btn-secondary" onclick="descargarRecorrido('gpx')" style="margin-bottom:4px;">📥 Descargar GPX</button>
+      <button class="btn btn-sm btn-secondary" onclick="descargarRecorrido('kml')" style="margin-bottom:4px;">📥 Descargar KML</button>
+      <button class="btn btn-sm btn-secondary" onclick="descargarRecorrido('csv')">📥 Descargar CSV</button>
+    </div>
+  </div>
+  
+  <div id="gpsIndicator" style="display:none; position:fixed; bottom:90px; left:50%; transform:translateX(-50%); background:var(--success); color:white; padding:8px 16px; border-radius:20px; font-size:0.8rem; font-weight:700; z-index:1500; box-shadow:0 4px 12px rgba(0,0,0,0.25);">
+    🛰️ GPS activo — Enviando ubicación cada 30s
+  </div>
+</div>
+
+<style>
+  @media (max-width: 768px) {
+    #mapaContainer { flex-direction: column !important; }
+    #mapaLeaflet { height: 50vh !important; min-height: 300px !important; width: 100% !important; }
+    #mapaContainer .card { max-width: 100% !important; max-height: none !important; }
+  }
+  .leaflet-marker-icon.pulsante {
+    animation: pulse-red 1.5s infinite;
+  }
+  @keyframes pulse-red {
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.25); opacity: 0.75; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+</style>
 
 
 
@@ -2795,6 +2862,7 @@ var rolUsuarioActual = '';
 var nombreUsuarioActual = '';
 var zonaUsuarioActual = '';
 
+var loginPendiente2FA = null;
 var clientesDB = [];
 var prestamosDB = [];
 var cobrosDB = [];
@@ -3474,230 +3542,9 @@ async function guardarCobradorCalle(e) {
   }
 }
 
-     function renderCobradoresAdmin() {
-  var cont = document.getElementById('listaCobradoresDiv');
-  var checkContainer = document.getElementById('checkZonasAsignadas');
-  if(checkContainer) {
-    checkContainer.innerHTML = zonasDB.map(function(z) {
-      var numText = z.numero ? '#' + z.numero + ' - ' : '';
-      return '<label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" name="chkZonas" value="' + z.nombre + '"> ' + numText + z.nombre + ' (' + z.dia + ')</label>';
-    }).join('');
-  }
-
-  if(!cont) return;
-  if(cobradoresDB.length === 0) {
-    cont.innerHTML = '<p style="font-size:0.85rem; color:#475569;">No hay cobradores registrados.</p>';
-    return;
-  }
-  cont.innerHTML = cobradoresDB.map(function(c) {
-    return '<div style="background:#f8fafc; padding:10px; border-radius:6px; margin-top:6px; border:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; font-size:0.85rem;">' +
-      '<div><strong>🏍️ ' + c.nombre + '</strong><br><small style="color:var(--accent);">Zonas: ' + (c.zonas ? c.zonas.join(', ') : 'Ninguna') + '</small></div>' +
-      '<div style="display:flex; gap:6px;">' +
-        '<button class="btn btn-warning btn-sm" onclick="abrirModalEditarCobrador(' + c.id + ')">✏️</button>' +
-        '<button class="btn btn-danger btn-sm" onclick="eliminarCobrador(' + c.id + ')">🗑️</button>' +
-      '</div>' +
-    '</div>';
-  }).join('');
-}
-
-function abrirModalEditarCobrador(id) {
-  var c = cobradoresDB.find(function(item) { return item.id === id; });
-  if (!c) return;
-  document.getElementById('editCobId').value = c.id;
-  document.getElementById('editCobNombre').value = c.nombre;
-  document.getElementById('editCobPassword').value = c.password;
-
-  var checkContainer = document.getElementById('checkEditZonasAsignadas');
-  checkContainer.innerHTML = zonasDB.map(function(z) {
-    var numText = z.numero ? '#' + z.numero + ' - ' : '';
-    var isChecked = c.zonas && c.zonas.includes(z.nombre) ? 'checked' : '';
-    return '<label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" name="chkEditZonas" value="' + z.nombre + '" ' + isChecked + '> ' + numText + z.nombre + '</label>';
-  }).join('');
-
-  document.getElementById('modalEditarCobradorBox').style.display = 'flex';
-}
-
-function cerrarModalEditarCobrador() {
-  document.getElementById('modalEditarCobradorBox').style.display = 'none';
-}
-
-function guardarEdicionCobradorForm(e) {
-  e.preventDefault();
-  var id = parseInt(document.getElementById('editCobId').value);
-  var c = cobradoresDB.find(function(item) { return item.id === id; });
-  if (c) {
-    c.nombre = document.getElementById('editCobNombre').value.trim();
-    var newCobPass = document.getElementById('editCobPassword').value.trim();
-    c.password = isPasswordHashed(newCobPass) ? newCobPass : hashPassword(newCobPass);
-    var checkboxes = document.querySelectorAll('input[name="chkEditZonas"]:checked');
-    var zonasSeleccionadas = [];
-    checkboxes.forEach(function(ch) { zonasSeleccionadas.push(ch.value); });
-    c.zonas = zonasSeleccionadas;
-
-    guardarDatosEnNube();
-    cerrarModalEditarCobrador();
-    alert("Cobrador actualizado con éxito.");
-    renderCobradoresAdmin();
-    renderEmpleadosAdmin();
-    cargarFiltroZonasClientes();
-  }
-}
-
-function eliminarCobrador(id) {
-  if(confirm("¿Estás seguro de eliminar este cobrador?")) {
-    cobradoresDB = cobradoresDB.filter(function(c) { return c.id !== id; });
-    guardarDatosEnNube();
-    renderCobradoresAdmin();
-    renderEmpleadosAdmin();
-    cargarFiltroZonasClientes();
-  }
-}
-
-// ========== FUNCIONES DE EMPLEADOS ==========
-function guardarEmpleadoOficina(e) {
-  e.preventDefault();
-  var nombre = document.getElementById('empNombre').value.trim();
-  var password = document.getElementById('empPassword').value.trim();
-  
-  var checkboxesCobs = document.querySelectorAll('input[name="chkCobs"]:checked');
-  var cobsSeleccionados = [];
-  checkboxesCobs.forEach(function(ch) { cobsSeleccionados.push(ch.value); });
-
-  var checkboxesRutas = document.querySelectorAll('input[name="chkRutasEmp"]:checked');
-  var rutasSeleccionadas = [];
-  checkboxesRutas.forEach(function(ch) { rutasSeleccionadas.push(ch.value); });
-
-  empleadosDB.push({
-    id: Date.now(),
-    nombre: nombre,
-    password: hashPassword(password),
-    cobradoresAsignados: cobsSeleccionados,
-    rutasAsignadas: rutasSeleccionadas
-  });
-
-  guardarDatosEnNube();
-  document.getElementById('empNombre').value = '';
-  document.getElementById('empPassword').value = '';
-  alert("Empleado registrado con exito.");
-  renderEmpleadosAdmin();
-  cargarFiltroZonasClientes();
-}
-
-function renderEmpleadosAdmin() {
-  var cont = document.getElementById('listaEmpleadosDiv');
-  var checkContainerCobs = document.getElementById('checkCobradoresAsignados');
-  var checkContainerRutas = document.getElementById('checkRutasAsignadasEmpleado');
-
-  if(checkContainerCobs) {
-    if(cobradoresDB.length === 0) {
-      checkContainerCobs.innerHTML = '<span style="color:#475569; font-size:0.8rem;">No hay cobradores registrados todavía.</span>';
-    } else {
-      checkContainerCobs.innerHTML = cobradoresDB.map(function(c) {
-        return '<label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" name="chkCobs" value="' + c.nombre + '"> ' + c.nombre + '</label>';
-      }).join('');
-    }
-  }
-
-  if(checkContainerRutas) {
-    if(zonasDB.length === 0) {
-      checkContainerRutas.innerHTML = '<span style="color:#475569; font-size:0.8rem;">No hay rutas registradas todavía.</span>';
-    } else {
-      checkContainerRutas.innerHTML = zonasDB.map(function(z) {
-        var numText = z.numero ? '#' + z.numero + ' - ' : '';
-        return '<label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" name="chkRutasEmp" value="' + z.nombre + '"> ' + numText + z.nombre + '</label>';
-      }).join('');
-    }
-  }
-
-  if(!cont) return;
-  if(empleadosDB.length === 0) {
-    cont.innerHTML = '<p style="font-size:0.85rem; color:#475569;">No hay empleados registrados.</p>';
-    return;
-  }
-  cont.innerHTML = empleadosDB.map(function(e) {
-    var infoCobs = e.cobradoresAsignados && e.cobradoresAsignados.length > 0 ? e.cobradoresAsignados.join(', ') : 'Ninguno';
-    var infoRutas = e.rutasAsignadas && e.rutasAsignadas.length > 0 ? e.rutasAsignadas.join(', ') : 'Ninguna';
-    return '<div style="background:#f8fafc; padding:10px; border-radius:6px; margin-top:6px; border:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; font-size:0.85rem;">' +
-      '<div><strong>👥 ' + e.nombre + '</strong> (Asistente RBAC)<br><small style="color:var(--success);">Cobradores: ' + infoCobs + '<br>Rutas: ' + infoRutas + '</small></div>' +
-      '<div style="display:flex; gap:6px;">' +
-        '<button class="btn btn-warning btn-sm" onclick="abrirModalEditarEmpleado(' + e.id + ')">✏️</button>' +
-        '<button class="btn btn-danger btn-sm" onclick="eliminarEmpleado(' + e.id + ')">🗑️</button>' +
-      '</div>' +
-    '</div>';
-  }).join('');
-}
-
-function abrirModalEditarEmpleado(id) {
-  var e = empleadosDB.find(function(item) { return item.id === id; });
-  if (!e) return;
-  document.getElementById('editEmpId').value = e.id;
-  document.getElementById('editEmpNombre').value = e.nombre;
-  document.getElementById('editEmpPassword').value = e.password;
-
-  var checkContainerCobs = document.getElementById('checkEditCobradoresAsignados');
-  if (cobradoresDB.length === 0) {
-    checkContainerCobs.innerHTML = '<span style="color:#475569; font-size:0.8rem;">No hay cobradores registrados.</span>';
-  } else {
-    checkContainerCobs.innerHTML = cobradoresDB.map(function(c) {
-      var isChecked = e.cobradoresAsignados && e.cobradoresAsignados.includes(c.nombre) ? 'checked' : '';
-      return '<label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" name="chkEditCobs" value="' + c.nombre + '" ' + isChecked + '> ' + c.nombre + '</label>';
-    }).join('');
-  }
-
-  var checkContainerRutas = document.getElementById('checkEditRutasAsignadasEmpleado');
-  if (zonasDB.length === 0) {
-    checkContainerRutas.innerHTML = '<span style="color:#475569; font-size:0.8rem;">No hay rutas registradas.</span>';
-  } else {
-    checkContainerRutas.innerHTML = zonasDB.map(function(z) {
-      var numText = z.numero ? '#' + z.numero + ' - ' : '';
-      var isChecked = e.rutasAsignadas && e.rutasAsignadas.includes(z.nombre) ? 'checked' : '';
-      return '<label style="display:flex; align-items:center; gap:6px; cursor:pointer;"><input type="checkbox" name="chkEditRutasEmp" value="' + z.nombre + '" ' + isChecked + '> ' + numText + z.nombre + '</label>';
-    }).join('');
-  }
-
-  document.getElementById('modalEditarEmpleadoBox').style.display = 'flex';
-}
-
-function cerrarModalEditarEmpleado() {
-  document.getElementById('modalEditarEmpleadoBox').style.display = 'none';
-}
-
-function guardarEdicionEmpleadoForm(e) {
-  e.preventDefault();
-  var id = parseInt(document.getElementById('editEmpId').value);
-  var emp = empleadosDB.find(function(item) { return item.id === id; });
-  if (emp) {
-    emp.nombre = document.getElementById('editEmpNombre').value.trim();
-    var newEmpPass = document.getElementById('editEmpPassword').value.trim();
-    emp.password = isPasswordHashed(newEmpPass) ? newEmpPass : hashPassword(newEmpPass);
-    
-    var checkboxesCobs = document.querySelectorAll('input[name="chkEditCobs"]:checked');
-    var cobsSeleccionados = [];
-    checkboxesCobs.forEach(function(ch) { cobsSeleccionados.push(ch.value); });
-    emp.cobradoresAsignados = cobsSeleccionados;
-
-    var checkboxesRutas = document.querySelectorAll('input[name="chkEditRutasEmp"]:checked');
-    var rutasSeleccionadas = [];
-    checkboxesRutas.forEach(function(ch) { rutasSeleccionadas.push(ch.value); });
-    emp.rutasAsignadas = rutasSeleccionadas;
-
-    guardarDatosEnNube();
-    cerrarModalEditarEmpleado();
-    alert("Empleado actualizado con éxito.");
-    renderEmpleadosAdmin();
-    cargarFiltroZonasClientes();
-  }
-}
-
-function eliminarEmpleado(id) {
-  if(confirm("¿Estás seguro de eliminar este empleado?")) {
-    empleadosDB = empleadosDB.filter(function(e) { return e.id !== id; });
-    guardarDatosEnNube();
-    renderEmpleadosAdmin();
-    cargarFiltroZonasClientes();
-  }
-}
      
+     
+       
             
     function refrescarTodaLaInterfaz() {
       verificarPermisoBloqueoRuta();
@@ -3964,20 +3811,7 @@ function refrescarUIRealtime() {
   } catch (e) { console.warn('UI refresh realtime:', e); }
 }
 
-function actualizarBadgeSync(estado) {
-  const badge = document.getElementById('badgeSyncStatus');
-  if (!badge) return;
-  if (estado === 'ok') {
-    badge.textContent = '☁️ Sincronizado';
-    badge.style.background = 'rgba(22,163,74,0.85)';
-  } else if (estado === 'error') {
-    badge.textContent = '⚠️ Sin sync';
-    badge.style.background = 'rgba(220,38,38,0.85)';
-  } else {
-    badge.textContent = '💾 Local';
-    badge.style.background = 'rgba(255,255,255,0.15)';
-  }
-}
+
     
  
                                                                                     
@@ -4231,34 +4065,6 @@ async function realizarLogin(e) {
     return;
   }
 
-  var claveMaestra = (password === 'Admin21' || password === 'SuperAdmin21' || password === 'admin21');
-
-  
-  
-  if (rol === 'SuperAdmin') {
-  if (claveMaestra || password === 'SuperAdmin21') {
-    empresaActual = empresaNombre; // ✅ ¡ESTA LÍNEA FALTABA!
-    var empObjSuper = empresasGlobalesDB.find(function(e) { return e.nombre === empresaNombre; });
-empresaIdActual = empObjSuper ? empObjSuper.id : null;
-    
-    
-    
-    
-    rolUsuarioActual = 'SuperAdmin';
-    nombreUsuarioActual = 'Super Administrador';
-    zonaUsuarioActual = 'Todas las Zonas (Global)';
-    document.getElementById('loginScreen').style.display = 'none';
-    localStorage.setItem('psc_empresa_activa', empresaActual); // ✅ ¡ESTA TAMBIÉN!
-    localStorage.setItem('psc_sesion_activa', 'true');
-    if (typeof guardarSesionLocal === 'function') guardarSesionLocal();
-    return;
-  }
-  
-  
-    alert('Contraseña de Super Admin incorrecta.');
-    return;
-  }
-
   var nombrePersona = '';
   var zonaPersona = '';
   if (rol === 'cobrador' || rol === 'empleado') {
@@ -4285,6 +4091,7 @@ empresaIdActual = empObjSuper ? empObjSuper.id : null;
   }
 
   try {
+    // 1. PRIMERO DESCARGAMOS LA EMPRESA DE SUPABASE
     var { data: empresa, error: errEmp } = await supabase
       .from('empresas')
       .select('*')
@@ -4302,11 +4109,43 @@ empresaIdActual = empObjSuper ? empObjSuper.id : null;
       return;
     }
 
-    if (rol === 'Administrador' || rol === 'admin') {
-      var storedPass = empresa.password_hash || empresa.passwordAdmin || 'Admin21';
-      var passOk = claveMaestra || (typeof verifyPassword === 'function' ? verifyPassword(password, storedPass) : password === storedPass);
-      
+    // 2. AHORA VALIDAMOS SUPERADMIN (El código que querías poner)
+    if (rol === 'SuperAdmin') {
+      var storedPass = empresa.password_hash || empresa.passwordAdmin;
+      if (!storedPass) {
+        alert('Error: Esta empresa no tiene contraseña configurada.');
+        return;
+      }
+      var passOk = (typeof verifyPassword === 'function') 
+        ? verifyPassword(password, storedPass) 
+        : (password === storedPass);
+
       if (passOk) {
+        empresaActual = empresaNombre;
+        var empObjSuper = empresasGlobalesDB.find(function(e) { return e.nombre === empresaNombre; });
+        empresaIdActual = empObjSuper ? empObjSuper.id : empresa.id;
+        
+        rolUsuarioActual = 'SuperAdmin';
+        nombreUsuarioActual = 'Super Administrador';
+        zonaUsuarioActual = 'Todas las Zonas (Global)';
+        
+        document.getElementById('loginScreen').style.display = 'none';
+        localStorage.setItem('psc_empresa_activa', empresaActual);
+        localStorage.setItem('psc_sesion_activa', 'true');
+        
+        if (typeof guardarSesionLocal === 'function') guardarSesionLocal();
+        return;
+      }
+      alert('Contraseña de Super Admin incorrecta.');
+      return;
+    }
+
+    // 3. VALIDAR ADMINISTRADOR
+    if (rol === 'Administrador' || rol === 'admin') {
+      var storedPassAdmin = empresa.password_hash || empresa.passwordAdmin;
+      var passOkAdmin = (typeof verifyPassword === 'function') ? verifyPassword(password, storedPassAdmin) : (password === storedPassAdmin);
+          
+      if (passOkAdmin) {
         if (typeof clearLoginAttempts === 'function') clearLoginAttempts(rateKey);
 
         var sesion = {
@@ -4319,7 +4158,7 @@ empresaIdActual = empObjSuper ? empObjSuper.id : null;
         };
         localStorage.setItem('psc_sesion', JSON.stringify(sesion));
         localStorage.setItem('psc_empresa_activa', empresa.nombre);
-        localStorage.setItem('psc_sesion_activa', 'true'); // FIX: Evita que pida login al recargar
+        localStorage.setItem('psc_sesion_activa', 'true');
 
         empresaActual = empresa.nombre;
         empresaIdActual = empresa.id;
@@ -4331,9 +4170,7 @@ empresaIdActual = empObjSuper ? empObjSuper.id : null;
         document.getElementById('loginScreen').style.display = 'none';
         alert('¡Bienvenido Administrador de ' + empresa.nombre + '!');
 
-        if (typeof sincronizarConNube === 'function') {
-          sincronizarConNube();
-        }
+        if (typeof sincronizarConNube === 'function') sincronizarConNube();
         return;
       }
       if (typeof registerFailedLogin === 'function') registerFailedLogin(rateKey);
@@ -4341,10 +4178,8 @@ empresaIdActual = empObjSuper ? empObjSuper.id : null;
       return;
     }
 
-        // --- CASO 3 & 4: EMPLEADOS O COBRADORES ---
+    // 4. VALIDAR EMPLEADOS Y COBRADORES
     var usuarioDB = null;
-
-    // 1. Intentar buscar en Supabase primero (Buscamos en cobradores y empleados)
     try {
       if (rol === 'cobrador' && supabase) {
         var { data: cobCloud } = await supabase.from('cobradores').select('*').eq('empresa_id', empresa.id).eq('nombre', nombrePersona).single();
@@ -4354,35 +4189,26 @@ empresaIdActual = empObjSuper ? empObjSuper.id : null;
         if (empCloud) usuarioDB = empCloud;
       }
     } catch (e) {
-      console.log("No se encontró en la nube, buscando en local...");
+      console.log("Buscando en local...");
     }
 
-    // 2. Si no está en Supabase (o falló la red), buscar en Local
     if (!usuarioDB) {
-      if (rol === 'cobrador') {
-        usuarioDB = cobradoresDB.find(function(c) { return c.nombre === nombrePersona; });
-      } else if (rol === 'empleado') {
-        usuarioDB = empleadosDB.find(function(e) { return e.nombre === nombrePersona; });
-      }
+      if (rol === 'cobrador') usuarioDB = cobradoresDB.find(function(c) { return c.nombre === nombrePersona; });
+      else if (rol === 'empleado') usuarioDB = empleadosDB.find(function(e) { return e.nombre === nombrePersona; });
     }
 
-    // 3. Validar si el usuario existe
     if (!usuarioDB) {
       if (typeof registerFailedLogin === 'function') registerFailedLogin(rateKey);
       alert('Usuario no encontrado en el sistema.');
       return;
     }
 
-    // 4. VALIDACIÓN ESTRICTA DE CONTRASEÑA (Siempre busca password_hash)
     var hashGuardado = usuarioDB.password_hash; 
     var passValidado = false;
 
-    if (claveMaestra) {
-      passValidado = true;
-    } else if (hashGuardado) {
+    if (hashGuardado) {
       passValidado = typeof verifyPassword === 'function' ? verifyPassword(password, hashGuardado) : (password === hashGuardado);
     } else {
-      // Si por alguna razón antigua no hay hash, comparamos texto plano (pero esto ya no debería pasar)
       passValidado = (password === usuarioDB.password);
     }
 
@@ -4394,39 +4220,34 @@ empresaIdActual = empObjSuper ? empObjSuper.id : null;
 
     if (typeof clearLoginAttempts === 'function') clearLoginAttempts(rateKey);
 
-    // 5. Flujo de 2FA para cobradores
-if (rol === 'cobrador') {
-  loginPendiente2FA = { empresa: empresa, rol: rol, nombre: nombrePersona, zona: zonaPersona || '' };
-  
-  // --- DIAGNÓSTICO (Para ver en consola si el elemento existe) ---
-  console.log("Revisando elemento lbl2FACobrador:", document.getElementById('lbl2FACobrador'));
+    // FLUJO 2FA PARA COBRADOR
+    if (rol === 'cobrador') {
+      loginPendiente2FA = { empresa: empresa, rol: rol, nombre: nombrePersona, zona: zonaPersona || '' };
+      
+      var elCobrador = document.getElementById('lbl2FACobrador');
+      if (elCobrador) elCobrador.innerText = nombrePersona;
 
-  // Verificamos si los elementos existen antes de usarlos (Así evitamos el error null)
-  var elCobrador = document.getElementById('lbl2FACobrador');
-  if (elCobrador) elCobrador.innerText = nombrePersona;
+      var elZona = document.getElementById('lbl2FAZona');
+      if (elZona) elZona.innerText = loginPendiente2FA.zona || '';
 
-  var elZona = document.getElementById('lbl2FAZona');
-  if (elZona) elZona.innerText = loginPendiente2FA.zona || '';
+      await solicitarCodigoJornada(nombrePersona, loginPendiente2FA.zona || '');
 
-  await solicitarCodigoJornada(nombrePersona, loginPendiente2FA.zona || '');
+      var loginScreen = document.getElementById('loginScreen');
+      if (loginScreen) loginScreen.style.display = 'none';
 
-  var loginScreen = document.getElementById('loginScreen');
-  if (loginScreen) loginScreen.style.display = 'none';
+      var modal2FA = document.getElementById('modal2FAJornada');
+      if (modal2FA) {
+          modal2FA.style.display = 'flex';
+          var input2FA = document.getElementById('input2FAJornada');
+          if (input2FA) input2FA.focus();
+      } else {
+          alert("Aviso: El modal visual de 2FA no se encontró, pero el login continuará.");
+          if (typeof confirmar2FAJornada === 'function') confirmar2FAJornada(); 
+      }
+      return;
+    }
 
-  var modal2FA = document.getElementById('modal2FAJornada');
-  if (modal2FA) {
-      modal2FA.style.display = 'flex';
-      var input2FA = document.getElementById('input2FAJornada');
-      if (input2FA) input2FA.focus();
-  } else {
-      // Si por alguna razón el HTML del modal no está, esto evita que la app se congele
-      alert("Aviso: El modal visual de 2FA no se encontró, pero el login continuará.");
-      if (typeof confirmar2FAJornada === 'function') confirmar2FAJornada(); 
-  }
-  return;
-}
-
-    // 6. Login exitoso para empleados (Crea la sesión)
+    // LOGIN EXITOSO EMPLEADO
     var sesionUsuario = {
       empresa_id: empresa.id,
       empresa_nombre: empresa.nombre,
@@ -4443,7 +4264,6 @@ if (rol === 'cobrador') {
 
     empresaActual = empresa.nombre;
     empresaIdActual = empresa.id;
-   
     rolUsuarioActual = rol;
     nombreUsuarioActual = nombrePersona;
     zonaUsuarioActual = zonaPersona || (usuarioDB.zonas ? usuarioDB.zonas[0] : '');
@@ -4452,9 +4272,7 @@ if (rol === 'cobrador') {
     document.getElementById('loginScreen').style.display = 'none';
     alert('¡Bienvenido ' + nombreUsuarioActual + ' (' + rol + ')!');
 
-    if (typeof sincronizarConNube === 'function') {
-      sincronizarConNube();
-    }
+    if (typeof sincronizarConNube === 'function') sincronizarConNube();
 
   } catch (error) {
     console.error('Error crítico en login:', error);
@@ -4577,8 +4395,8 @@ function verificarPermisoEdicion() {
 
 async function pedirClaveBorrarTodo() {
 
-  var claveIngresada = prompt("Introduce la contraseña de Administrador (Admin21) para borrar TODOS los datos:");
-  if (claveIngresada !== "Admin21") {
+  var claveIngresada = prompt("Introduce la contraseña secreta para borrar TODOS los datos:");
+  if (claveIngresada !== "MiClaveMaestra2024") { // <-- Pon aquí tu clave secreta
     if (claveIngresada !== null) alert("Contraseña incorrecta.");
     return;
   }
@@ -5460,7 +5278,7 @@ if (tabId === 'resumen') {
           document.getElementById('editPlazoSemanasCustom').value = p.numCuotas;
           document.getElementById('editPlazoCuotaCustom').value = p.valorCuota;
         }
-        recalcalcularFechaTerminoEdit();
+        recalcularFechaTerminoEdit();
       } else {
         document.getElementById('editPrestamoFechaTermino').value = '-';
       }
@@ -5469,7 +5287,7 @@ if (tabId === 'resumen') {
       document.getElementById('seccionEditarCliente').style.display = 'block';
     }
 
-    function recalcalcularFechaTerminoEdit() {
+    function recalcularFechaTerminoEdit() {
       var fechaInicioVal = document.getElementById('editPrestamoFecha').value;
       var plazo = document.getElementById('editPrestamoPlazo').value;
       var numCuotas = (plazo === 'diario') ? 30 : ((plazo === '10_semanas') ? 10 : (plazo === 'quincenal' ? 6 : (plazo === 'mensual' ? 3 : (plazo === 'capital_final' ? 1 : (plazo === 'personalizado' ? (parseInt(document.getElementById('editPlazoSemanasCustom').value) || 1) : 13)))));
@@ -8310,19 +8128,6 @@ async function registrarPagoYEnviarWhatsApp(prestamoId, telefonoCliente, nombreC
   }
 }
 
-function toggleLoginPassword(e) {
-  if (e) { e.preventDefault(); e.stopPropagation(); }
-  var input = document.getElementById('loginPassword');
-  var btn = document.getElementById('btnTogglePassword');
-  if (!input) return;
-  if (input.type === 'password') {
-    input.type = 'text';
-    if (btn) { btn.textContent = '🙈'; btn.title = 'Ocultar contraseña'; }
-  } else {
-    input.type = 'password';
-    if (btn) { btn.textContent = '👁️'; btn.title = 'Ver contraseña'; }
-  }
-}
 
 
 // ========== IMPORTAR CLIENTES DESDE CSV ==========
@@ -8455,74 +8260,6 @@ function cancelar2FAJornada() {
 </script>
 
 
-<!-- ========== NUEVA PESTAÑA MAPA Y SEGUIMIENTO GPS ========== -->
-<div id="mapaTab" class="tab-content">
-  <div class="card" style="margin-bottom:12px;">
-    <h3 style="color:var(--primary); margin-bottom:8px;">🗺️ Mapa y Seguimiento en Tiempo Real</h3>
-    <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:10px;">
-      <span id="lblCobradoresEnLinea" style="font-weight:700; color:var(--success);">Cobradores en línea: 0</span>
-      <button class="btn btn-sm btn-success" onclick="centrarEnMiUbicacion()" style="width:auto;">🎯 Centrar en mi ubicación</button>
-      <button class="btn btn-sm btn-secondary" onclick="actualizarMapaCompleto()" style="width:auto;">🔄 Refrescar mapa</button>
-    </div>
-    <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:10px; font-size:0.85rem;">
-      <label><input type="checkbox" id="filtroMapaClientes" checked onchange="actualizarCapasMapa()"> 👤 Clientes</label>
-      <label><input type="checkbox" id="filtroMapaPrestamos" checked onchange="actualizarCapasMapa()"> 💰 Préstamos</label>
-      <label><input type="checkbox" id="filtroMapaCobros" checked onchange="actualizarCapasMapa()"> 💵 Cobros</label>
-      <label><input type="checkbox" id="filtroMapaNotas" checked onchange="actualizarCapasMapa()"> 📝 Notas</label>
-      <label><input type="checkbox" id="filtroMapaCobradores" checked onchange="actualizarCapasMapa()"> 🏍️ Cobradores en vivo</label>
-    </div>
-  </div>
-
-  <div id="mapaContainer" style="display:flex; flex-direction:row; gap:12px; flex-wrap:wrap;">
-    <div id="mapaLeaflet" style="flex:1 1 65%; min-height:420px; height:65vh; border-radius:12px; border:1px solid var(--border); z-index:1;"></div>
-    
-    <div class="card" style="flex:1 1 280px; max-width:340px; max-height:65vh; overflow-y:auto;">
-      <h3 style="font-size:0.95rem;">🏍️ Cobradores activos</h3>
-      <div id="listaCobradoresMapa" style="font-size:0.85rem; margin-bottom:12px;"></div>
-      
-      <div class="form-group">
-        <label>Ver ruta de cobrador</label>
-        <select id="selectCobradorRuta" onchange="cargarRutaCobradorSeleccionado()">
-          <option value="">-- Seleccionar --</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Período de ruta</label>
-        <select id="selectPeriodoRuta" onchange="cargarRutaCobradorSeleccionado()">
-          <option value="hoy">Hoy</option>
-          <option value="ayer">Ayer</option>
-          <option value="semana">Última semana</option>
-        </select>
-      </div>
-      <div id="infoRutaSeleccionada" style="font-size:0.8rem; color:var(--text-muted); margin-bottom:10px;"></div>
-      
-      <button class="btn btn-sm btn-success" onclick="guardarRecorridoActual()" style="margin-bottom:6px;">💾 Guardar Recorrido</button>
-      <button class="btn btn-sm btn-secondary" onclick="descargarRecorrido('gpx')" style="margin-bottom:4px;">📥 Descargar GPX</button>
-      <button class="btn btn-sm btn-secondary" onclick="descargarRecorrido('kml')" style="margin-bottom:4px;">📥 Descargar KML</button>
-      <button class="btn btn-sm btn-secondary" onclick="descargarRecorrido('csv')">📥 Descargar CSV</button>
-    </div>
-  </div>
-  
-  <div id="gpsIndicator" style="display:none; position:fixed; bottom:90px; left:50%; transform:translateX(-50%); background:var(--success); color:white; padding:8px 16px; border-radius:20px; font-size:0.8rem; font-weight:700; z-index:1500; box-shadow:0 4px 12px rgba(0,0,0,0.25);">
-    🛰️ GPS activo — Enviando ubicación cada 30s
-  </div>
-</div>
-
-<style>
-  @media (max-width: 768px) {
-    #mapaContainer { flex-direction: column !important; }
-    #mapaLeaflet { height: 50vh !important; min-height: 300px !important; width: 100% !important; }
-    #mapaContainer .card { max-width: 100% !important; max-height: none !important; }
-  }
-  .leaflet-marker-icon.pulsante {
-    animation: pulse-red 1.5s infinite;
-  }
-  @keyframes pulse-red {
-    0% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(1.25); opacity: 0.75; }
-    100% { transform: scale(1); opacity: 1; }
-  }
-</style>
 
 
 <!-- MODAL PARA PEGAR TEXTO -->
@@ -9869,10 +9606,6 @@ function cerrarContrato() {
   document.getElementById('vistaContratoImpresion').style.display = 'none';
   document.getElementById('vistaListaContratos').style.display = 'block';
 }
-
-
-
-
 
 
 
