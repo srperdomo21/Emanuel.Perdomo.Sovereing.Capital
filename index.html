@@ -670,6 +670,22 @@ function redondear(num) {
     .tab-content.active { display: block; }
 
     .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; overflow-y: auto; padding: 15px; }
+    
+    
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; overflow-y: auto; padding: 15px; }
+
+/* 🆕 ARREGLO PARA QUE LOS BOTONES SE VEAN EN EL CELULAR */
+#printRecibo {
+  align-items: flex-start !important;
+  padding-top: 30px !important;
+  padding-bottom: 50px !important;
+}
+    
+    
+    
+    
+    
+    
     .modal-box { background: white; padding: 25px; border-radius: 10px; max-width: 420px; width: 100%; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
 
     .signature-pad-container { border: 1px solid var(--border); border-radius: 6px; background: #fff; margin-top: 5px; touch-action: none; position: relative; }
@@ -731,12 +747,33 @@ function redondear(num) {
     }
 
     @media print {
-      body * { visibility: hidden; }
-      #printRecibo, #printRecibo *, #printContrato, #printContrato * { visibility: visible; }
-      #printRecibo, #printContrato { position: absolute; left: 0; top: 0; width: 100%; background: white; color: #000 !important; }
-      #printRecibo *, #printContrato * { color: #000 !important; }
-      .no-print { display: none !important; }
-    }
+  body * { visibility: hidden; }
+  
+  /* Solo hacer visible el recibo y el contrato */
+  #reciboImagenBox, #reciboImagenBox *, #printContrato, #printContrato * { visibility: visible; }
+  
+  /* Posicionar el recibo en la esquina superior izquierda */
+  #reciboImagenBox { 
+    position: absolute !important; 
+    left: 0 !important; 
+    top: 0 !important; 
+    width: 100% !important; 
+    max-width: 100% !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  #printContrato {
+    position: absolute !important; 
+    left: 0 !important; 
+    top: 0 !important; 
+    width: 100% !important; 
+  }
+  
+  .no-print { display: none !important; }
+}
     </style>
 
 
@@ -2846,7 +2883,7 @@ function redondear(num) {
         <br><br>
       </div>
       <br>
-      <button class="btn" onclick="window.print()">🖨️ Imprimir Térmico</button>
+      <button class="btn" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button>
       <button class="btn btn-warning" onclick="imprimirPorBluetooth('RECIBO')">📶 Imprimir por Bluetooth</button>
       <button class="btn btn-whatsapp" onclick="enviarWhatsAppImagen()">📸 Enviar Imagen por WhatsApp</button>
       <button class="btn btn-secondary" onclick="ocultarImpresiones()">Volver
@@ -3308,7 +3345,9 @@ async function sincronizarConNube() {
       
       
       "Mora: $" + document.getElementById('recMora').innerText + "\n" +
-      "Falta por Pagar: $" + document.getElementById('recBalance').innerText + "\n" +
+      
+      
+      "Falta por Pagar: $" + (window._ultimoPagoBalance || 0).toFixed(2) + "\n" +
       "--------------------------------\n" +
       "Fecha de Pago: " + document.getElementById('recFecha').innerText + "\n" +
       "Fecha Inicio Prestamo: " + document.getElementById('recFechaInicio').innerText + "\n" +
@@ -6468,7 +6507,7 @@ var textoSemanas = semanasAtraso > 0 ? (semanasAtraso + (semanasAtraso === 1 ? '
 document.getElementById('recSemanasAtraso').innerText = textoSemanas;
 
 document.getElementById('recMora').innerText = pago.mora.toFixed(2);
-      document.getElementById('recBalance').innerText = pago.balanceRestante.toFixed(2);
+      window._ultimoPagoBalance = pago.balanceRestante;
       document.getElementById('recFecha').innerText = pago.fecha;
       document.getElementById('recFechaInicio').innerText = prestamo ? (prestamo.fechaInicio || 'N/A') : 'N/A';
       document.getElementById('recFechaTermino').innerText = prestamo ? (prestamo.fechaTermino || 'N/A') : 'N/A';
@@ -7219,27 +7258,92 @@ document.getElementById('formPrestamo').reset();
       renderNotificacionesAdmin();
     }
 
+    
     function enviarWhatsAppImagen() {
-      var elementoRecibo = document.getElementById('reciboImagenBox');
-      html2canvas(elementoRecibo).then(function(canvas) {              
-        canvas.toBlob(function(blob) {
-          var file = new File([blob], "recibo_pago.png", { type: "image/png" });
-          if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            navigator.share({
-              files: [file],
-              title: 'Recibo de Pago',
-              text: 'Adjunto recibo de pago oficial de Perdomo Sovereign Capital.'
-            }).catch(function() {});
-          } else {
-            var link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = 'Recibo_Perdomo_Capital.png';
-            link.click();
-            alert("Imagen descargada para WhatsApp.");
-          }
+  var elementoRecibo = document.getElementById('reciboImagenBox');
+  if (typeof html2canvas === 'undefined') {
+    alert('Error: La librería para generar imágenes no ha cargado. Revisa tu conexión a internet.');
+    return;
+  }
+  if (!elementoRecibo) return;
+
+  var btn = event ? event.target : null;
+  var textoOriginal = btn ? btn.innerHTML : '';
+  if (btn) {
+     btn.innerHTML = '⏳ Generando...';
+     btn.disabled = true;
+  }
+
+  html2canvas(elementoRecibo, { scale: 2, useCORS: true, backgroundColor: '#ffffff' }).then(function(canvas) {
+    canvas.toBlob(function(blob) {
+      var file = new File([blob], "recibo_pago.png", { type: "image/png" });
+      
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        navigator.share({
+          files: [file],
+          title: 'Recibo de Pago',
+          text: 'Adjunto recibo de pago oficial.'
+        }).then(function() {
+           if (btn) { btn.innerHTML = textoOriginal; btn.disabled = false; }
+        }).catch(function(err) {
+           console.log('Error al compartir, descargando...', err);
+           descargarImagenRecibo(blob);
+           if (btn) { btn.innerHTML = textoOriginal; btn.disabled = false; }
         });
-      });
-    }
+      } else {
+        descargarImagenRecibo(blob);
+        if (btn) { btn.innerHTML = textoOriginal; btn.disabled = false; }
+      }
+    }, 'image/png');
+  }).catch(function(err) {
+    console.error('Error generando imagen:', err);
+    alert('No se pudo generar la imagen del recibo. Intenta de nuevo.');
+    if (btn) { btn.innerHTML = textoOriginal; btn.disabled = false; }
+  });
+}
+
+function descargarImagenRecibo(blob) {
+  var link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'Recibo_Perdomo_' + Date.now() + '.png';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  alert("✅ La imagen del recibo se ha descargado. Ahora puedes abrir WhatsApp y adjuntarla como foto.");
+}
+    
+    
+    
+    
+    
+function descargarImagenRecibo(blob) {
+  var link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'Recibo_Perdomo_' + Date.now() + '.png';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  alert("✅ La imagen del recibo se ha descargado. Ahora puedes abrir WhatsApp y adjuntarla como foto.");
+}
+
+
+
+function descargarImagenRecibo(blob) {
+  var link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'Recibo_Perdomo_' + Date.now() + '.png';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  alert("✅ La imagen del recibo se ha descargado. Ahora puedes abrir WhatsApp y adjuntarla como foto.");
+}
+
+
+
+
+
+
+
 
     function ocultarImpresiones() {
       document.getElementById('printContrato').style.display = 'none';
