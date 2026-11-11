@@ -1330,6 +1330,43 @@ function redondear(num) {
             <span id="mCobradoHoyRuta" style="font-weight:800; font-size:1.25rem; color:#059669;">$0.00</span>
           </div>
         </div>
+        
+        <!-- FILTRO DE COBROS POR FECHA EN TABLERO -->
+<div class="card" style="background:#f8fafc; border:1px solid var(--border); padding:15px; margin-bottom:16px;">
+  <h3 style="font-size:0.95rem; color:var(--primary); margin-bottom:10px;">📅 Filtrar Cobros por Fecha</h3>
+  <div style="display:flex; gap:10px; align-items:flex-end; flex-wrap:wrap;">
+    <div class="form-group" style="margin-bottom:0; flex:1; min-width:120px;">
+      <label style="font-size:0.75rem;">Desde</label>
+      <input type="date" id="tableroFechaDesde" class="form-control" style="padding:8px;">
+    </div>
+    <div class="form-group" style="margin-bottom:0; flex:1; min-width:120px;">
+      <label style="font-size:0.75rem;">Hasta</label>
+      <input type="date" id="tableroFechaHasta" class="form-control" style="padding:8px;">
+    </div>
+    <button class="btn btn-primary" onclick="filtrarCobrosTablero()" style="width:auto; padding:8px 16px; margin:0;">🔍 Filtrar</button>
+    <button class="btn btn-secondary" onclick="limpiarFiltroTablero()" style="width:auto; padding:8px 16px; margin:0;">Limpiar</button>
+  </div>
+  <div style="margin-top:10px; font-weight:700; color:var(--success);">
+    Total en el período: <span id="lblTotalFiltrado">$0.00</span>
+  </div>
+</div>
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
 
         <!-- GRÁFICOS -->
         <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap:16px; margin-bottom:16px;">
@@ -1380,7 +1417,7 @@ function redondear(num) {
 
         <!-- COBROS DE HOY -->
         <div class="card">
-          <h3 style="color:var(--success);">💵 Cobros de Hoy</h3>
+          <h3 style="color:var(--success);" id="tituloCobrosLista">💵 Cobros de Hoy</h3>
           <div id="listaCobrosHoyTablero" style="font-size:0.85rem;">Cargando cobros de hoy...</div>
         </div>
 
@@ -7377,6 +7414,90 @@ function descargarImagenRecibo(blob) {
     }
 
     // ========== COBROS DE HOY Y SEMANA ANTERIOR EN TABLERO ==========
+    
+    
+    
+    // ========== FILTRO DE COBROS EN EL TABLERO ==========
+function filtrarCobrosTablero() {
+  var desdeVal = document.getElementById('tableroFechaDesde').value;
+  var hastaVal = document.getElementById('tableroFechaHasta').value;
+
+  if (!desdeVal || !hastaVal) {
+    alert("Por favor selecciona la fecha de inicio (Desde) y la fecha final (Hasta).");
+    return;
+  }
+
+  var desdeObj = new Date(desdeVal + 'T00:00:00');
+  var hastaObj = new Date(hastaVal + 'T23:59:59');
+
+  var cobrosFiltrados = cobrosDB.filter(function(c) {
+    // Filtro de seguridad por si es cobrador
+    if (rolUsuarioActual === 'cobrador') {
+      var p = prestamosDB.find(function(item) { return item.id == c.prestamoId; });
+      var cli = clientesDB.find(function(item) { return item.id == (p ? p.clienteId : 0); });
+      if (!cli || cli.zona !== zonaUsuarioActual) return false;
+    }
+
+    var fechaC = null;
+    if (c.timestamp) {
+      fechaC = new Date(c.timestamp);
+    } else if (c.fecha) {
+      var partes = String(c.fecha).split('/');
+      if (partes.length === 3) fechaC = new Date(partes[2], partes[1]-1, partes[0]);
+      else fechaC = new Date(c.fecha);
+    }
+    if (!fechaC) return false;
+
+    return fechaC >= desdeObj && fechaC <= hastaObj;
+  });
+
+  // Calcular Total Recaudado
+  var totalFiltrado = cobrosFiltrados.reduce(function(acc, c) { return acc + (c.monto || 0); }, 0);
+  document.getElementById('lblTotalFiltrado').textContent = '$' + totalFiltrado.toFixed(2);
+
+  // Cambiar el título de la lista
+  var titulo = document.getElementById('tituloCobrosLista');
+  if (titulo) {
+    titulo.innerHTML = '💵 Cobros del ' + desdeObj.toLocaleDateString() + ' al ' + hastaObj.toLocaleDateString();
+  }
+
+  // Pintar la lista
+  var cont = document.getElementById('listaCobrosHoyTablero');
+  if (cobrosFiltrados.length === 0) {
+    cont.innerHTML = '<p style="color:#64748b; font-size:0.85rem;">No hay cobros registrados en este período.</p>';
+    return;
+  }
+
+  // Ordenar del más reciente al más viejo
+  cobrosFiltrados.sort(function(a,b){ return (b.timestamp||0) - (a.timestamp||0); });
+
+  cont.innerHTML = cobrosFiltrados.map(function(c) {
+    return '<div style="background:#f8fafc; padding:10px; border-radius:6px; margin-bottom:6px; border-left:4px solid var(--success); display:flex; justify-content:space-between; align-items:center; gap:8px;">' +
+      '<div style="flex:1;">' +
+        '<strong>' + c.clienteNombre + '</strong> — <span style="color:var(--success); font-weight:700;">+$' + c.monto.toFixed(2) + '</span><br>' +
+        '<span style="font-size:0.75rem; color:#64748b;">📅 ' + c.fecha + ' | Cuota: ' + (c.cuotaInfo||'N/A') + ' | ' + (c.tipoPago||'Efectivo') + '</span>' +
+      '</div>' +
+      '<button class="btn btn-warning btn-sm" onclick="imprimirReciboDirecto(' + c.id + ')" style="flex-shrink:0;">🖨️</button>' +
+    '</div>';
+  }).join('');
+}
+
+function limpiarFiltroTablero() {
+  document.getElementById('tableroFechaDesde').value = '';
+  document.getElementById('tableroFechaHasta').value = '';
+  document.getElementById('lblTotalFiltrado').textContent = '$0.00';
+  
+  var titulo = document.getElementById('tituloCobrosLista');
+  if (titulo) titulo.innerHTML = '💵 Cobros de Hoy';
+  
+  // Volver a cargar la vista original (solo hoy)
+  if (typeof renderCobrosHoyYSemana === 'function') {
+    renderCobrosHoyYSemana();
+  }
+}
+    
+    
+    
     function renderCobrosHoyYSemana() {
       var contHoy = document.getElementById('listaCobrosHoyTablero');
       var contSem = document.getElementById('listaCobrosSemanaAnteriorTablero');
