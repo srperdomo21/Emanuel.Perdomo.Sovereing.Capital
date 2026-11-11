@@ -2832,9 +2832,9 @@ function redondear(num) {
 <p><strong>Cuota:</strong> <span id="recCuotaInfo"></span></p>
         
         <p><strong>Monto Pagado:</strong> $<span id="recMonto"></span></p>
-        <p><strong>Monto en Atraso:</strong> $<span id="recAtraso" style="color:var(--danger); font-weight:700;">0.00</span></p>
-        <p><strong>Mora:</strong> $<span id="recMora" style="color:var(--danger); font-weight:700;"></span></p>
-        <p><strong>Falta por Pagar:</strong> $<span id="recBalance"></span></p>
+<p><strong>Monto en Atraso:</strong> $<span id="recAtraso" style="color:var(--danger); font-weight:700;">0.00</span></p>
+<p><strong>Semanas en Atraso:</strong> <span id="recSemanasAtraso" style="color:var(--danger); font-weight:700;"></span></p>
+<p><strong>Mora:</strong> $<span id="recMora" style="color:var(--danger); font-weight:700;"></span></p>
         <p>--------------------------------</p>
         <p><strong>Fecha de Pago:</strong> <span id="recFecha"></span></p>
         <p><strong>Fecha Inicio Prestamo:</strong> <span id="recFechaInicio"></span></p>
@@ -3303,6 +3303,10 @@ async function sincronizarConNube() {
       "Cuota: " + document.getElementById('recCuotaInfo').innerText + "\n" +
       "Monto Pagado: $" + document.getElementById('recMonto').innerText + "\n" +
       "Monto en Atraso: $" + document.getElementById('recAtraso').innerText + "\n" +
+      
+      "Semanas en Atraso: " + document.getElementById('recSemanasAtraso').innerText + "\n" +
+      
+      
       "Mora: $" + document.getElementById('recMora').innerText + "\n" +
       "Falta por Pagar: $" + document.getElementById('recBalance').innerText + "\n" +
       "--------------------------------\n" +
@@ -6453,8 +6457,17 @@ var cuotaInfoTexto = (cuotaInicio === cuotaFin) ?
          document.getElementById('recMontoPrestamo').innerText = prestamo ? prestamo.monto.toFixed(2) : '0.00';
           document.getElementById('recCuotaInfo').innerText = pago.cuotaInfo;
       document.getElementById('recMonto').innerText = pago.monto.toFixed(2);
-      document.getElementById('recAtraso').innerText = atrasoValor.toFixed(2);
-      document.getElementById('recMora').innerText = pago.mora.toFixed(2);
+document.getElementById('recAtraso').innerText = atrasoValor.toFixed(2);
+
+// 🆕 CÁLCULO DE SEMANAS EN ATRASO
+var semanasAtraso = 0;
+if (prestamo && prestamo.valorCuota > 0 && atrasoValor > 0) {
+    semanasAtraso = Math.round(atrasoValor / prestamo.valorCuota);
+}
+var textoSemanas = semanasAtraso > 0 ? (semanasAtraso + (semanasAtraso === 1 ? ' semana' : ' semanas')) : '0';
+document.getElementById('recSemanasAtraso').innerText = textoSemanas;
+
+document.getElementById('recMora').innerText = pago.mora.toFixed(2);
       document.getElementById('recBalance').innerText = pago.balanceRestante.toFixed(2);
       document.getElementById('recFecha').innerText = pago.fecha;
       document.getElementById('recFechaInicio').innerText = prestamo ? (prestamo.fechaInicio || 'N/A') : 'N/A';
@@ -6479,7 +6492,14 @@ var cuotaInfoTexto = (cuotaInicio === cuotaFin) ?
 
   var atrasoValor = pago.montoAtraso !== undefined ? pago.montoAtraso : (prestamo ? calcularMontoAtrasoPrestamo(prestamo) : 0);
 
-  var tel = pago.telefonoCliente ? pago.telefonoCliente.replace(/[^0-9]/g, '') : '';
+// 🆕 CÁLCULO DE SEMANAS EN ATRASO PARA WHATSAPP
+var semanasAtraso = 0;
+if (prestamo && prestamo.valorCuota > 0 && atrasoValor > 0) {
+    semanasAtraso = Math.round(atrasoValor / prestamo.valorCuota);
+}
+var textoSemanas = semanasAtraso > 0 ? (semanasAtraso + (semanasAtraso === 1 ? ' semana' : ' semanas')) : '0';
+
+var tel = pago.telefonoCliente ? pago.telefonoCliente.replace(/[^0-9]/g, '') : '';
   var textoWA = encodeURIComponent(
     "PERDOMO SOVEREIGN CAPITAL (" + empresaActual + ")\n" +
     "San Francisco de Macoris | Tel: 849-581-9150\n" +
@@ -6490,9 +6510,10 @@ var cuotaInfoTexto = (cuotaInicio === cuotaFin) ?
     "Monto del Prestamo: $" + (prestamo ? prestamo.monto.toFixed(2) : '0.00') + "\n" +
     "Cuota: " + pago.cuotaInfo + "\n" +
     "Monto Pagado: $" + pago.monto.toFixed(2) + "\n" +
-    "Monto en Atraso: $" + atrasoValor.toFixed(2) + "\n" +
-    "Mora: $" + pago.mora.toFixed(2) + "\n" +
-    "Falta por Pagar: $" + pago.balanceRestante.toFixed(2) + "\n" +
+"Monto en Atraso: $" + atrasoValor.toFixed(2) + "\n" +
+"Semanas en Atraso: " + textoSemanas + "\n" + 
+"Mora: $" + pago.mora.toFixed(2) + "\n" +
+"Falta por Pagar: $" + pago.balanceRestante.toFixed(2) + "\n" +
     "--------------------------------\n" +
     "Fecha de Pago: " + pago.fecha + "\n" +
     "Fecha Inicio Prestamo: " + (prestamo ? (prestamo.fechaInicio || 'N/A') : 'N/A') + "\n" +
