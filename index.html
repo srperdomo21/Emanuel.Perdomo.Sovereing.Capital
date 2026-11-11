@@ -746,11 +746,19 @@ function redondear(num) {
       .container { max-width: 1300px; }
     }
 
+    
+  
+  
+  
+  
     @media print {
   body * { visibility: hidden; }
   
-  /* Solo hacer visible el recibo y el contrato */
-  #reciboImagenBox, #reciboImagenBox *, #printContrato, #printContrato * { visibility: visible; }
+  /* Solo hacer visible el recibo, el contrato y las cartas */
+  #reciboImagenBox, #reciboImagenBox *, 
+  #printContrato, #printContrato *,
+  #cartaAtrasoBox, #cartaAtrasoBox *, 
+  #cartaSaldoBox, #cartaSaldoBox * { visibility: visible; }
   
   /* Posicionar el recibo en la esquina superior izquierda */
   #reciboImagenBox { 
@@ -765,7 +773,7 @@ function redondear(num) {
     margin: 0 !important;
   }
 
-  #printContrato {
+  #printContrato, #cartaAtrasoBox, #cartaSaldoBox {
     position: absolute !important; 
     left: 0 !important; 
     top: 0 !important; 
@@ -774,6 +782,15 @@ function redondear(num) {
   
   .no-print { display: none !important; }
 }
+  
+
+
+
+
+
+
+
+
     </style>
 
 
@@ -1002,6 +1019,11 @@ function redondear(num) {
       <button class="sidebar-btn solo-admin-emp" onclick="showTabFromMenu('contratosTab')" style="background:#eff6ff; color:#1e3a8a; font-weight:700;">⚖️ Contratos de Préstamo</button>
       
       
+      <button class="sidebar-btn solo-admin-emp" onclick="showTabFromMenu('cartasTab')" style="background:#f0fdf4; color:#166534; font-weight:700;">✉️ Cartas y Notificaciones</button>
+      
+      
+      
+      
     
     <button class="sidebar-btn solo-admin-emp" onclick="showTabFromMenu('businessIntelligenceTab')" style="background:#eff6ff; color:var(--primary); font-weight:700;">🧠 Inteligencia de Negocios (BI)</button>  
 
@@ -1137,10 +1159,68 @@ function redondear(num) {
     <!-- Top 10 clientes por riesgo -->
     <div class="card">
       <h4 style="font-size:0.9rem; color:var(--danger); margin-bottom:10px;">🚨 Top 10 Clientes en Riesgo (IA Predictiva)</h4>
-      <div id="biTopRiesgoDiv">Cargando análisis...</div>
+      <div id="biTopRiesgoDiv">Cargando análisis...
+      
+      
+      
+      </div>
     </div>
   </div>
 </div>   
+
+
+<!-- ========================================== -->
+<!-- MÓDULO DE CARTAS Y NOTIFICACIONES          -->
+<!-- ========================================== -->
+<div id="cartasTab" class="tab-content">
+  <div class="card no-print">
+    <h3 style="color:var(--primary);">✉️ Generador de Cartas y Notificaciones</h3>
+    <p style="font-size:0.85rem; color:#475569; margin-bottom:15px;">Selecciona un cliente para generar la carta correspondiente.</p>
+    
+    <div class="form-row">
+      <div class="form-group">
+        <label>📉 Carta de Atraso (Para clientes con deuda activa)</label>
+        <select id="selectCartaAtraso" onchange="generarCartaAtraso()">
+          <option value="">-- Seleccionar Cliente con Atraso --</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>✅ Carta de Saldo (Para clientes que ya pagaron)</label>
+        <select id="selectCartaSaldo" onchange="generarCartaSaldo()">
+          <option value="">-- Seleccionar Cliente Saldado --</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- VISOR DE CARTA DE ATRASO -->
+  <div id="vistaCartaAtraso" style="display:none;">
+    <div id="cartaAtrasoBox" style="background:white; padding:40px; font-family:'Times New Roman', serif; color:black; line-height:1.6; text-align:justify; max-width:800px; margin:auto; border:1px solid #ccc;">
+      <!-- Aquí se inyecta la carta -->
+    </div>
+    <div class="no-print" style="display:flex; gap:10px; justify-content:center; margin-top:15px;">
+      <button class="btn btn-secondary" onclick="document.getElementById('vistaCartaAtraso').style.display='none'">← Volver</button>
+      <button class="btn btn-success" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button>
+    </div>
+  </div>
+
+  <!-- VISOR DE CARTA DE SALDO -->
+  <div id="vistaCartaSaldo" style="display:none;">
+    <div id="cartaSaldoBox" style="background:white; padding:40px; font-family:'Times New Roman', serif; color:black; line-height:1.6; text-align:justify; max-width:800px; margin:auto; border:1px solid #ccc;">
+      <!-- Aquí se inyecta la carta -->
+    </div>
+    <div class="no-print" style="display:flex; gap:10px; justify-content:center; margin-top:15px;">
+      <button class="btn btn-secondary" onclick="document.getElementById('vistaCartaSaldo').style.display='none'">← Volver</button>
+      <button class="btn btn-success" onclick="window.print()">🖨️ Imprimir / Guardar PDF</button>
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
     
         
               <!-- APARTADO: CREAR NUEVAS EMPRESAS (AISLADAS) -->
@@ -1558,6 +1638,19 @@ function redondear(num) {
 
           <div style="display:flex; gap:10px; margin-top:10px;">
             <button class="btn btn-danger btn-sm" id="btnCerrarRutaManual" onclick="cerrarRutaManualAdmin()" style="display:none;">🔒 Cerrar Ruta Manualmente</button>
+            
+  
+  
+  <!-- Botón para abrir la nueva calculadora de cierre -->
+<button class="btn btn-primary solo-cobrador" onclick="abrirModalCerrarDia()" style="background:#1e3a8a; color:white; margin-top:10px; width:100%;">
+  💵 Cerrar Día (Calculadora de Efectivo)
+</button>
+  
+  
+            
+            
+            
+            
             <button class="btn btn-warning btn-sm" id="btnReabrirRutaManual" onclick="reabrirRutaManualAdmin()" style="display:none;">🔓 Reabrir / Editar Día</button>
           </div>
         </div>
@@ -3055,44 +3148,53 @@ async function sincronizarConNube() {
       }
     }
 
-    function aplicarTemaEmpresa() {
-      var emp = empresasGlobalesDB.find(function(e) { return e.nombre === empresaActual; });
-      if (!emp) return;
-      var color = emp.colorPrimario || '#1e3a8a';
-      document.documentElement.style.setProperty('--primary', color);
-      document.documentElement.style.setProperty('--primary-dark', color);
-      document.documentElement.style.setProperty('--accent', color);
+    function aplicarTemaEmpresa(empObjDirecto) {
+  var emp = empObjDirecto || empresasGlobalesDB.find(function(e) { return e.nombre === empresaActual; });
+  
+  // Si no la encuentra, la busca en la memoria del teléfono
+  if (!emp) {
+      try {
+          var saved = JSON.parse(localStorage.getItem('psc_empresas_globales') || '[]');
+          emp = saved.find(function(e) { return e.nombre === empresaActual; });
+      } catch(e) {}
+  }
+  
+  if (!emp) return;
 
-      // Logo de la empresa (login, header, recibos, contratos)
-      var logoSrc = emp.logo || 'Logosv.png';
-      ['headerLogoImg', 'imgLoginLogo', 'imgContratoLogo', 'imgReciboLogo'].forEach(function(id) {
-        var el = document.getElementById(id);
-        if (el) el.src = logoSrc;
-      });
+  var color = emp.colorPrimario || '#1e3a8a';
+  document.documentElement.style.setProperty('--primary', color);
+  document.documentElement.style.setProperty('--primary-dark', color);
+  document.documentElement.style.setProperty('--accent', color);
 
-      // Nombre de la empresa en el encabezado
-      var headerH1 = document.querySelector('header h1');
-      if (headerH1) {
-        var logoImg = headerH1.querySelector('img');
-        var nombreMostrar = emp.nombre || 'PERDOMO SOVEREIGN CAPITAL';
-        // Mantener el img y cambiar solo el texto
-        headerH1.innerHTML = '';
-        if (logoImg) {
-          logoImg.id = 'headerLogoImg';
-          logoImg.className = 'header-logo';
-          logoImg.src = logoSrc;
-          headerH1.appendChild(logoImg);
-        } else {
-          var newImg = document.createElement('img');
-          newImg.src = logoSrc;
-          newImg.id = 'headerLogoImg';
-          newImg.className = 'header-logo';
-          newImg.alt = 'Logo';
-          headerH1.appendChild(newImg);
-        }
-        headerH1.appendChild(document.createTextNode(' ' + nombreMostrar.toUpperCase()));
-      }
+  // Logo de la empresa (login, header, recibos, contratos)
+  var logoSrc = emp.logo || 'Logosv.png';
+  ['headerLogoImg', 'imgLoginLogo', 'imgContratoLogo', 'imgReciboLogo'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.src = logoSrc;
+  });
+
+  // Nombre de la empresa en el encabezado
+  var headerH1 = document.querySelector('header h1');
+  if (headerH1) {
+    var logoImg = headerH1.querySelector('img');
+    var nombreMostrar = emp.nombre || 'PERDOMO SOVEREIGN CAPITAL';
+    headerH1.innerHTML = '';
+    if (logoImg) {
+      logoImg.id = 'headerLogoImg';
+      logoImg.className = 'header-logo';
+      logoImg.src = logoSrc;
+      headerH1.appendChild(logoImg);
+    } else {
+      var newImg = document.createElement('img');
+      newImg.src = logoSrc;
+      newImg.id = 'headerLogoImg';
+      newImg.className = 'header-logo';
+      newImg.alt = 'Logo';
+      headerH1.appendChild(newImg);
     }
+    headerH1.appendChild(document.createTextNode(' ' + nombreMostrar.toUpperCase()));
+  }
+}
 
     function actualizarLimitePorPlan(planSelectId, limiteInputId) {
       var plan = document.getElementById(planSelectId).value;
@@ -4246,9 +4348,11 @@ async function realizarLogin(e) {
         nombreUsuarioActual = 'Administrador de ' + empresa.nombre;
         zonaUsuarioActual = 'Todas las Zonas (Oficina)';
 
-        if (typeof aplicarTemaEmpresa === 'function') aplicarTemaEmpresa();
-        document.getElementById('loginScreen').style.display = 'none';
-        alert('¡Bienvenido Administrador de ' + empresa.nombre + '!');
+        // Guardar la empresa en el arreglo global para que el tema la encuentre
+if (!empresasGlobalesDB.some(function(e) { return e.id == empresa.id; })) {
+    empresasGlobalesDB.push(empresa);
+}
+if (typeof aplicarTemaEmpresa === 'function') aplicarTemaEmpresa(empresa);
 
         if (typeof sincronizarConNube === 'function') sincronizarConNube();
         return;
@@ -4503,6 +4607,204 @@ async function pedirClaveBorrarTodo() {
     
     
     
+    // ========== MÓDULO DE CARTAS ==========
+function cargarSelectsCartas() {
+  var selAtraso = document.getElementById('selectCartaAtraso');
+  var selSaldo = document.getElementById('selectCartaSaldo');
+  if (!selAtraso || !selSaldo) return;
+
+  selAtraso.innerHTML = '<option value="">-- Seleccionar Cliente con Atraso --</option>';
+  selSaldo.innerHTML = '<option value="">-- Seleccionar Cliente Saldado --</option>';
+
+  prestamosDB.forEach(function(p) {
+    var cli = clientesDB.find(function(c) { return c.id == p.clienteId; });
+    if (!cli) return;
+
+    if (p.balancePendiente > 0) {
+      var atraso = calcularMontoAtrasoPrestamo(p);
+      if (atraso > 0) {
+        selAtraso.innerHTML += '<option value="' + p.id + '">' + cli.nombre + ' (Atraso: $' + atraso.toFixed(2) + ')</option>';
+      }
+    } else {
+      selSaldo.innerHTML += '<option value="' + p.id + '">' + cli.nombre + ' (Saldado)</option>';
+    }
+  });
+}
+
+function generarCartaAtraso() {
+  var prestamoId = document.getElementById('selectCartaAtraso').value;
+  if (!prestamoId) { document.getElementById('vistaCartaAtraso').style.display = 'none'; return; }
+
+  var p = prestamosDB.find(function(item) { return item.id == prestamoId; });
+  var cli = clientesDB.find(function(c) { return c.id == p.clienteId; });
+  if (!cli) return;
+
+  var mora = p.moraManualFija || 0;
+  var atraso = calcularMontoAtrasoPrestamo(p);
+  var totalVencido = atraso + mora;
+  var hoy = new Date().toLocaleDateString('es-DO');
+  var numContrato = 'PSC-' + String(p.id).slice(-6);
+
+  var html = `
+    <div style="text-align:center; margin-bottom:20px;">
+        <img src="Logosv.png" style="width:60px; margin-bottom:5px;">
+        <h2 style="margin:0; font-size:18px;">PERDOMO SOVEREIGN CAPITAL</h2>
+        <p style="margin:0; font-size:12px;">San Francisco de Macorís, Rep. Dom. | Tel: 849-581-9150</p>
+        <h3 style="margin-top:15px; font-size:16px; border-bottom:2px solid #000; padding-bottom:5px; display:inline-block;">NOTIFICACIÓN DE ATRASO Y REQUERIMIENTO DE PAGO</h3>
+    </div>
+
+    <table style="width:100%; font-size:14px; margin-bottom:20px; border-collapse:collapse;">
+      <tr>
+        <td style="border:1px solid #000; padding:8px;"><strong>FECHA DE EMISIÓN:</strong> ${hoy}</td>
+        <td style="border:1px solid #000; padding:8px;"><strong>PRÉSTAMO N°:</strong> ${numContrato}</td>
+      </tr>
+    </table>
+
+    <h4 style="margin-bottom:10px;">DATOS DEL DEUDOR</h4>
+    <table style="width:100%; font-size:14px; margin-bottom:20px; border-collapse:collapse;">
+      <tr>
+        <td style="border:1px solid #000; padding:8px;"><strong>Nombre:</strong> ${cli.nombre}</td>
+        <td style="border:1px solid #000; padding:8px;"><strong>Cédula:</strong> ${cli.cedula}</td>
+      </tr>
+      <tr>
+        <td style="border:1px solid #000; padding:8px;"><strong>Teléfono:</strong> ${cli.telefono}</td>
+        <td style="border:1px solid #000; padding:8px;"><strong>Dirección:</strong> ${cli.direccion}</td>
+      </tr>
+    </table>
+
+    <h4 style="margin-bottom:10px;">ESTADO DE LA DEUDA Y ATRASO ACUMULADO</h4>
+    <table style="width:100%; font-size:14px; border-collapse:collapse; text-align:center; margin-bottom:20px;">
+      <tr style="background:#eee;">
+        <th style="border:1px solid #000; padding:8px;">Cuota</th>
+        <th style="border:1px solid #000; padding:8px;">Fecha Inicio</th>
+        <th style="border:1px solid #000; padding:8px;">Fecha Término</th>
+        <th style="border:1px solid #000; padding:8px;">Atraso Base</th>
+        <th style="border:1px solid #000; padding:8px;">Mora</th>
+        <th style="border:1px solid #000; padding:8px;">Total Vencido</th>
+      </tr>
+      <tr>
+        <td style="border:1px solid #000; padding:8px;">$${p.valorCuota.toFixed(2)}</td>
+        <td style="border:1px solid #000; padding:8px;">${p.fechaInicio}</td>
+        <td style="border:1px solid #000; padding:8px;">${p.fechaTermino}</td>
+        <td style="border:1px solid #000; padding:8px;">$${atraso.toFixed(2)}</td>
+        <td style="border:1px solid #000; padding:8px;">$${mora.toFixed(2)}</td>
+        <td style="border:1px solid #000; padding:8px; font-weight:bold; color:red;">$${totalVencido.toFixed(2)}</td>
+      </tr>
+    </table>
+
+    <p>Le saludamos cordialmente en nombre de <strong>Perdomo Sovereign Capital</strong>. La presente comunicación tiene como objetivo informarle formalmente que, según nuestros registros de cobro, su préstamo presenta un atraso en el calendario de pagos acordado en su contrato.</p>
+    
+    <p><strong>REQUERIMIENTO DE REGULARIZACIÓN:</strong> Se le concede un plazo de cuarenta y ocho (48) horas a partir de la recepción de este documento para proceder a la regularización del monto vencido de <strong>RD$${totalVencido.toFixed(2)}</strong>. Evite el incremento de recargos por mora y la actualización negativa de su estatus crediticio en nuestro sistema.</p>
+    
+    <p>Comprendemos que pueden presentarse eventualidades. Por tal razón, le instamos a ponerse en contacto de inmediato con su gestor de cobros asignado o comunicarse directamente a nuestra línea de atención al cliente al teléfono <strong>849-581-9150</strong> para coordinar su pago o evaluar una alternativa de pago convenida.</p>
+
+    <br><br>
+    <div style="text-align:center;">
+      <p style="margin-bottom:40px;">_______________________________________</p>
+      <p style="font-size:12px;"><strong>PERDOMO SOVEREIGN CAPITAL</strong><br>Departamento de Cobranzas & Legal</p>
+    </div>
+  `;
+  document.getElementById('cartaAtrasoBox').innerHTML = html;
+  document.getElementById('vistaCartaAtraso').style.display = 'block';
+}
+
+function generarCartaSaldo() {
+  var prestamoId = document.getElementById('selectCartaSaldo').value;
+  if (!prestamoId) { document.getElementById('vistaCartaSaldo').style.display = 'none'; return; }
+
+  var p = prestamosDB.find(function(item) { return item.id == prestamoId; });
+  var cli = clientesDB.find(function(c) { return c.id == p.clienteId; });
+  if (!cli) return;
+
+  var hoy = new Date().toLocaleDateString('es-DO');
+  var numContrato = 'PSC-' + String(p.id).slice(-6);
+
+  // LÓGICA DE BUENA O MALA CONDUCTA
+  var pagos = cobrosDB.filter(function(c) { return c.prestamoId == p.id; });
+  var ultimoPagoFecha = pagos.length > 0 ? pagos[pagos.length - 1].fecha : hoy;
+  
+  var fechaTerminoObj = new Date(p.fechaTermino);
+  var ultimoPagoObj = new Date(ultimoPagoFecha);
+  
+  var esMalaConducta = (ultimoPagoObj > fechaTerminoObj) || (p.moraManualFija > 0);
+  
+  var tituloCarta = esMalaConducta ? "CARTA DE SALDO CON HISTORIAL DE MORA" : "CARTA DE SALDO Y CERTIFICADO DE BUENA CONDUCTA";
+  var parrafoLegal = "";
+
+  if (esMalaConducta) {
+    parrafoLegal = `
+      <p>Por medio del presente documento, <strong>PERDOMO SOVEREIGN CAPITAL</strong> hace constar que el Sr.(a) <strong>${cli.nombre}</strong> ha efectuado el pago para la cancelación del capital pendiente del préstamo N° <strong>${numContrato}</strong>, no existiendo balances de capital exigibles a la fecha.</p>
+      <p>No obstante, dejamos constancia formal de que dicho saldo fue realizado posterior al vencimiento estipulado, tras registrar un historial de morosidad. En consecuencia, la presente carta certifica únicamente el saldo de la deuda, <strong>mas NO constituye un aval de buen cumplimiento crediticio</strong>, quedando la concesión de nuevos créditos sujeta a restricción interna y evaluación de riesgo.</p>
+    `;
+  } else {
+    parrafoLegal = `
+      <p>Por medio del presente documento, <strong>PERDOMO SOVEREIGN CAPITAL</strong> hace constar formalmente que el Sr.(a) <strong>${cli.nombre}</strong> ha saldado en su totalidad las obligaciones contraídas bajo el contrato de préstamo detallado precedentemente, habiendo mantenido un <strong>excelente historial de pago, puntualidad ejemplar y responsabilidad intachable</strong> durante toda la vigencia del crédito.</p>
+      <p>El cliente no mantiene ninguna deuda ni compromiso pendiente con esta institución al día de la fecha. Por su impecable comportamiento financiero, le otorgamos la máxima calificación de crédito interno, quedando las puertas abiertas de nuestra entidad para futuros requerimientos financieros con trato preferencial.</p>
+    `;
+  }
+
+  var html = `
+    <div style="text-align:center; margin-bottom:20px;">
+        <img src="Logosv.png" style="width:60px; margin-bottom:5px;">
+        <h2 style="margin:0; font-size:18px;">PERDOMO SOVEREIGN CAPITAL</h2>
+        <p style="margin:0; font-size:12px;">San Francisco de Macorís, Rep. Dom. | Tel: 849-581-9150</p>
+        <h3 style="margin-top:15px; font-size:16px; border-bottom:2px solid #000; padding-bottom:5px; display:inline-block;">${tituloCarta}</h3>
+    </div>
+
+    <table style="width:100%; font-size:14px; margin-bottom:20px; border-collapse:collapse;">
+      <tr>
+        <td style="border:1px solid #000; padding:8px;"><strong>FECHA DE EMISIÓN:</strong> ${hoy}</td>
+        <td style="border:1px solid #000; padding:8px;"><strong>PRÉSTAMO N°:</strong> ${numContrato}</td>
+      </tr>
+    </table>
+
+    <h4 style="margin-bottom:10px;">DATOS DEL CLIENTE</h4>
+    <table style="width:100%; font-size:14px; margin-bottom:20px; border-collapse:collapse;">
+      <tr>
+        <td style="border:1px solid #000; padding:8px;"><strong>Nombre:</strong> ${cli.nombre}</td>
+        <td style="border:1px solid #000; padding:8px;"><strong>Cédula:</strong> ${cli.cedula}</td>
+      </tr>
+      <tr>
+        <td style="border:1px solid #000; padding:8px;"><strong>Teléfono:</strong> ${cli.telefono}</td>
+        <td style="border:1px solid #000; padding:8px;"><strong>Dirección:</strong> ${cli.direccion}</td>
+      </tr>
+    </table>
+
+    <h4 style="margin-bottom:10px;">RESUMEN FINANCIERO DEL CRÉDITO CANCELADO</h4>
+    <table style="width:100%; font-size:14px; border-collapse:collapse; text-align:center; margin-bottom:20px;">
+      <tr style="background:#eee;">
+        <th style="border:1px solid #000; padding:8px;">Monto Recibido</th>
+        <th style="border:1px solid #000; padding:8px;">Plazo / Modalidad</th>
+        <th style="border:1px solid #000; padding:8px;">Fecha Inicio</th>
+        <th style="border:1px solid #000; padding:8px;">Fecha Término</th>
+        <th style="border:1px solid #000; padding:8px;">Estado</th>
+      </tr>
+      <tr>
+        <td style="border:1px solid #000; padding:8px;">RD$${p.monto.toFixed(2)}</td>
+        <td style="border:1px solid #000; padding:8px;">${p.numCuotas} Semanas</td>
+        <td style="border:1px solid #000; padding:8px;">${p.fechaInicio}</td>
+        <td style="border:1px solid #000; padding:8px;">${p.fechaTermino}</td>
+        <td style="border:1px solid #000; padding:8px; font-weight:bold; color:green;">SALDADO</td>
+      </tr>
+    </table>
+
+    ${parrafoLegal}
+
+    <p>Se expide la presente certificación a solicitud de la parte interesada en San Francisco de Macorís, República Dominicana.</p>
+
+    <br><br>
+    <div style="text-align:center;">
+      <p style="margin-bottom:40px;">_______________________________________</p>
+      <p style="font-size:12px;"><strong>PERDOMO SOVEREIGN CAPITAL</strong><br>Gerencia de Créditos y Cobros</p>
+    </div>
+  `;
+  document.getElementById('cartaSaldoBox').innerHTML = html;
+  document.getElementById('vistaCartaSaldo').style.display = 'block';
+}
+    
+    
+    
+    
     
 
     function showTab(tabId, btn) {
@@ -4525,13 +4827,18 @@ async function pedirClaveBorrarTodo() {
       if (tabId === 'transferenciaRuta') cargarSelectTransferencia();
       if (tabId === 'zonasTab') renderZonasAdmin();
       
-      
-    if (tabId === 'contratosTab') {
+      if (tabId === 'contratosTab') {
   if (typeof renderContratos === 'function') renderContratos();
   document.getElementById('vistaListaContratos').style.display = 'block';
   document.getElementById('vistaContratoImpresion').style.display = 'none';
-} 
-        
+}
+
+if (tabId === 'cartasTab') {
+  if (typeof cargarSelectsCartas === 'function') cargarSelectsCartas();
+  document.getElementById('vistaCartaAtraso').style.display = 'none';
+  document.getElementById('vistaCartaSaldo').style.display = 'none';
+}
+     
       
       
       if (tabId === 'cobradoresTab') renderCobradoresAdmin();
@@ -4739,6 +5046,7 @@ if (tabId === 'resumen') {
             '<div style="display:flex; flex-direction:column; gap:6px; align-items:flex-end;">' +
               '<button class="btn btn-warning btn-sm" onclick="abrirModalEditarEmpresa(' + emp.id + ')" style="background:var(--primary); color:white;">✏️ Editar Datos</button>' +
               botonBloqueoToggle +
+            '<button class="btn btn-danger btn-sm" onclick="eliminarEmpresaAdmin(' + emp.id + ')" style="background:#dc2626; color:white;">🗑️ Eliminar Empresa</button>' +
             '</div>' +
           '</div>' +
         '</div>';
@@ -4840,6 +5148,65 @@ if (tabId === 'resumen') {
         renderSuperAdminEmpresas();
       }
     }
+    
+    
+    async function eliminarEmpresaAdmin(id) {
+  var emp = empresasGlobalesDB.find(function(e) { return e.id == id; });
+  if (!emp) return alert("Empresa no encontrada.");
+
+  // 1. Protección: No dejar borrar la empresa en la que estamos conectados
+  if (emp.nombre === empresaActual) {
+    return alert("⚠️ ACCIÓN BLOQUEADA\n\nNo puedes eliminar la empresa en la que estás conectado actualmente. Por favor, cambia a otra empresa primero (o crea una nueva y cámbiate) antes de borrar esta.");
+  }
+
+  // 2. Doble confirmación de seguridad
+  if (!confirm("⚠️ ¿Estás SEGURO de eliminar la empresa '" + emp.nombre + "'?\n\nEsto borrará TODOS sus clientes, préstamos, cobros y usuarios de forma PERMANENTE en la nube y en el teléfono.")) return;
+  
+  if (!confirm("🚨 ÚLTIMA ADVERTENCIA:\n\n¿Borrar definitivamente a '" + emp.nombre + "'?\n\nEsta acción NO se puede deshacer.")) return;
+
+  try {
+    // 3. Borrar todo de Supabase (Nube)
+    if (supabase) {
+      var tablas = ['clientes', 'prestamos', 'cobros', 'gastos', 'rutas', 'cobradores', 'empleados', 'notas', 'notificaciones', 'inversionistas', 'control_dia'];
+      
+      // Borrar todos los registros asociados a esa empresa
+      for (var i = 0; i < tablas.length; i++) {
+        await supabase.from(tablas[i]).delete().eq('empresa_id', id);
+      }
+
+      // Borrar la empresa de la tabla 'empresas'
+      await supabase.from('empresas').delete().eq('id', id);
+    }
+
+    // 4. Borrar del almacenamiento local (Teléfono)
+    var safeName = emp.nombre.replace(/[^a-zA-Z0-9]/g, '_');
+    Object.keys(localStorage).forEach(function(key) {
+      if (key.startsWith('psc_' + safeName + '_')) {
+        localStorage.removeItem(key);
+      }
+    });
+
+    // 5. Borrar de la lista general y actualizar la memoria
+    empresasGlobalesDB = empresasGlobalesDB.filter(function(e) { return e.id != id; });
+    localStorage.setItem('psc_empresas_globales', JSON.stringify(empresasGlobalesDB));
+
+    alert("✅ Empresa eliminada completamente del sistema.");
+
+    // 6. Refrescar la interfaz
+    if (typeof renderSuperAdminEmpresas === 'function') renderSuperAdminEmpresas();
+    if (typeof renderEmpresasAisladasList === 'function') renderEmpresasAisladasList();
+    if (typeof actualizarSelectsLoginEmpresa === 'function') actualizarSelectsLoginEmpresa();
+
+  } catch (err) {
+    console.error("Error eliminando empresa:", err);
+    alert("Ocurrió un error al intentar eliminar la empresa en la nube. Revisa tu conexión a internet.\n\n" + err.message);
+  }
+}
+    
+    
+   
+   
+   
 
     function cargarFiltroZonasClientes() {
       var select = document.getElementById('selectFiltroZonaCliente');
@@ -5252,77 +5619,79 @@ if (tabId === 'resumen') {
       cargarSelectsGenerales();
     }
 
-    function ejecutarPasarClienteRuta(e) {
-      e.preventDefault();
-      var clienteId = document.getElementById('transClienteSelect').value;
-      var origen = document.getElementById('transRutaOrigen').value;
-      var destino = document.getElementById('transRutaDestino').value;
-      var tipo = document.getElementById('transTipo').value;
+    // Bandera global para evitar listeners duplicados
+var _firmaPadIniciado = false;
 
-      var cliente = clientesDB.find(function(c) { return c.id == clienteId; });
-      if(!cliente) return alert("Selecciona un cliente valido.");
+function iniciarPadFirma() {
+  canvasFirma = document.getElementById('canvasFirma');
+  if (!canvasFirma) return;
 
-      if (tipo === 'permanente') {
-        cliente.zona = destino;
-        guardarDatosEnNube();
-        alert("Cliente transferido de forma PERMANENTE a la zona " + destino + ".");
-      } else {
-        notificacionesDB.push({
-          id: Date.now(),
-          texto: "Transferencia Extraordinaria (Solo por hoy) por " + nombreUsuarioActual + ": Cliente " + cliente.nombre + " pasado de " + origen + " a " + destino + ".",
-          fecha: new Date().toLocaleString(),
-          tipo: "Alerta"
-        });
-        guardarDatosEnNube();
-        alert("Transferencia extraordinaria aplicada para hoy a la zona " + destino + ".");
-      }
-      renderClientes();
-    }
+  // Evitar inicializar dos veces el mismo canvas
+  if (canvasFirma._pscInit) return;
 
-    function iniciarPadFirma() {
-      canvasFirma = document.getElementById('canvasFirma');
-      if(!canvasFirma) return;
-      ctxFirma = canvasFirma.getContext('2d');
-      ctxFirma.strokeStyle = "#000000";
-      ctxFirma.lineWidth = 2.5;
+  ctxFirma = canvasFirma.getContext('2d');
+  ctxFirma.strokeStyle = "#000000";
+  ctxFirma.lineWidth = 2.5;
+  ctxFirma.lineCap = 'round';
+  ctxFirma.lineJoin = 'round';
 
-      function getPos(e) {
-        var rect = canvasFirma.getBoundingClientRect();
-        var clientX = e.touches ? e.touches[0].clientX : e.clientX;
-        var clientY = e.touches ? e.touches[0].clientY : e.clientY;
-        return { x: clientX - rect.left, y: clientY - rect.top };
-      }
+  // 🔑 CLAVE: convertir coordenadas de PANTALLA a coordenadas INTERNAS del canvas
+  function getPos(e) {
+    var rect = canvasFirma.getBoundingClientRect();
+    var clientX = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX;
+    var clientY = (e.touches && e.touches[0]) ? e.touches[0].clientY : e.clientY;
+    var scaleX = canvasFirma.width / rect.width;
+    var scaleY = canvasFirma.height / rect.height;
+    return {
+      x: (clientX - rect.left) * scaleX,
+      y: (clientY - rect.top) * scaleY
+    };
+  }
 
-      function startDraw(e) {
-        firmando = true;
-        var pos = getPos(e);
-        ctxFirma.beginPath();
-        ctxFirma.moveTo(pos.x, pos.y);
-      }
+  function startDraw(e) {
+    if (e.cancelable) e.preventDefault();
+    firmando = true;
+    var pos = getPos(e);
+    ctxFirma.beginPath();
+    ctxFirma.moveTo(pos.x, pos.y);
+    // Punto mínimo para que un toque rápido deje marca
+    ctxFirma.lineTo(pos.x + 0.1, pos.y + 0.1);
+    ctxFirma.stroke();
+  }
 
-      function moveDraw(e) {
-        if(!firmando) return;
-        e.preventDefault();
-        var pos = getPos(e);
-        ctxFirma.lineTo(pos.x, pos.y);
-        ctxFirma.stroke();
-      }
+  function moveDraw(e) {
+    if (!firmando) return;
+    if (e.cancelable) e.preventDefault();
+    var pos = getPos(e);
+    ctxFirma.lineTo(pos.x, pos.y);
+    ctxFirma.stroke();
+  }
 
-      function stopDraw() { firmando = false; }
+  function stopDraw(e) {
+    if (e && e.cancelable) e.preventDefault();
+    firmando = false;
+  }
 
-      canvasFirma.addEventListener('mousedown', startDraw);
-      canvasFirma.addEventListener('mousemove', moveDraw);
-      canvasFirma.addEventListener('mouseup', stopDraw);
-      canvasFirma.addEventListener('touchstart', startDraw);
-      canvasFirma.addEventListener('touchmove', moveDraw);
-      canvasFirma.addEventListener('touchend', stopDraw);
-    }
+  // Mouse (desktop)
+  canvasFirma.addEventListener('mousedown', startDraw);
+  canvasFirma.addEventListener('mousemove', moveDraw);
+  canvasFirma.addEventListener('mouseup', stopDraw);
+  canvasFirma.addEventListener('mouseleave', stopDraw);
+  // Touch (móvil/tablet) — passive:false es OBLIGATORIO para preventDefault
+  canvasFirma.addEventListener('touchstart', startDraw, { passive: false });
+  canvasFirma.addEventListener('touchmove', moveDraw, { passive: false });
+  canvasFirma.addEventListener('touchend', stopDraw, { passive: false });
+  canvasFirma.addEventListener('touchcancel', stopDraw, { passive: false });
 
-    function limpiarFirma() {
-      if(ctxFirma && canvasFirma) {
-        ctxFirma.clearRect(0, 0, canvasFirma.width, canvasFirma.height);
-      }
-    }
+  canvasFirma._pscInit = true;
+  _firmaPadIniciado = true;
+}
+    
+    
+    
+    
+    
+    
 
     function editarCliente(id) {
       if (!verificarPermisoEdicion()) {
@@ -7121,9 +7490,9 @@ document.getElementById('formPrestamo').reset();
       document.getElementById('pConTelefono').innerText = p.telefono;
       document.getElementById('pConDireccion').innerText = p.direccion;
       document.getElementById('pConMonto').innerText = p.monto.toFixed(2);
-      document.getElementById('pConGasto').innerText = p.gastoCierre.toFixed(2);
+      document.getElementById('pConGasto').innerText = (p.gastoCierre || 0).toFixed(2);
       document.getElementById('pConNeto').innerText = p.montoNeto.toFixed(2);
-      document.getElementById('pConPlazo').innerText = p.plazo.replace('_', ' ').toUpperCase() + " (" + p.numCuotas + " cuotas)";
+      document.getElementById('pConPlazo').innerText = (p.plazo || 'diario').replace('_', ' ').toUpperCase() + " (" + (p.numCuotas || 1) + " cuotas)";
       document.getElementById('pConCuota').innerText = p.valorCuota.toFixed(2);
       document.getElementById('pConTotal').innerText = p.totalPagar.toFixed(2);
       document.getElementById('pConFecha').innerText = p.fechaInicio;
@@ -7402,10 +7771,12 @@ function descargarImagenRecibo(blob) {
     }
 
     function mostrarFormularioCliente() {
-      document.getElementById('seccionListaClientes').style.display = 'none';
-      document.getElementById('seccionFormCliente').style.display = 'block';
-      cargarSelectsGenerales();
-    }
+  document.getElementById('seccionListaClientes').style.display = 'none';
+  document.getElementById('seccionFormCliente').style.display = 'block';
+  cargarSelectsGenerales();
+  // 🔑 Inicializar el pad de firma (con delay mínimo por si acaso)
+  setTimeout(function () { iniciarPadFirma(); }, 50);
+}
 
     function ocultarFormularioCliente() {
       document.getElementById('seccionFormCliente').style.display = 'none';
@@ -8080,6 +8451,10 @@ function limpiarFiltroTablero() {
           '<button class="btn btn-warning btn-sm" onclick="cambiarEmpresaActiva(\'' + String(emp.nombre).replace(/'/g, "\'") + '\')">🔄 Cambiar a esta</button>';
 
         var btnEditar = '<button class="btn btn-secondary btn-sm" onclick="abrirModalEditarEmpresa(' + emp.id + ')" style="background:var(--primary); color:white;">✏️ Editar</button>';
+var btnEliminar = '<button class="btn btn-danger btn-sm" onclick="eliminarEmpresaAdmin(' + emp.id + ')" style="background:#dc2626; color:white;">🗑️ Eliminar</button>';
+
+
+
 
         return '<div style="background:#f8fafc; padding:12px; border-radius:6px; margin-top:8px; border:1px solid var(--border); font-size:0.85rem;">' +
           '<div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; flex-wrap:wrap;">' +
@@ -8093,7 +8468,7 @@ function limpiarFiltroTablero() {
                 '<small style="color:#475569;">' + colorDot + ' Color de interfaz personalizado</small>' +
               '</div>' +
             '</div>' +
-            '<div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">' + btnEditar + btnCambiar + '</div>' +
+            '<div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">' + btnEditar + btnEliminar + btnCambiar + '</div>' +
           '</div>' +
         '</div>';
       }).join('');
@@ -9164,6 +9539,18 @@ document.addEventListener('DOMContentLoaded', function() {
         if (typeof cargarDatosLocalEmpresaActual === 'function') {
             cargarDatosLocalEmpresaActual();
         }
+        
+        
+        // Cargar empresas del teléfono inmediatamente para no perder el color
+try {
+    var empsGuardadas = localStorage.getItem('psc_empresas_globales');
+    if (empsGuardadas) {
+        empresasGlobalesDB = JSON.parse(empsGuardadas);
+    }
+} catch (e) { console.warn('Error cargando empresas locales', e); }
+        
+        
+        
 
         // 5. Sincronizar con la nube (en segundo plano para actualizar datos)
         if (typeof sincronizarConNube === 'function') {
@@ -9858,5 +10245,212 @@ function cerrarContrato() {
 
 </script>
 
+
+<script>
+    
+    window.addEventListener('load', function () {
+  setTimeout(function () {
+    try { iniciarPadFirma(); } catch (e) { console.warn('Firma init:', e); }
+  }, 300);
+});
+    
+    
+</script>
+
+
+
+  <!-- ========================================== -->
+  <!-- MODAL CERRAR DÍA (HTML SUELTO)             -->
+  <!-- ========================================== -->
+  <div id="modalCerrarDia" class="modal-overlay" style="z-index: 10005;">
+    <div class="modal-box" style="max-width: 400px; background: #fdf2f8; border: 1px solid #fbcfe8;">
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
+        <span style="font-size: 1.5rem;">←</span>
+        <h3 style="color: #111827; margin: 0; font-size: 1.2rem;">Cerrar día</h3>
+      </div>
+
+      <form id="formCerrarDia" onsubmit="procesarCierreDia(event)">
+        
+        <!-- Nombre de quien recibe -->
+        <div class="form-group" style="margin-bottom: 15px;">
+          <label style="color: #4b5563; font-weight: 700; font-size: 0.9rem;">Entregado a</label>
+          <p style="font-size: 0.75rem; color: #6b7280; margin-bottom: 5px;">Buscar persona a la que se le entregó el dinero.</p>
+          <input type="text" id="cierreEntregadoA" required placeholder="Entregado a ..." style="border: 1px solid #9ca3af; background: #fff; font-weight: 700;">
+        </div>
+
+        <!-- Tipo de entrega -->
+        <div style="background: #fce7f3; padding: 10px; border-radius: 8px; margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 1.5rem;">🧾</span>
+          <div>
+            <p style="font-size: 0.8rem; color: #4b5563; margin: 0;">Tipo de Entrega</p>
+            <p style="font-size: 0.9rem; font-weight: 700; color: #111827; margin: 0;">Entrega en Efectivo</p>
+          </div>
+        </div>
+
+        <!-- Calculadora de denominaciones -->
+        <h4 style="text-align: center; color: #831843; font-weight: 800; margin-bottom: 10px; font-size: 0.9rem;">Denominaciones</h4>
+        
+        <div style="background: #fff; border-radius: 10px; padding: 10px; border: 1px solid #e5e7eb; max-height: 250px; overflow-y: auto;">
+          <div style="display: grid; grid-template-columns: 50px 40px 1fr 20px 1fr; gap: 8px; align-items: center; font-size: 0.9rem; font-weight: 600; color: #374151; text-align: center;">
+            <!-- Generar inputs del 2000 al 1 -->
+            <script>
+              const denominaciones = [2000, 1000, 500, 200, 100, 50, 25, 10, 5, 1];
+              let calcHTML = '';
+              denominaciones.forEach(den => {
+                calcHTML += `
+                  <div style="text-align: left; color: #9ca3af; font-weight: bold;">${den}</div>
+                  <div style="color: #dc2626; font-weight: bold;">×</div>
+                  <input type="number" id="calc_${den}" min="0" placeholder="0" oninput="calcularDesglose()" style="width: 100%; padding: 6px; border: 1px solid #d1d5db; border-radius: 4px; text-align: center; font-weight: 700; color: #000; background: #f9fafb;">
+                  <div style="color: #dc2626; font-weight: bold;">=</div>
+                  <div id="sub_${den}" style="text-align: right; font-weight: 700; color: #111827;">0</div>
+                `;
+              });
+              document.write(calcHTML);
+            </script>
+          </div>
+        </div>
+
+        <!-- Total -->
+        <div style="background: #111827; color: white; padding: 12px; border-radius: 8px; margin-top: 15px; display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 1.1rem;">
+          <span>Entregado</span>
+          <span id="cierreTotalCalculado" style="color: #10b981;">$0.00</span>
+        </div>
+
+        <!-- Botones -->
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
+          <button type="button" class="btn btn-secondary" onclick="document.getElementById('modalCerrarDia').style.display='none'" style="flex:1;">Cancelar</button>
+          <button type="submit" class="btn" style="flex:2; background: #374151; color: white;">✖ CERRAR DÍA</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- SCRIPT PARA EL CIERRE DE DÍA               -->
+  <!-- ========================================== -->
+  <script>
+  // Función para abrir el modal
+  function abrirModalCerrarDia() {
+    // Limpiar campos
+    document.getElementById('formCerrarDia').reset();
+    const denominaciones = [2000, 1000, 500, 200, 100, 50, 25, 10, 5, 1];
+    denominaciones.forEach(den => {
+      document.getElementById(`calc_${den}`).value = '';
+      document.getElementById(`sub_${den}`).innerText = '0';
+    });
+    document.getElementById('cierreTotalCalculado').innerText = '$0.00';
+    
+    document.getElementById('modalCerrarDia').style.display = 'flex';
+  }
+
+  // Función que hace la suma matemática en tiempo real
+  function calcularDesglose() {
+    const denominaciones = [2000, 1000, 500, 200, 100, 50, 25, 10, 5, 1];
+    let total = 0;
+
+    denominaciones.forEach(den => {
+      let cant = parseInt(document.getElementById(`calc_${den}`).value) || 0;
+      let subtotal = cant * den;
+      total += subtotal;
+      
+      // Mostrar subtotal en la fila
+      document.getElementById(`sub_${den}`).innerText = subtotal > 0 ? subtotal.toLocaleString('en-US') : '0';
+    });
+
+    // Mostrar total general
+    document.getElementById('cierreTotalCalculado').innerText = '$' + total.toLocaleString('en-US', {minimumFractionDigits: 2});
+    return total;
+  }
+
+  // Función que arma el ticket y lo manda a imprimir
+  async function procesarCierreDia(e) {
+    e.preventDefault();
+
+    const total = calcularDesglose();
+    if (total <= 0) {
+      alert("El monto total no puede ser cero. Ingresa las cantidades de billetes/monedas.");
+      return;
+    }
+
+    const receptor = document.getElementById('cierreEntregadoA').value.trim();
+    const fechaActual = new Date();
+    const fechaStr = fechaActual.toLocaleDateString('es-DO') + ', ' + fechaActual.toLocaleTimeString('es-DO');
+    
+    // Generar un número de cuadre aleatorio de 4 dígitos (ej. #3029)
+    const numCuadre = Math.floor(1000 + Math.random() * 9000);
+    const cobrador = nombreUsuarioActual || 'Cobrador';
+
+    // --- CONSTRUIR EL TEXTO PARA LA IMPRESORA TÉRMICA (Ancho de 42 caracteres) ---
+    let ticket = "";
+    ticket += "REPORTE DE CUADRE\n";
+    ticket += "------------------------------------------\n";
+    ticket += `GESTOR: ${cobrador.toUpperCase()}\n`;
+    ticket += `FECHA : ${fechaStr}\n`;
+    ticket += `RECPT : ${receptor}\n`;
+    ticket += `CUADRE: #${numCuadre}\n`;
+    ticket += "------------------------------------------\n";
+    ticket += "-------- DESGLOSE EFECTIVO --------\n";
+    
+    // Agregar desglose solo de las denominaciones que tienen cantidad > 0
+    const denominaciones = [2000, 1000, 500, 200, 100, 50, 25, 10, 5, 1];
+    denominaciones.forEach(den => {
+      let cant = parseInt(document.getElementById(`calc_${den}`).value) || 0;
+      if (cant > 0) {
+        let subtotal = (cant * den).toLocaleString('en-US', {minimumFractionDigits: 2});
+        let izq = `${den} x ${cant}`;
+        // Rellenar espacios para alinear a la derecha
+        ticket += izq.padEnd(22, ' ') + subtotal.padStart(20, ' ') + "\n";
+      }
+    });
+
+    ticket += "------------------------------------------\n";
+    ticket += "TOTAL DECLARADO\n";
+    ticket += total.toLocaleString('en-US', {minimumFractionDigits: 2}).padStart(42, ' ') + "\n";
+    ticket += "\n\n\n"; // Espacio para cortar el papel
+
+    // --- 1. GUARDAR EN EL SISTEMA (NUBE Y LOCAL) ---
+    notificacionesDB.push({
+      id: Date.now(),
+      texto: `✅ CIERRE DE CAJA (${cobrador}) - Total: $${total.toFixed(2)} | Recibido por: ${receptor} | Cuadre #${numCuadre}`,
+      fecha: new Date().toLocaleString(),
+      tipo: 'CierreCaja',
+      cobrador: cobrador,
+      monto: total,
+      receptor: receptor
+    });
+    
+    // Si hay una ruta abierta, la cerramos
+    if (typeof controlDiaDB !== 'undefined') {
+        controlDiaDB.abierto = false;
+    }
+    
+    if (typeof guardarDatosEnNube === 'function') guardarDatosEnNube();
+    if (typeof renderNotificacionesAdmin === 'function') renderNotificacionesAdmin();
+
+    // --- 2. ENVIAR A IMPRESORA BLUETOOTH ---
+    // Verificamos si la función de impresión existe y si hay conexión
+    if (typeof enviarComandosBluetooth === 'function') {
+      if (typeof bluetoothCharacteristic !== 'undefined' && bluetoothCharacteristic) {
+        await enviarComandosBluetooth(ticket);
+      } else {
+        alert("⚠️ Cuadre guardado en el sistema, pero NO hay impresora Bluetooth conectada.\n\nVe al menú > Configurar Impresora Bluetooth.");
+      }
+    } else {
+      console.error("La función enviarComandosBluetooth no está cargada.");
+      alert("✅ Cuadre guardado en el sistema. (No se detectó la librería de impresión).");
+    }
+
+    // --- 3. CERRAR PANTALLA ---
+    document.getElementById('modalCerrarDia').style.display = 'none';
+    
+    // Opcional: Recargar la pantalla para que el cobrador vuelva al inicio
+    alert("✅ Día cerrado con éxito. Efectivo entregado: $" + total.toFixed(2));
+    window.location.reload(); 
+  }
+  </script>
+
 </body>
 </html>
+
+
+
