@@ -10594,7 +10594,8 @@ function cerrarContrato() {
   // Función que arma el ticket y lo manda a imprimir
   
   
-  async function procesarCierreDia(e) {
+  
+    async function procesarCierreDia(e) {
   e.preventDefault();
 
   const total = calcularDesglose();
@@ -10609,6 +10610,12 @@ function cerrarContrato() {
   const horaStr = fechaActual.toLocaleTimeString('es-DO');
   const numCuadre = Math.floor(1000 + Math.random() * 9000);
   const cobrador = nombreUsuarioActual || 'Cobrador';
+
+  // 🔥 MEJORA UI: Deshabilitar botón para evitar doble clic
+  const btnSubmit = e.target.querySelector('button[type="submit"]');
+  const textoOriginal = btnSubmit.innerHTML;
+  btnSubmit.innerHTML = '⏳ Enviando a la oficina...';
+  btnSubmit.disabled = true;
 
   // 1. CALCULAR MÉTRICAS DEL DÍA PARA EL CUADRE
   const cobrosHoy = cobrosDB.filter(c => c.fecha === fechaStr && (c.cobrador === cobrador || !c.cobrador));
@@ -10634,11 +10641,10 @@ function cerrarContrato() {
     efectivo_entregado: total, 
     receptor: receptor,
     estado: 'pendiente',
-    detalles: cobrosHoy // Guardamos el array de cobros para la tabla del detalle
+    detalles: cobrosHoy 
   };
 
   cuadresDB.push(nuevoCuadre);
-  guardarDatosEnNube(); // Sincroniza con Supabase
 
   // 3. NOTIFICACIÓN Y CIERRE DE RUTA
   notificacionesDB.push({
@@ -10650,7 +10656,20 @@ function cerrarContrato() {
   });
   
   if (typeof controlDiaDB !== 'undefined') { controlDiaDB.abierto = false; }
-  guardarDatosEnNube();
+
+  // 🔥 EL FIX REAL: ESPERAR A QUE SUPABASE TERMINE ANTES DE RECARGAR
+  try {
+      guardarEnLocalStorageLocal(); // Respaldo local inmediato
+      
+      if (typeof guardarDatosEnNube === 'function') {
+          // EL AWAIT ES LA CLAVE AQUÍ
+          await guardarDatosEnNube(); 
+      }
+  } catch (errSave) {
+      console.error("Error guardando en la nube:", errSave);
+      alert("⚠️ Hubo un problema de conexión. Tu cuadre está guardado en el teléfono y se enviará al recuperar la señal.");
+  }
+
   if (typeof renderNotificacionesAdmin === 'function') renderNotificacionesAdmin();
 
   // 4. IMPRESIÓN TÉRMICA
@@ -10670,202 +10689,25 @@ function cerrarContrato() {
   }
 
   document.getElementById('modalCerrarDia').style.display = 'none';
-  alert("✅ Día cerrado con éxito. Tu cuadre ha sido enviado a la oficina.");
+  
+  // 🔥 EL FIX 2: LIMPIAR LA SESIÓN PARA QUE SALGA AL LOGIN
+  localStorage.removeItem('psc_sesion_activa');
+  localStorage.removeItem('psc_rol_activo');
+  localStorage.removeItem('psc_nombre_usuario');
+  localStorage.removeItem('psc_zona_usuario');
+  localStorage.removeItem('psc_sesion');
+  localStorage.removeItem('psc_ultima_pestana');
+
+  alert("✅ Día cerrado con éxito. Tu cuadre ha sido enviado a la oficina.\n\nLa sesión se cerrará por seguridad.");
+  
+  // Al recargar, como borramos el 'psc_sesion_activa', caerá en la pantalla de Login
   window.location.reload(); 
 }
   
-
-  
-  // ==========================================
-// LÓGICA PARA MOSTRAR LOS CUADRES RECIBIDOS
-// ==========================================
-
-function renderCuadresRecibidos() {
-  var cont = document.getElementById('listaCuadresDiv');
-  if (!cont) return;
-
-  var busqueda = (document.getElementById('inputBusquedaCuadres') || {}).value || '';
-  busqueda = busqueda.toLowerCase().trim();
-
-  var filtrados = (cuadresDB || []).filter(function(c) {
-    var texto = (c.cobrador + ' ' + c.zona + ' ' + c.fecha).toLowerCase();
-    return texto.indexOf(busqueda) !== -1;
-  });
-
-  filtrados.sort(function(a, b) { return b.id - a.id; });
-
-  if (filtrados.length === 0) {
-    cont.innerHTML = '<p style="color:#64748b; text-align:center; grid-column: 1 / -1; padding:20px;">No hay cuadres recibidos en este momento.</p>';
-    return;
-  }
-
-  cont.innerHTML = filtrados.map(function(c) {
-    var estadoColor = c.estado === 'revisado' ? 'var(--success)' : 'var(--warning)';
-    var estadoTexto = c.estado === 'revisado' ? '✅ Revisado' : '⏳ Pendiente';
-
-    return '<div onclick="verDetalleCuadreRecibido(' + c.id + ')" style="background:#fff; padding:15px; border-radius:10px; border:1px solid #e2e8f0; border-left:5px solid ' + estadoColor + '; cursor:pointer; box-shadow:0 2px 5px rgba(0,0,0,0.05); transition: transform 0.2s;">' +
-      '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">' +
-        '<strong style="font-size:1rem; color:#1e293b;">👤 ' + c.cobrador + '</strong>' +
-        '<span style="background:' + estadoColor + '; color:white; padding:3px 8px; border-radius:20px; font-size:0.7rem; font-weight:700;">' + estadoTexto + '</span>' +
-      '</div>' +
-      '<div style="font-size:0.8rem; color:#475569;">' +
-        '📍 Zona: <strong>' + c.zona + '</strong><br>' +
-        '📅 ' + c.fecha + ' a las ' + c.hora + '<br>' +
-        '💵 Entregado: <strong style="color:var(--success); font-size:1rem;">RD$ ' + parseFloat(c.efectivo_entregado).toFixed(2) + '</strong>' +
-      '</div>' +
-    '</div>';
-  }).join('');
-}
-
-function verDetalleCuadreRecibido(id) {
-  var c = cuadresDB.find(function(item) { return item.id == id; });
-  if (!c) return;
-
-  document.getElementById('vistaListaCuadres').style.display = 'none';
-  document.getElementById('vistaDetalleCuadre').style.display = 'block';
-
-  document.getElementById('lblDetalleCobrador').innerText = 'Cuadre de: ' + c.cobrador;
-  document.getElementById('lblDetalleFechaZona').innerText = 'Zona: ' + c.zona + ' | ' + c.fecha + ' ' + c.hora;
-  
-  var badge = document.getElementById('lblEstadoCuadreBadge');
-  badge.innerText = c.estado === 'revisado' ? '✅ Revisado' : '⏳ Pendiente';
-  badge.style.background = c.estado === 'revisado' ? 'var(--success)' : 'var(--warning)';
-
-  var tCobrado = parseFloat(c.total_cobrado) || 0;
-  var tPrestado = parseFloat(c.total_prestado) || 0;
-  var tGastos = parseFloat(c.total_gastos) || 0;
-  var tEntregado = parseFloat(c.efectivo_entregado) || 0;
-
-  document.getElementById('lblCuadreCobrado').innerText = 'RD$ ' + tCobrado.toLocaleString('en-US', {minimumFractionDigits:2});
-  document.getElementById('lblCuadrePrestado').innerText = 'RD$ ' + tPrestado.toLocaleString('en-US', {minimumFractionDigits:2});
-  document.getElementById('lblCuadreGastos').innerText = 'RD$ ' + tGastos.toLocaleString('en-US', {minimumFractionDigits:2});
-  document.getElementById('lblCuadreEfectivoEntregar').innerText = 'RD$ ' + tEntregado.toLocaleString('en-US', {minimumFractionDigits:2});
-
-  var detalles = c.detalles || [];
-  document.getElementById('lblCuadreCobrosCount').innerText = detalles.length + ' cobros registrados';
-  
-  var tbody = document.getElementById('tbodyDesgloseCuadre');
-  if (detalles.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="4" style="padding:10px; text-align:center; color:#64748b;">No se guardó el detalle de los cobros.</td></tr>';
-  } else {
-    tbody.innerHTML = detalles.map(function(d) {
-      return '<tr style="border-bottom:1px solid var(--border);">' +
-        '<td style="padding:10px; font-weight:600;">' + (d.clienteNombre || 'Cliente') + '</td>' +
-        '<td style="padding:10px;">' + (d.cuotaInfo || 'N/A') + '</td>' +
-        '<td style="padding:10px;"><span style="background:#eff6ff; color:#1e3a8a; padding:2px 6px; border-radius:4px; font-size:0.75rem; font-weight:700;">' + (d.tipoPago || 'Efectivo') + '</span></td>' +
-        '<td style="padding:10px; text-align:right; font-weight:700; color:var(--success);">RD$ ' + parseFloat(d.monto).toFixed(2) + '</td>' +
-      '</tr>';
-    }).join('');
-  }
-
-  var btnAprobar = document.querySelector('#vistaDetalleCuadre .btn-success');
-  if (c.estado === 'revisado') {
-    btnAprobar.style.display = 'none';
-  } else {
-    btnAprobar.style.display = 'inline-block';
-    btnAprobar.onclick = function() { marcarCuadreComoRevisado(c.id); };
-  }
-}
-
-function cerrarDetalleCuadre() {
-  document.getElementById('vistaDetalleCuadre').style.display = 'none';
-  document.getElementById('vistaListaCuadres').style.display = 'block';
-}
-
-function marcarCuadreComoRevisado(id) {
-  if (!id) {
-    var cobrador = document.getElementById('lblDetalleCobrador').innerText.replace('Cuadre de: ', '');
-    var masReciente = cuadresDB.filter(c => c.cobrador === cobrador && c.estado === 'pendiente').sort((a,b) => b.id - a.id)[0];
-    if(masReciente) id = masReciente.id;
-  }
-
-  var index = cuadresDB.findIndex(c => c.id == id);
-  if (index !== -1) {
-    cuadresDB[index].estado = 'revisado';
-    if (typeof guardarDatosEnNube === 'function') guardarDatosEnNube();
-    verDetalleCuadreRecibido(id);
-    alert("✅ Cuadre marcado como Revisado y Aprobado.");
-  }
-}
-
-// Conectar la pestaña nueva al sistema de navegación
-var _originalShowTab = showTab;
-showTab = function(tabId, btn) {
-  _originalShowTab(tabId, btn);
-  if (tabId === 'cuadresRecibidosTab') {
-    document.getElementById('vistaListaCuadres').style.display = 'block';
-    document.getElementById('vistaDetalleCuadre').style.display = 'none';
-    renderCuadresRecibidos();
-  }
-};
   
   
   
-  // ==========================================
-// FUNCIONES DEL MENÚ DEL COBRADOR
-// ==========================================
 
-function renderRecibosCobrador() {
-  var cont = document.getElementById('listaRecibosCobrador');
-  if (!cont) return;
-  var busqueda = (document.getElementById('inputBusquedaRecibosCobrador') || {}).value || '';
-  busqueda = busqueda.toLowerCase();
-  var hoyStr = new Date().toLocaleDateString('es-DO');
-
-  var lista = cobrosDB.filter(function(c) {
-    var esDeHoy = c.fecha === hoyStr;
-    var esMio = (c.cobrador === nombreUsuarioActual || !c.cobrador);
-    var coincide = c.clienteNombre.toLowerCase().indexOf(busqueda) !== -1;
-    return esDeHoy && esMio && coincide;
-  });
-
-  if (lista.length === 0) {
-    cont.innerHTML = '<p style="font-size:0.85rem; color:#64748b; text-align:center; padding:10px;">No hay recibos generados hoy o no coinciden con la búsqueda.</p>';
-    return;
-  }
-
-  cont.innerHTML = lista.map(function(c) {
-    return '<div style="background:#f8fafc; padding:10px; border-radius:6px; margin-bottom:6px; border-left:4px solid var(--success); display:flex; justify-content:space-between; align-items:center; gap:8px;">' +
-      '<div style="flex:1;">' +
-        '<strong>' + c.clienteNombre + '</strong> — <span style="color:var(--success); font-weight:700;">+$' + parseFloat(c.monto).toFixed(2) + '</span><br>' +
-        '<span style="font-size:0.75rem; color:#64748b;">Cuota: ' + (c.cuotaInfo||'N/A') + ' | ' + (c.tipoPago||'Efectivo') + '</span>' +
-      '</div>' +
-      '<button class="btn btn-warning btn-sm" onclick="imprimirReciboDirecto(' + c.id + ')" style="flex-shrink:0;">🖨️</button>' +
-    '</div>';
-  }).join('');
-}
-
-function abrirModalGastoCobrador() {
-  document.getElementById('modalGastoCobrador').style.display = 'flex';
-}
-
-function guardarGastoCobrador(e) {
-  e.preventDefault();
-  var concepto = document.getElementById('gastoCobradorConcepto').value;
-  var monto = parseFloat(document.getElementById('gastoCobradorMonto').value) || 0;
-
-  gastosDB.push({
-    id: Date.now(),
-    concepto: concepto,
-    monto: monto,
-    fecha: new Date().toLocaleDateString(),
-    timestamp: Date.now(),
-    cobrador: nombreUsuarioActual // Guardamos quién lo gastó
-  });
-
-  guardarDatosEnNube();
-  document.getElementById('modalGastoCobrador').style.display = 'none';
-  document.getElementById('gastoCobradorMonto').value = '';
-  
-  alert("✅ Gasto de '" + concepto + "' registrado con éxito.");
-  
-  // Si el arqueo de caja está abierto en segundo plano, lo actualizamos
-  if (typeof renderArqueoCaja === 'function') renderArqueoCaja();
-  if (typeof actualizarMetricas === 'function') actualizarMetricas();
-}
-  
-  
-  
   
   
   </script>
