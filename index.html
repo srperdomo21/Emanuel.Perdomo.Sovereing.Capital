@@ -4032,10 +4032,6 @@ const MAPA_TABLAS_SUPABASE = {
 // ============ GUARDAR: local + Supabase (upsert + borrar faltantes) ============
 
 
-
-
-
-
 async function guardarDatosEnNube() {
   guardarEnLocalStorageLocal(); // Siempre guarda local primero
 
@@ -4057,11 +4053,9 @@ async function guardarDatosEnNube() {
       { nombre: 'cobradores', datos: cobradoresDB },
       { nombre: 'empleados', datos: empleadosDB },
       { nombre: 'notas', datos: notasDB },
-        
-  { nombre: 'inversionistas', datos: inversionistasDB },
-  { nombre: 'cuadres', datos: cuadresDB }
-]; 
-    
+      { nombre: 'inversionistas', datos: inversionistasDB },
+      { nombre: 'cuadres', datos: cuadresDB }
+    ]; 
 
     for (let tabla of tablasASincronizar) {
       if (tabla.datos && tabla.datos.length > 0) {
@@ -4070,7 +4064,7 @@ async function guardarDatosEnNube() {
     }
 
     await guardarControlDiaSupabase();
-    actualizarBadgeSync('ok');
+    actualizarBadgeSync('ok'); // Si llegó aquí, se pone en verde
     
   } catch (err) {
     console.error('⚠️ Error general guardando en Supabase:', err);
@@ -4098,20 +4092,17 @@ async function sincronizarTablaCompleta(nombreTabla, arrayLocal) {
     return nuevoItem;
   });
 
-  const { error } = await supabase.from(nombreTabla).upsert(registros, { onConflict: 'id' });
+  try {
+    const { error } = await supabase.from(nombreTabla).upsert(registros, { onConflict: 'id' });
 
-  
-  
-  if (error) {
-  console.error(`❌ ERROR en tabla "${nombreTabla}":`, error.message);
-  // Si falla una tabla, avisamos en consola pero NO detenemos todo el sistema.
-  // throw error; 
+    if (error) {
+      console.warn(`⚠️ Omitiendo error en tabla "${nombreTabla}":`, error.message);
+      // NO lanzamos el error (throw) para que el sistema siga guardando las demás tablas
+    }
+  } catch (err) {
+    console.warn(`⚠️ Excepción de red en tabla "${nombreTabla}":`, err);
+  }
 }
-  
-  
-  
-}
-
 
 
 
