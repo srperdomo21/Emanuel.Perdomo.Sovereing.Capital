@@ -3298,7 +3298,15 @@ if (!empresaIdActual) return;
       
     ];
 
-    const resultados = await Promise.all(promesas.map(p => p.catch(e => ({ data: [], error: e }))));
+    // Usamos Promise.allSettled para evitar que un error detenga toda la carga
+const resultadosRaw = await Promise.allSettled(promesas);
+
+// Normalizamos los resultados para que el resto del código funcione igual
+const resultados = resultadosRaw.map(r => {
+  if (r.status === 'fulfilled') return r.value;
+  console.warn('Error en una consulta de Supabase:', r.reason);
+  return { data: [], error: r.reason };
+});
     
     // 3. ASIGNACIÓN DIRECTA
     clientesDB = resultados[0].data || [];
