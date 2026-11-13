@@ -3401,7 +3401,7 @@ const resultados = resultadosRaw.map(r => {
   });
 
   // Nombre de la empresa en el encabezado
-  var headerH1 = document.querySelector('header h1');
+  var headerH1 = document.querySelector('header.no-print h1');
   if (headerH1) {
     var logoImg = headerH1.querySelector('img');
     var nombreMostrar = emp.nombre || 'PERDOMO SOVEREIGN CAPITAL';
@@ -8833,23 +8833,34 @@ var btnEliminar = '<button class="btn btn-danger btn-sm" onclick="eliminarEmpres
     }
 
     function cambiarEmpresaActiva(nombreEmpresa) {
-      if (confirm("¿Deseas cambiar el entorno de trabajo a la empresa: " + nombreEmpresa + "? Los datos mostrados serán exclusivos de esta empresa (sin datos de otras compañías).")) {
-        empresaActual = nombreEmpresa;
-        localStorage.setItem('psc_empresa_activa', empresaActual);
-        // Primero cargar datos locales aislados de esta empresa (vacío si es nueva)
-        cargarDatosLocalEmpresaActual();
-        // Luego intentar sincronizar con la nube (Supabase)
-        if (typeof sincronizarConNube === 'function') {
-          var r = sincronizarConNube();
-          if (r && typeof r.catch === 'function') r.catch(function(){});
-        }
-        if (typeof aplicarTemaEmpresa === 'function') aplicarTemaEmpresa();
-        if (typeof actualizarMetricas === 'function') actualizarMetricas();
-        if (typeof renderClientes === 'function') renderClientes();
-        alert("Cambiado correctamente a: " + empresaActual + "\n\nLos datos son exclusivos de esta empresa.");
-        showTab('resumen', null);
-      }
+  if (confirm("¿Deseas cambiar el entorno de trabajo a la empresa: " + nombreEmpresa + "? Los datos mostrados serán exclusivos de esta empresa.")) {
+    empresaActual = nombreEmpresa;
+    localStorage.setItem('psc_empresa_activa', empresaActual);
+    
+    // 1. Cargar datos locales y de la nube
+    cargarDatosLocalEmpresaActual();
+    if (typeof sincronizarConNube === 'function') {
+      var r = sincronizarConNube();
+      if (r && typeof r.catch === 'function') r.catch(function(){});
     }
+
+    // 2. FORZAR EL CAMBIO DE LOGO Y COLOR INMEDIATAMENTE
+    if (typeof aplicarTemaEmpresa === 'function') {
+        var empObj = empresasGlobalesDB.find(function(e) { return e.nombre === empresaActual; });
+        if (empObj) {
+            aplicarTemaEmpresa(empObj); // Le pasamos los datos de la nueva empresa directamente
+        } else {
+            aplicarTemaEmpresa();
+        }
+    }
+    
+    if (typeof actualizarMetricas === 'function') actualizarMetricas();
+    if (typeof renderClientes === 'function') renderClientes();
+    
+    alert("Cambiado correctamente a: " + empresaActual + "\n\nAhora estás viendo los datos de esta empresa.");
+    showTab('resumen', null);
+  }
+}
 
     function actualizarSelectsLoginEmpresa() {
   var selectLogin = document.getElementById('loginEmpresaSelect');
