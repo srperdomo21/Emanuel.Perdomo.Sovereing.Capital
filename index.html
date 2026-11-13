@@ -1061,6 +1061,12 @@ function redondear(num) {
       <button class="sidebar-btn" onclick="showTabFromMenu('mapaTab')">🗺️ Mapa y Seguimiento</button>
       <hr style="border:0; border-top:1px solid var(--border); margin:5px 0;">
       <button class="sidebar-btn" onclick="abrirAyudaWhatsApp()" style="background:#25d366; color:white; font-weight:700;">🆘 Ayuda / Soporte WhatsApp</button>
+      
+      <!-- NUEVO BOTÓN PARA CAMBIAR CONTRASEÑA -->
+<button class="sidebar-btn" onclick="abrirModalCambiarPassword()" style="background:#f59e0b; color:white; font-weight:700;">🔑 Cambiar mi Contraseña</button>
+      
+      
+      
       <button class="sidebar-btn solo-admin-emp" onclick="abrirModalCambiarTelefonoSoporte()" style="background:#0f172a; color:white;">📱 Cambiar Número de Soporte</button>
       <button class="sidebar-btn btn-warning" onclick="abrirModalImpresoraBluetooth()" style="color:#000;">🖨️ Configurar Impresora Bluetooth</button>
       <button id="btnInstalarPWA" class="sidebar-btn" onclick="instalarPWA()" style="display:none; background:linear-gradient(135deg,#6366f1,#4f46e5); color:white; font-weight:700;">📲 Instalar App (PWA)</button>
@@ -4536,238 +4542,92 @@ function actualizarZonasLogin(nombreCobrador) {
 
 
   // ========== LOGIN REAL CONTRA SUPABASE (ESTRICTO Y SEGURO) ==========
-async function realizarLogin(e) {
-  if (e) {
-    e.preventDefault();
-    e.stopPropagation();
+// 2. VALIDAR SUPERADMIN (Dinámico, lee de la tabla 'usuarios' o 'empresas')
+if (rol === 'SuperAdmin') {
+  var storedPass = null;
+  
+  // Buscamos la contraseña real del SuperAdmin en la tabla usuarios
+  if (supabase) {
+      var { data: userData } = await supabase.from('usuarios').select('password_hash').eq('rol', 'superadmin').single();
+      if (userData && userData.password_hash) storedPass = userData.password_hash;
   }
+  
+  // Si no la encuentra en usuarios, usa el respaldo de la empresa
+  if (!storedPass) storedPass = empresa.password_hash || empresa.passwordAdmin;
 
-  var empresaNombre = document.getElementById('loginEmpresaSelect').value;
-  var rol = document.getElementById('loginRolSelect').value;
-  var password = document.getElementById('loginPassword').value;
-
-  if (!rol || !password) {
-    alert('Por favor completa los campos obligatorios.');
+  if (!storedPass) {
+    alert('Error: No hay contraseña configurada para el Super Admin.');
     return;
   }
 
-  var nombrePersona = '';
-  var zonaPersona = '';
-  if (rol === 'cobrador' || rol === 'empleado') {
-    var selectPersona = document.getElementById('loginNombreSelect');
-    nombrePersona = selectPersona ? selectPersona.value : '';
-    if (!nombrePersona) {
-      alert('Por favor selecciona el nombre.');
-      return;
-    }
-  }
-  if (rol === 'cobrador') {
-    var selectZona = document.getElementById('loginZonaSelect');
-    zonaPersona = selectZona ? selectZona.value : '';
-    if (!zonaPersona) {
-      alert('Por favor selecciona la zona / ruta.');
-      return;
-    }
-  }
+  var passOk = (typeof verifyPassword === 'function') 
+    ? verifyPassword(password, storedPass) 
+    : (password === storedPass);
 
-  var rateKey = (empresaNombre + '|' + rol + '|' + nombrePersona).toLowerCase();
-  if (typeof checkLoginRateLimit === 'function' && !checkLoginRateLimit(rateKey)) {
-    alert('Demasiados intentos fallidos. Espera 15 minutos.');
+  if (passOk) {
+    empresaActual = empresaNombre;
+    var empObjSuper = empresasGlobalesDB.find(function(e) { return e.nombre === empresaNombre; });
+    empresaIdActual = empObjSuper ? empObjSuper.id : empresa.id;
+    
+    rolUsuarioActual = 'SuperAdmin';
+    nombreUsuarioActual = 'Super Administrador';
+    zonaUsuarioActual = 'Todas las Zonas (Global)';
+    
+    document.getElementById('loginScreen').style.display = 'none';
+    localStorage.setItem('psc_empresa_activa', empresaActual);
+    localStorage.setItem('psc_sesion_activa', 'true');
+    
+    if (typeof guardarSesionLocal === 'function') guardarSesionLocal();
     return;
   }
-
-  try {
-    // 1. PRIMERO DESCARGAMOS LA EMPRESA DE SUPABASE
-    var { data: empresa, error: errEmp } = await supabase
-      .from('empresas')
-      .select('*')
-      .eq('nombre', empresaNombre)
-      .single();
-
-    if (errEmp || !empresa) {
-      if (typeof registerFailedLogin === 'function') registerFailedLogin(rateKey);
-      alert('Empresa no encontrada en la base de datos.');
-      return;
-    }
-
-    if (empresa.estado === 'bloqueada') {
-      alert('Esta empresa está bloqueada por impago. Contacta al administrador.');
-      return;
-    }
-
-    // 2. AHORA VALIDAMOS SUPERADMIN (El código que querías poner)
-    if (rol === 'SuperAdmin') {
-      var storedPass = empresa.password_hash || empresa.passwordAdmin;
-      if (!storedPass) {
-        alert('Error: Esta empresa no tiene contraseña configurada.');
-        return;
-      }
-      var passOk = (typeof verifyPassword === 'function') 
-        ? verifyPassword(password, storedPass) 
-        : (password === storedPass);
-
-      if (passOk) {
-        empresaActual = empresaNombre;
-        var empObjSuper = empresasGlobalesDB.find(function(e) { return e.nombre === empresaNombre; });
-        empresaIdActual = empObjSuper ? empObjSuper.id : empresa.id;
-        
-        rolUsuarioActual = 'SuperAdmin';
-        nombreUsuarioActual = 'Super Administrador';
-        zonaUsuarioActual = 'Todas las Zonas (Global)';
-        
-        document.getElementById('loginScreen').style.display = 'none';
-        localStorage.setItem('psc_empresa_activa', empresaActual);
-        localStorage.setItem('psc_sesion_activa', 'true');
-        
-        if (typeof guardarSesionLocal === 'function') guardarSesionLocal();
-        return;
-      }
-      alert('Contraseña de Super Admin incorrecta.');
-      return;
-    }
-
-    // 3. VALIDAR ADMINISTRADOR
-    if (rol === 'Administrador' || rol === 'admin') {
-      var storedPassAdmin = empresa.password_hash || empresa.passwordAdmin;
-      var passOkAdmin = (typeof verifyPassword === 'function') ? verifyPassword(password, storedPassAdmin) : (password === storedPassAdmin);
-          
-      if (passOkAdmin) {
-        if (typeof clearLoginAttempts === 'function') clearLoginAttempts(rateKey);
-
-        var sesion = {
-          empresa_id: empresa.id,
-          empresa_nombre: empresa.nombre,
-          usuario: empresa.usuario_admin || 'admin',
-          rol: 'admin',
-          color: empresa.color_primario || '#1e3a8a',
-          plan: empresa.plan || 'premium'
-        };
-        localStorage.setItem('psc_sesion', JSON.stringify(sesion));
-        localStorage.setItem('psc_empresa_activa', empresa.nombre);
-        localStorage.setItem('psc_sesion_activa', 'true');
-
-        empresaActual = empresa.nombre;
-        empresaIdActual = empresa.id;
-        rolUsuarioActual = 'admin';
-        nombreUsuarioActual = 'Administrador de ' + empresa.nombre;
-        zonaUsuarioActual = 'Todas las Zonas (Oficina)';
-
-        // Guardar la empresa en el arreglo global para que el tema la encuentre
-if (!empresasGlobalesDB.some(function(e) { return e.id == empresa.id; })) {
-    empresasGlobalesDB.push(empresa);
+  alert('Contraseña de Super Admin incorrecta.');
+  return;
 }
-if (typeof aplicarTemaEmpresa === 'function') aplicarTemaEmpresa(empresa);
 
-        if (typeof sincronizarConNube === 'function') sincronizarConNube();
-        return;
-      }
-      if (typeof registerFailedLogin === 'function') registerFailedLogin(rateKey);
-      alert('Contraseña de Administrador incorrecta.');
-      return;
-    }
+// 3. VALIDAR ADMINISTRADOR (Dinámico, lee de la tabla 'empresas')
+if (rol === 'Administrador' || rol === 'admin') {
+  var storedPassAdmin = empresa.password_hash || empresa.passwordAdmin;
+  
+  if (!storedPassAdmin) {
+     alert('Error: No hay contraseña configurada para el Administrador.');
+     return;
+  }
 
-    // 4. VALIDAR EMPLEADOS Y COBRADORES
-    var usuarioDB = null;
-    try {
-      if (rol === 'cobrador' && supabase) {
-        var { data: cobCloud } = await supabase.from('cobradores').select('*').eq('empresa_id', empresa.id).eq('nombre', nombrePersona).single();
-        if (cobCloud) usuarioDB = cobCloud;
-      } else if (rol === 'empleado' && supabase) {
-        var { data: empCloud } = await supabase.from('empleados').select('*').eq('empresa_id', empresa.id).eq('nombre', nombrePersona).single();
-        if (empCloud) usuarioDB = empCloud;
-      }
-    } catch (e) {
-      console.log("Buscando en local...");
-    }
-
-    if (!usuarioDB) {
-      if (rol === 'cobrador') usuarioDB = cobradoresDB.find(function(c) { return c.nombre === nombrePersona; });
-      else if (rol === 'empleado') usuarioDB = empleadosDB.find(function(e) { return e.nombre === nombrePersona; });
-    }
-
-    if (!usuarioDB) {
-      if (typeof registerFailedLogin === 'function') registerFailedLogin(rateKey);
-      alert('Usuario no encontrado en el sistema.');
-      return;
-    }
-
-    var hashGuardado = usuarioDB.password_hash; 
-    var passValidado = false;
-
-    if (hashGuardado) {
-      passValidado = typeof verifyPassword === 'function' ? verifyPassword(password, hashGuardado) : (password === hashGuardado);
-    } else {
-      passValidado = (password === usuarioDB.password);
-    }
-
-    if (!passValidado) {
-      if (typeof registerFailedLogin === 'function') registerFailedLogin(rateKey);
-      alert('Usuario o contraseña incorrectos.');
-      return;
-    }
-
+  var passOkAdmin = (typeof verifyPassword === 'function') ? verifyPassword(password, storedPassAdmin) : (password === storedPassAdmin);
+      
+  if (passOkAdmin) {
     if (typeof clearLoginAttempts === 'function') clearLoginAttempts(rateKey);
 
-    // FLUJO 2FA PARA COBRADOR
-    if (rol === 'cobrador') {
-      loginPendiente2FA = { empresa: empresa, rol: rol, nombre: nombrePersona, zona: zonaPersona || '' };
-      
-      var elCobrador = document.getElementById('lbl2FACobrador');
-      if (elCobrador) elCobrador.innerText = nombrePersona;
-
-      var elZona = document.getElementById('lbl2FAZona');
-      if (elZona) elZona.innerText = loginPendiente2FA.zona || '';
-
-      await solicitarCodigoJornada(nombrePersona, loginPendiente2FA.zona || '');
-
-      var loginScreen = document.getElementById('loginScreen');
-      if (loginScreen) loginScreen.style.display = 'none';
-
-      var modal2FA = document.getElementById('modal2FAJornada');
-      if (modal2FA) {
-          modal2FA.style.display = 'flex';
-          var input2FA = document.getElementById('input2FAJornada');
-          if (input2FA) input2FA.focus();
-      } else {
-          alert("Aviso: El modal visual de 2FA no se encontró, pero el login continuará.");
-          if (typeof confirmar2FAJornada === 'function') confirmar2FAJornada(); 
-      }
-      return;
-    }
-
-    // LOGIN EXITOSO EMPLEADO
-    var sesionUsuario = {
+    var sesion = {
       empresa_id: empresa.id,
       empresa_nombre: empresa.nombre,
-      usuario: nombrePersona,
-      rol: rol,
-      usuario_id: usuarioDB.id,
-      zonas: usuarioDB.zonas || [zonaPersona],
+      usuario: empresa.usuarioAdmin || 'admin',
+      rol: 'admin',
       color: empresa.color_primario || '#1e3a8a',
       plan: empresa.plan || 'premium'
     };
-    localStorage.setItem('psc_sesion', JSON.stringify(sesionUsuario));
+    localStorage.setItem('psc_sesion', JSON.stringify(sesion));
     localStorage.setItem('psc_empresa_activa', empresa.nombre);
     localStorage.setItem('psc_sesion_activa', 'true');
 
     empresaActual = empresa.nombre;
     empresaIdActual = empresa.id;
-    rolUsuarioActual = rol;
-    nombreUsuarioActual = nombrePersona;
-    zonaUsuarioActual = zonaPersona || (usuarioDB.zonas ? usuarioDB.zonas[0] : '');
+    rolUsuarioActual = 'admin';
+    nombreUsuarioActual = 'Administrador de ' + empresa.nombre;
+    zonaUsuarioActual = 'Todas las Zonas (Oficina)';
 
-    if (typeof aplicarTemaEmpresa === 'function') aplicarTemaEmpresa();
-    document.getElementById('loginScreen').style.display = 'none';
-    alert('¡Bienvenido ' + nombreUsuarioActual + ' (' + rol + ')!');
+    if (!empresasGlobalesDB.some(function(e) { return e.id == empresa.id; })) {
+        empresasGlobalesDB.push(empresa);
+    }
+    if (typeof aplicarTemaEmpresa === 'function') aplicarTemaEmpresa(empresa);
 
     if (typeof sincronizarConNube === 'function') sincronizarConNube();
-
-  } catch (error) {
-    console.error('Error crítico en login:', error);
-    alert('Error de conexión. Revisa la consola.');
+    return;
   }
+  if (typeof registerFailedLogin === 'function') registerFailedLogin(rateKey);
+  alert('Contraseña de Administrador incorrecta.');
+  return;
 }
-    
     
    
     
@@ -4805,6 +4665,39 @@ if (typeof aplicarTemaEmpresa === 'function') aplicarTemaEmpresa(empresa);
         if (typeof actualizarBadgeSync === 'function') actualizarBadgeSync(navigator.onLine ? 'ok' : 'error');
       } catch(e) { console.warn('UI post-login:', e); }
     }
+    
+    
+    
+    async function abrirModalCambiarPassword() {
+    var nuevaClave = prompt("Ingresa tu NUEVA contraseña (mínimo 4 caracteres):");
+    if (!nuevaClave || nuevaClave.trim().length < 4) {
+        if (nuevaClave !== null) alert('La contraseña es muy corta o está vacía.');
+        return;
+    }
+    
+    // Encriptamos la contraseña si la librería bcrypt está disponible
+    var claveFinal = (typeof hashPassword === 'function') ? hashPassword(nuevaClave) : nuevaClave;
+
+    try {
+        if (rolUsuarioActual === 'SuperAdmin') {
+            await supabase.from('usuarios').update({ password_hash: claveFinal }).eq('rol', 'superadmin');
+        } else if (rolUsuarioActual === 'admin') {
+            await supabase.from('empresas').update({ passwordAdmin: claveFinal, password_hash: null }).eq('id', empresaIdActual);
+        } else {
+            alert("Solo los administradores pueden cambiar sus contraseñas desde aquí.");
+            return;
+        }
+        alert("✅ Contraseña actualizada con éxito. Úsala la próxima vez que inicies sesión.");
+    } catch(e) {
+        console.error(e);
+        alert("Error al cambiar contraseña: " + e.message);
+    }
+}
+    
+    
+    
+    
+    
     
     
     function cerrarSesion() {
@@ -11103,3 +10996,4 @@ function guardarGastoCobrador(e) {
 
 
 Created by Perdomo Sovereign Capital
+
