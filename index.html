@@ -3298,7 +3298,7 @@ if (!empresaIdActual) return;
       
     ];
 
-    const resultados = await Promise.all(promesas);
+    const resultados = await Promise.all(promesas.map(p => p.catch(e => ({ data: [], error: e }))));
     
     // 3. ASIGNACIÓN DIRECTA
     clientesDB = resultados[0].data || [];
@@ -3948,6 +3948,7 @@ async function guardarCobradorCalle(e) {
 actualizarSelectsLoginEmpresa();
 
       cargarSelectsGenerales();
+      renderCuadresRecibidos();
       if(document.getElementById('listado').classList.contains('active')) {
         renderListadoGeneral();
       }
@@ -5104,6 +5105,8 @@ if (tabId === 'cartasTab') {
       if (tabId === 'empleadosTab') renderEmpleadosAdmin();
       if (tabId === 'inversionistasTab') renderInversionistas();
       if (tabId === 'superAdminTab') renderSuperAdminEmpresas();
+      if (tabId === 'cuadresRecibidosTab') renderCuadresRecibidos();
+      
       if (tabId === 'recordatorios') renderRecordatorios();
       if (tabId === 'caja') renderArqueoCaja();
       if (tabId === 'listado') renderListadoGeneral();
@@ -10747,6 +10750,117 @@ function cerrarContrato() {
   
   
   </script>
+  
+  
+  <script>
+// ==========================================
+// FUNCIONES PARA MOSTRAR LOS CUADRES RECIBIDOS
+// ==========================================
+
+function renderCuadresRecibidos() {
+  var cont = document.getElementById('listaCuadresDiv');
+  if (!cont) return;
+
+  if (!cuadresDB || cuadresDB.length === 0) {
+    cont.innerHTML = '<p style="color:#64748b; grid-column: 1 / -1; text-align:center; padding:20px;">No hay cuadres recibidos todavía.</p>';
+    return;
+  }
+
+  // Ordenar del más reciente al más antiguo
+  var lista = cuadresDB.slice().sort(function(a, b) { return b.id - a.id; });
+
+  // Filtrar por buscador si existe
+  var busqueda = (document.getElementById('inputBusquedaCuadres') || {}).value || '';
+  busqueda = busqueda.toLowerCase();
+  if (busqueda) {
+    lista = lista.filter(function(c) {
+      return (c.cobrador || '').toLowerCase().includes(busqueda) || (c.zona || '').toLowerCase().includes(busqueda);
+    });
+  }
+
+  cont.innerHTML = lista.map(function(c) {
+    var colorEstado = c.estado === 'pendiente' ? '#d97706' : '#16a34a';
+    var bgEstado = c.estado === 'pendiente' ? '#fef3c7' : '#dcfce7';
+    var total = parseFloat(c.efectivo_entregado) || 0;
+
+    return '<div style="background:#fff; padding:14px; border-radius:10px; border:1px solid #e2e8f0; border-left:5px solid ' + colorEstado + '; box-shadow:0 2px 5px rgba(0,0,0,0.05); cursor:pointer;" onclick="verDetalleCuadre(' + c.id + ')">' +
+      '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">' +
+        '<strong style="color:#1e293b;">🏍️ ' + (c.cobrador || 'Cobrador') + '</strong>' +
+        '<span style="background:' + bgEstado + '; color:' + colorEstado + '; padding:3px 8px; border-radius:20px; font-size:0.75rem; font-weight:700;">' + (c.estado || 'pendiente').toUpperCase() + '</span>' +
+      '</div>' +
+      '<div style="font-size:0.85rem; color:#475569; line-height:1.5;">' +
+        '📅 ' + c.fecha + ' - ' + c.hora + '<br>' +
+        '📍 Zona: ' + (c.zona || 'General') + '<br>' +
+        '💵 Entregado a: <strong>' + (c.receptor || 'Oficina') + '</strong><br>' +
+        '💰 Total en efectivo: <strong style="color:var(--success); font-size:1.05rem;">$' + total.toFixed(2) + '</strong>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function verDetalleCuadre(id) {
+  var c = cuadresDB.find(function(item) { return item.id == id; });
+  if (!c) return;
+
+  document.getElementById('vistaListaCuadres').style.display = 'none';
+  document.getElementById('vistaDetalleCuadre').style.display = 'block';
+
+  document.getElementById('lblDetalleCobrador').innerText = c.cobrador || 'Cobrador';
+  document.getElementById('lblDetalleFechaZona').innerText = c.fecha + ' | Zona: ' + (c.zona || 'General');
+  document.getElementById('lblEstadoCuadreBadge').innerText = (c.estado || 'pendiente').toUpperCase();
+  document.getElementById('lblEstadoCuadreBadge').style.background = c.estado === 'pendiente' ? '#d97706' : '#16a34a';
+
+  document.getElementById('lblCuadreCobrado').innerText = 'RD$ ' + parseFloat(c.total_cobrado || 0).toFixed(2);
+  document.getElementById('lblCuadreCobrosCount').innerText = (c.detalles ? c.detalles.length : 0) + ' cobros';
+  
+  document.getElementById('lblCuadrePrestado').innerText = 'RD$ ' + parseFloat(c.total_prestado || 0).toFixed(2);
+  document.getElementById('lblCuadreGastos').innerText = 'RD$ ' + parseFloat(c.total_gastos || 0).toFixed(2);
+  
+  document.getElementById('lblCuadreEfectivoEntregar').innerText = 'RD$ ' + parseFloat(c.efectivo_entregado || 0).toFixed(2);
+
+  // Llenar la tabla de desglose
+  var tbody = document.getElementById('tbodyDesgloseCuadre');
+  if (tbody) {
+    if (c.detalles && c.detalles.length > 0) {
+      tbody.innerHTML = c.detalles.map(function(d) {
+        return '<tr>' +
+          '<td style="padding:10px; border-bottom:1px solid var(--border);">' + d.clienteNombre + '</td>' +
+          '<td style="padding:10px; border-bottom:1px solid var(--border);">' + (d.cuotaInfo || '-') + '</td>' +
+          '<td style="padding:10px; border-bottom:1px solid var(--border);">' + (d.tipoPago || 'Efectivo') + '</td>' +
+          '<td style="padding:10px; border-bottom:1px solid var(--border); text-align:right; font-weight:700;">$' + parseFloat(d.monto || 0).toFixed(2) + '</td>' +
+        '</tr>';
+      }).join('');
+    } else {
+      tbody.innerHTML = '<tr><td colspan="4" style="padding:10px; text-align:center; color:#64748b;">No hay cobros detallados.</td></tr>';
+    }
+  }
+
+  // Guardar el ID actual para cuando se marque como revisado
+  window._cuadreActualId = id;
+}
+
+function cerrarDetalleCuadre() {
+  document.getElementById('vistaDetalleCuadre').style.display = 'none';
+  document.getElementById('vistaListaCuadres').style.display = 'block';
+}
+
+function marcarCuadreComoRevisado() {
+  if (!window._cuadreActualId) return;
+  
+  var c = cuadresDB.find(function(item) { return item.id == window._cuadreActualId; });
+  if (c) {
+    c.estado = 'revisado';
+    if (typeof guardarDatosEnNube === 'function') guardarDatosEnNube();
+    alert('✅ Cuadre marcado como revisado y aprobado.');
+    cerrarDetalleCuadre();
+    renderCuadresRecibidos();
+  }
+}
+</script>
+  
+  
+  
+  
 
 </body>
 </html>
