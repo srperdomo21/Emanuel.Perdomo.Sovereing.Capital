@@ -3394,11 +3394,21 @@ const resultados = resultadosRaw.map(r => {
   document.documentElement.style.setProperty('--accent', color);
 
   // Logo de la empresa (login, header, recibos, contratos)
-  var logoSrc = emp.logo || 'Logosv.png';
-  ['headerLogoImg', 'imgLoginLogo', 'imgContratoLogo', 'imgReciboLogo'].forEach(function(id) {
-    var el = document.getElementById(id);
-    if (el) el.src = logoSrc;
-  });
+['headerLogoImg', 'imgLoginLogo', 'imgContratoLogo', 'imgReciboLogo'].forEach(function(id) {
+  var el = document.getElementById(id);
+  if (el) {
+    if (emp.logo) {
+      el.src = emp.logo;
+      el.style.display = 'block'; // Mostrar el logo subido
+    } else {
+      el.style.display = 'none'; // Ocultar el logo si no se subió ninguno
+    }
+  }
+});
+  
+  
+  
+  
 
   // Nombre de la empresa en el encabezado
   var headerH1 = document.querySelector('header.no-print h1');
@@ -8837,12 +8847,57 @@ var btnEliminar = '<button class="btn btn-danger btn-sm" onclick="eliminarEmpres
     empresaActual = nombreEmpresa;
     localStorage.setItem('psc_empresa_activa', empresaActual);
     
-    // 1. Cargar datos locales y de la nube
+    // 🔥 FIX CRÍTICO 1: Actualizar el ID de la empresa INMEDIATAMENTE
+    var empObj = empresasGlobalesDB.find(function(e) { return e.nombre === empresaActual; });
+    if (empObj) {
+      empresaIdActual = empObj.id;
+    } else {
+      empresaIdActual = null;
+    }
+    
+    // 🔥 FIX CRÍTICO 2: Vaciar la memoria de la empresa anterior
+    clientesDB = [];
+    prestamosDB = [];
+    cobrosDB = [];
+    gastosDB = [];
+    zonasDB = [];
+    empleadosDB = [];
+    cobradoresDB = [];
+    notasDB = [];
+    notificacionesDB = [];
+    inversionistasDB = [];
+    cuadresDB = [];
+    controlDiaDB = { abierto: false, fondoInicial: 0, fecha: '', empleado: '', zona: '' };
+
+    // 1. Cargar datos locales de la nueva empresa
     cargarDatosLocalEmpresaActual();
+    
+    // 2. Traer datos de la nube de la nueva empresa
     if (typeof sincronizarConNube === 'function') {
       var r = sincronizarConNube();
       if (r && typeof r.catch === 'function') r.catch(function(){});
     }
+
+    // 3. FORZAR EL CAMBIO DE LOGO Y COLOR
+    if (typeof aplicarTemaEmpresa === 'function') {
+        if (empObj) {
+            aplicarTemaEmpresa(empObj);
+        } else {
+            aplicarTemaEmpresa();
+        }
+    }
+    
+    if (typeof actualizarMetricas === 'function') actualizarMetricas();
+    if (typeof renderClientes === 'function') renderClientes();
+    
+    alert("Cambiado correctamente a: " + empresaActual + "\n\nAhora estás viendo los datos de esta empresa.");
+    showTab('resumen', null);
+  }
+}
+    
+    
+    
+    
 
     // 2. FORZAR EL CAMBIO DE LOGO Y COLOR INMEDIATAMENTE
     if (typeof aplicarTemaEmpresa === 'function') {
@@ -11068,3 +11123,4 @@ function guardarGastoCobrador(e) {
 </html>
 
 
+Created by Perdomo Sovereign Capital
