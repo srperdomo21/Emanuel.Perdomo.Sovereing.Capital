@@ -4449,7 +4449,40 @@ function cambiarTipoLogin(rol) {
 }
 
 
-
+function actualizarZonasLogin(nombreCobrador) {
+  var selZon = document.getElementById('loginZonaSelect');
+  if (!selZon) return;
+  
+  selZon.innerHTML = '<option value="">-- Seleccionar Zona --</option>';
+  if (!nombreCobrador) return;
+  
+  // Buscar el cobrador en la memoria
+  var cob = (typeof cobradoresDB !== 'undefined') ? cobradoresDB.find(function(c) { return c.nombre === nombreCobrador; }) : null;
+  
+  var zonasAsignadas = [];
+  
+  if (cob && cob.zonas) {
+      if (Array.isArray(cob.zonas)) {
+          zonasAsignadas = cob.zonas;
+      } else if (typeof cob.zonas === 'string') {
+          try { 
+              zonasAsignadas = JSON.parse(cob.zonas); 
+          } catch(e) { 
+              zonasAsignadas = [cob.zonas]; 
+          }
+      }
+  }
+  
+  // Si el cobrador tiene zonas, las mostramos
+  if (zonasAsignadas.length > 0) {
+      zonasAsignadas.forEach(function(z) {
+        selZon.innerHTML += '<option value="' + z + '">' + z + '</option>';
+      });
+  } else {
+      // Respaldo: si falla, mostramos la zona por defecto
+      selZon.innerHTML += '<option value="Zona Principal">Zona Principal</option>';
+  }
+}
 
 
     
