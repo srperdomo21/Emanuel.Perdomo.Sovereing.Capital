@@ -3394,6 +3394,7 @@ const resultados = resultadosRaw.map(r => {
   document.documentElement.style.setProperty('--accent', color);
 
   // Logo de la empresa (login, header, recibos, contratos)
+var logoSrc = emp.logo || 'Logosv.png';
 ['headerLogoImg', 'imgLoginLogo', 'imgContratoLogo', 'imgReciboLogo'].forEach(function(id) {
   var el = document.getElementById(id);
   if (el) {
@@ -8842,7 +8843,7 @@ var btnEliminar = '<button class="btn btn-danger btn-sm" onclick="eliminarEmpres
       controlDiaDB = _load('controldia', {abierto: false, fondoInicial: 0, fecha: "", empleado: "", zona: ""});
     }
 
-    function cambiarEmpresaActiva(nombreEmpresa) {
+function cambiarEmpresaActiva(nombreEmpresa) {
   if (confirm("¿Deseas cambiar el entorno de trabajo a la empresa: " + nombreEmpresa + "? Los datos mostrados serán exclusivos de esta empresa.")) {
     empresaActual = nombreEmpresa;
     localStorage.setItem('psc_empresa_activa', empresaActual);
@@ -8889,29 +8890,16 @@ var btnEliminar = '<button class="btn btn-danger btn-sm" onclick="eliminarEmpres
     showTab('resumen', null);
   }
 }
-    
-    
-    
-    
 
-    // 2. FORZAR EL CAMBIO DE LOGO Y COLOR INMEDIATAMENTE
-    if (typeof aplicarTemaEmpresa === 'function') {
-        var empObj = empresasGlobalesDB.find(function(e) { return e.nombre === empresaActual; });
-        if (empObj) {
-            aplicarTemaEmpresa(empObj); // Le pasamos los datos de la nueva empresa directamente
-        } else {
-            aplicarTemaEmpresa();
-        }
-    }
+function actualizarSelectsLoginEmpresa() {   
     
-    if (typeof actualizarMetricas === 'function') actualizarMetricas();
-    if (typeof renderClientes === 'function') renderClientes();
     
-    alert("Cambiado correctamente a: " + empresaActual + "\n\nAhora estás viendo los datos de esta empresa.");
-    showTab('resumen', null);
-  }
-}
-
+    
+    
+    
+    
+    
+    
     function actualizarSelectsLoginEmpresa() {
   var selectLogin = document.getElementById('loginEmpresaSelect');
   if (!selectLogin) return;
