@@ -10994,6 +10994,66 @@ function imprimirContratoPorId(id) {
 }
 
 
+
+
+
+
+
+// ==========================================
+// FUNCIONES PARA GASTOS DEL COBRADOR
+// ==========================================
+function abrirModalGastoCobrador() {
+  var modal = document.getElementById('modalGastoCobrador');
+  if (modal) {
+    document.getElementById('gastoCobradorConcepto').value = 'Combustible';
+    document.getElementById('gastoCobradorMonto').value = '';
+    modal.style.display = 'flex';
+  }
+}
+
+function guardarGastoCobrador(e) {
+  e.preventDefault();
+  var concepto = document.getElementById('gastoCobradorConcepto').value;
+  var monto = parseFloat(document.getElementById('gastoCobradorMonto').value) || 0;
+
+  if (monto <= 0) {
+    alert('El monto del gasto debe ser mayor a cero.');
+    return;
+  }
+
+  var nuevoGasto = {
+    id: Date.now(),
+    empresa_id: empresaIdActual,
+    concepto: concepto,
+    monto: monto,
+    fecha: new Date().toLocaleDateString('es-DO'),
+    timestamp: Date.now(),
+    cobrador: nombreUsuarioActual // Guardamos quién hizo el gasto
+  };
+
+  // Guardar en la memoria y en Supabase
+  gastosDB.push(nuevoGasto);
+  
+  if (typeof guardarDatosEnNube === 'function') {
+    guardarDatosEnNube();
+  }
+
+  document.getElementById('modalGastoCobrador').style.display = 'none';
+  alert('✅ Gasto de ' + concepto + ' por $' + monto.toFixed(2) + ' registrado.\n\nEste monto se descontará automáticamente cuando realices tu Cierre de Día.');
+  
+  // Refrescar la vista si es necesario
+  if (typeof renderArqueoCaja === 'function') renderArqueoCaja();
+}
+
+
+
+
+
+
+
+
+      
+
 </script>
   
   
