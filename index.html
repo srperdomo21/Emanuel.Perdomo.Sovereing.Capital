@@ -4100,11 +4100,16 @@ async function sincronizarTablaCompleta(nombreTabla, arrayLocal) {
 
   const { error } = await supabase.from(nombreTabla).upsert(registros, { onConflict: 'id' });
 
+  
+  
   if (error) {
-    console.error(`❌ ERROR en tabla "${nombreTabla}":`, error.message);
-    alert(`⚠️ Error al guardar en "${nombreTabla}":\n${error.message}`); // Alerta para ver el error
-    throw error;
-  }
+  console.error(`❌ ERROR en tabla "${nombreTabla}":`, error.message);
+  // Si falla una tabla, avisamos en consola pero NO detenemos todo el sistema.
+  // throw error; 
+}
+  
+  
+  
 }
 
 
@@ -10995,10 +11000,6 @@ function imprimirContratoPorId(id) {
 
 
 
-
-
-
-
 // ==========================================
 // FUNCIONES PARA GASTOS DEL COBRADOR
 // ==========================================
@@ -11047,12 +11048,6 @@ function guardarGastoCobrador(e) {
 
 
 
-
-
-
-
-
-      
 
 </script>
   
