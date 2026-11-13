@@ -3262,13 +3262,22 @@ async function sincronizarConNube() {
 
     // 🔥 ARREGLO: Recuperar el ID de la empresa si se recargó la página
     if (!empresaIdActual && empresaActual) {
-      const empEncontrada = empresasGlobalesDB.find(function(e) { return e.nombre === empresaActual; });
-      if (empEncontrada) {
-        empresaIdActual = empEncontrada.id;
-      }
-    }
+  const empEncontrada = empresasGlobalesDB.find(function(e) { return e.nombre === empresaActual; });
+  if (empEncontrada) {
+    empresaIdActual = empEncontrada.id;
+  }
+}
 
-    if (!empresaIdActual) return; 
+
+// SI AÚN NO HAY ID DE EMPRESA, TOMA LA PRIMERA QUE HAYA EN LA BASE DE DATOS
+if (!empresaIdActual && empresasGlobalesDB.length > 0) {
+    const primeraEmpresa = empresasGlobalesDB[0];
+    empresaActual = primeraEmpresa.nombre;
+    empresaIdActual = primeraEmpresa.id;
+    localStorage.setItem('psc_empresa_activa', empresaActual);
+}
+
+if (!empresaIdActual) return;  
 
     // 2. Cargar TODAS las tablas en paralelo
     const promesas = [
@@ -4359,7 +4368,9 @@ function refrescarUIRealtime() {
       }
     }
 
-    function cambiarTipoLogin(rol) {
+
+
+function cambiarTipoLogin(rol) {
   var divNom = document.getElementById('divNombrePersona');
   var divZon = document.getElementById('divZonaLogin');
   var lblNom = document.getElementById('lblNombrePersona');
@@ -4375,47 +4386,72 @@ function refrescarUIRealtime() {
     divNom.style.display = 'block';
     divZon.style.display = 'block';
     lblNom.innerText = 'Seleccionar Cobrador';
-    selNom.innerHTML = '<option value="">-- Seleccionar Cobrador --</option>';
     
-    // Validar que la base de datos local tenga cobradores
+    // SI YA TENEMOS LOS COBRADORES EN MEMORIA, LOS MOSTRAMOS
     if (typeof cobradoresDB !== 'undefined' && cobradoresDB.length > 0) {
+      selNom.innerHTML = '<option value="">-- Seleccionar Cobrador --</option>';
       cobradoresDB.forEach(function(c) {
         selNom.innerHTML += '<option value="' + c.nombre + '">' + c.nombre + '</option>';
       });
     } else {
-      selNom.innerHTML += '<option value="">(Cargando cobradores o no hay registrados)</option>';
+      // SI NO, LOS BUSCAMOS DIRECTAMENTE EN SUPABASE EN ESE MOMENTO
+      selNom.innerHTML = '<option value="">⏳ Cargando cobradores...</option>';
+      if (empresaIdActual && typeof supabase !== 'undefined') {
+          supabase.from('cobradores').select('*').eq('empresa_id', empresaIdActual).then(function(res) {
+              if (res.data && res.data.length > 0) {
+                  cobradoresDB = res.data; // Guardamos en memoria
+                  selNom.innerHTML = '<option value="">-- Seleccionar Cobrador --</option>';
+                  cobradoresDB.forEach(function(c) {
+                      selNom.innerHTML += '<option value="' + c.nombre + '">' + c.nombre + '</option>';
+                  });
+              } else {
+                  selNom.innerHTML = '<option value="">(No hay cobradores registrados)</option>';
+              }
+          }).catch(function(err) {
+              console.error("Error al cargar cobradores:", err);
+              selNom.innerHTML = '<option value="">(Error de conexión)</option>';
+          });
+      } else {
+          selNom.innerHTML = '<option value="">(Sin conexión a internet)</option>';
+      }
     }
     
-    // Limpiar el select de zonas hasta que se elija un cobrador
     if(selZon) selZon.innerHTML = '<option value="">-- Seleccionar Zona --</option>';
     
   } else if(rol === 'empleado') {
     divNom.style.display = 'block';
     divZon.style.display = 'none';
     lblNom.innerText = 'Seleccionar Empleado (Servicio al Cliente)';
-    selNom.innerHTML = '<option value="">-- Seleccionar Empleado --</option>';
     
-    // Validar que la base de datos local tenga empleados
     if (typeof empleadosDB !== 'undefined' && empleadosDB.length > 0) {
+      selNom.innerHTML = '<option value="">-- Seleccionar Empleado --</option>';
       empleadosDB.forEach(function(e) {
         selNom.innerHTML += '<option value="' + e.nombre + '">' + e.nombre + '</option>';
       });
     } else {
-      selNom.innerHTML += '<option value="">(Cargando empleados o no hay registrados)</option>';
+      selNom.innerHTML = '<option value="">⏳ Cargando empleados...</option>';
+      if (empresaIdActual && typeof supabase !== 'undefined') {
+          supabase.from('empleados').select('*').eq('empresa_id', empresaIdActual).then(function(res) {
+              if (res.data && res.data.length > 0) {
+                  empleadosDB = res.data;
+                  selNom.innerHTML = '<option value="">-- Seleccionar Empleado --</option>';
+                  empleadosDB.forEach(function(e) {
+                      selNom.innerHTML += '<option value="' + e.nombre + '">' + e.nombre + '</option>';
+                  });
+              } else {
+                  selNom.innerHTML = '<option value="">(No hay empleados registrados)</option>';
+              }
+          });
+      }
     }
   }
 }
-    function actualizarZonasLogin(nombreCobrador) {
-      var selZon = document.getElementById('loginZonaSelect');
-      selZon.innerHTML = '<option value="">-- Seleccionar Zona Asignada --</option>';
-      var cob = cobradoresDB.find(function(c) { return c.nombre === nombreCobrador; });
-      if(cob && cob.zonas) {
-        cob.zonas.forEach(function(z) {
-          selZon.innerHTML += '<option value="' + z + '">' + z + '</option>';
-        });
-      }
-    }
 
+
+
+
+
+    
     function toggleLoginPassword(e) {
   if (e) { e.preventDefault(); e.stopPropagation(); }
   var input = document.getElementById('loginPassword');
