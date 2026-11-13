@@ -10977,10 +10977,17 @@ function renderContratosCobrador() {
         '<span style="color:var(--accent); font-weight:700;">Capital: $' + (p.monto||0).toFixed(2) + '</span><br>' +
         '<small style="color:#64748b;">Plazo: ' + (p.plazo||'').replace('_',' ').toUpperCase() + '</small>' +
       '</div>' +
-      '<button class="btn btn-primary btn-sm" onclick="imprimirContratoPorId(' + p.id + ')" style="margin:0; background:#1e3a8a;">⚖️ Contrato</button>' +
-
+      
+      
+            '<button class="btn btn-primary btn-sm" onclick="imprimirContratoPorId(' + p.id + ')" style="margin:0; background:#1e3a8a;">⚖️ Contrato</button>' +
+    '</div>';
+  }).join('');
+}
 
 function imprimirContratoPorId(id) {
+      
+      
+      
   var p = prestamosDB.find(function(x) { return x.id == id; });
   if (p) {
     imprimirContratoDetalle(p);
