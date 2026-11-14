@@ -660,10 +660,42 @@ function redondear(num) {
     .loan-title-bar { display: flex; justify-content: space-between; align-items: center; margin: 15px 0 10px 0; font-size: 1.05rem; font-weight: 700; color: var(--text-main); }
     .days-badge { background: var(--danger); color: white; padding: 4px 10px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; }
 
-    .loan-grid-table { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; margin-bottom: 15px; }
-    .loan-grid-row { display: flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; background: white; font-size: 0.8rem; align-items: center; }
-    .loan-grid-label { background: var(--primary); color: white; padding: 8px; font-weight: 700; width: 48%; text-transform: uppercase; text-align: center; }
-    .loan-grid-val { padding: 8px; flex: 1; font-weight: 600; color: var(--text-main); text-align: center; background: #f8fafc; }
+    .loan-grid-table { 
+  display: grid; 
+  grid-template-columns: 1fr 1fr; 
+  gap: 6px; 
+  margin-bottom: 15px; 
+}
+.loan-grid-row { 
+  display: flex; 
+  flex-direction: column; 
+  border: 1px solid var(--border); 
+  border-radius: 8px; 
+  overflow: hidden; 
+  background: #f8fafc; 
+  padding: 8px;
+}
+.loan-grid-label { 
+  background: transparent; 
+  color: var(--text-muted); 
+  padding: 0; 
+  font-size: 0.65rem; 
+  font-weight: 700; 
+  text-align: left; 
+  margin-bottom: 2px;
+}
+.loan-grid-val { 
+  padding: 0; 
+  font-weight: 800; 
+  color: var(--text-main); 
+  text-align: left; 
+  background: transparent;
+  font-size: 0.95rem;
+}
+.loan-grid-row[style*="border:2px solid var(--danger)"] {
+  grid-column: span 2;
+  background: #fef2f2;
+}
 
     .img-preview { width: 100%; max-height: 180px; object-fit: cover; border-radius: 6px; margin-top: 6px; border: 1px solid var(--border); }
     .tab-content { display: none; }
@@ -672,7 +704,7 @@ function redondear(num) {
     .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; overflow-y: auto; padding: 15px; }
     
     
-    .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; overflow-y: auto; padding: 15px; }
+     
 
 /* 🆕 ARREGLO PARA QUE LOS BOTONES SE VEAN EN EL CELULAR */
 #printRecibo {
@@ -785,7 +817,15 @@ function redondear(num) {
   
 
 
-
+/* Esto solo se aplica en pantallas grandes (Computadoras) */
+@media (min-width: 1024px) {
+  .metrics-summary-bar {
+    grid-template-columns: repeat(4, 1fr) !important;
+  }
+  .metrics-summary-bar > div:last-child {
+    grid-column: span 1 !important; /* Para que la última tarjeta no ocupe todo */
+  }
+}
 
 
 
@@ -1404,38 +1444,41 @@ function redondear(num) {
 
       <!-- TABLERO -->
       <div id="resumen" class="tab-content active">
-        <!-- MÉTRICAS PRINCIPALES -->
-       <!-- MÉTRICAS PRINCIPALES -->
-<div class="metrics-summary-bar" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px;">
-  <div class="metric-item" style="border-left: 4px solid var(--primary);">
-    <span style="font-size:0.75rem; color:#64748b; font-weight:600;">💰 Capital Activo</span>
-    <span id="mPrestado" style="font-weight:800; font-size:1.25rem; color:var(--primary);">$0.00</span>
+        
+       <div class="metrics-summary-bar" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; padding: 10px;">
+  <div class="metric-item" style="border-left: 3px solid var(--primary); padding: 10px;">
+    <span style="font-size:0.7rem; color:#64748b; font-weight:600;">💰 Capital Activo</span>
+    <span id="mPrestado" style="font-weight:800; font-size:1.1rem; color:var(--primary);">$0.00</span>
   </div>
   
-  <div class="metric-item" style="border-left: 4px solid #8b5cf6;">
-    <span style="font-size:0.75rem; color:#64748b; font-weight:600;">⏳ Cuotas Salientes Hoy</span>
-    <span id="mCuotasSalientes" style="font-weight:800; font-size:1.25rem; color:#8b5cf6;">$0.00</span>
+  <div class="metric-item" style="border-left: 3px solid #8b5cf6; padding: 10px;">
+    <span style="font-size:0.7rem; color:#64748b; font-weight:600;">⏳ Cuotas Salientes</span>
+    <span id="mCuotasSalientes" style="font-weight:800; font-size:1.1rem; color:#8b5cf6;">$0.00</span>
   </div>   
             
-  <div class="metric-item" style="border-left: 4px solid var(--danger);">
-    <span style="font-size:0.75rem; color:#64748b; font-weight:600;">🔴 Capital Vencido</span>
-    <span id="mCapitalVencido" style="font-weight:800; font-size:1.25rem; color:var(--danger);">$0.00</span>
+  <div class="metric-item" style="border-left: 3px solid var(--danger); padding: 10px;">
+    <span style="font-size:0.7rem; color:#64748b; font-weight:600;">🔴 Capital Vencido</span>
+    <span id="mCapitalVencido" style="font-weight:800; font-size:1.1rem; color:var(--danger);">$0.00</span>
   </div>
-  <div class="metric-item solo-admin-emp" style="border-left: 4px solid var(--success);">
-    <span style="font-size:0.75rem; color:#64748b; font-weight:600;">📈 Total Histórico</span>
-    <span id="mCobradoTotal" style="font-weight:800; font-size:1.25rem; color:var(--success);">$0.00</span>
+  
+  <div class="metric-item solo-admin-emp" style="border-left: 3px solid var(--success); padding: 10px;">
+    <span style="font-size:0.7rem; color:#64748b; font-weight:600;">📈 Total Histórico</span>
+    <span id="mCobradoTotal" style="font-weight:800; font-size:1.1rem; color:var(--success);">$0.00</span>
   </div>
-  <div class="metric-item" style="border-left: 4px solid var(--accent);">
-    <span style="font-size:0.75rem; color:#64748b; font-weight:600;">📅 Cuota Semanal</span>
-    <span id="mCuotaSemanalEsperada" style="font-weight:800; font-size:1.25rem; color:var(--accent);">$0.00</span>
+
+  <div class="metric-item" style="border-left: 3px solid var(--accent); padding: 10px;">
+    <span style="font-size:0.7rem; color:#64748b; font-weight:600;">📅 Cuota Semanal</span>
+    <span id="mCuotaSemanalEsperada" style="font-weight:800; font-size:1.1rem; color:var(--accent);">$0.00</span>
   </div>
-  <div class="metric-item" style="border-left: 4px solid var(--warning);">
-    <span style="font-size:0.75rem; color:#64748b; font-weight:600;">🎯 Estimado Hoy</span>
-    <span id="mCobroHoy" style="font-weight:800; font-size:1.25rem; color:var(--warning);">$0.00</span>
+  
+  <div class="metric-item" style="border-left: 3px solid var(--warning); padding: 10px;">
+    <span style="font-size:0.7rem; color:#64748b; font-weight:600;">🎯 Estimado Hoy</span>
+    <span id="mCobroHoy" style="font-weight:800; font-size:1.1rem; color:var(--warning);">$0.00</span>
   </div>
-  <div class="metric-item" style="border-left: 4px solid #10b981;">
-    <span style="font-size:0.75rem; color:#64748b; font-weight:600;">✅ Cobrado Hoy</span>
-    <span id="mCobradoHoyRuta" style="font-weight:800; font-size:1.25rem; color:#059669;">$0.00</span>
+  
+  <div class="metric-item" style="border-left: 3px solid #10b981; padding: 10px; grid-column: span 2;">
+    <span style="font-size:0.7rem; color:#64748b; font-weight:600;">✅ Cobrado Hoy</span>
+    <span id="mCobradoHoyRuta" style="font-weight:800; font-size:1.2rem; color:#059669;">$0.00</span>
   </div>
 </div>
         
@@ -6819,20 +6862,27 @@ function iniciarPadFirma() {
           var ultimoPagoFecha = pagosP.length > 0 ? pagosP[pagosP.length - 1].fecha : 'Sin pagos';
 
           var pagosHtml = pagosP.length === 0 ? '<p style="font-size:0.80rem; color:#475569;">No hay pagos registrados.</p>' :
-            pagosP.map(function(pa) {
-              var btnBorrarPagoHtml = verificarPermisoEdicion() ? 
-                '<button class="btn btn-danger btn-sm" onclick="eliminarPagoDirectoAdmin(' + pa.id + ',' + cliente.id + ')">🗑️</button>' :
-                '<button class="btn btn-danger btn-sm" onclick="solicitarEliminarElementoCobrador(' + pa.id + ', \'pago\')">🗑️ Solicitar Borrar</button>';
+  pagosP.map(function(pa) {
+    var btnBorrarPagoHtml = verificarPermisoEdicion() ? 
+      '<button class="btn btn-danger btn-sm" onclick="eliminarPagoDirectoAdmin(' + pa.id + ',' + cliente.id + ')">🗑️</button>' :
+      '<button class="btn btn-danger btn-sm" onclick="solicitarEliminarElementoCobrador(' + pa.id + ', \'pago\')">🗑️</button>';
 
-              return '<div style="font-size:0.8rem; background:#f8fafc; padding:10px; border-radius:6px; margin-top:8px; border-left:3px solid var(--success); display:flex; justify-content:space-between; align-items:center;">' +
-                '<div>📅 ' + (pa.fecha || '') + ' — <strong>Abono:</strong> $' + (parseFloat(pa.monto) || 0).toFixed(2) + ' (' + (pa.tipoPago || 'Efectivo') + ')<br><em>Cuota: ' + (pa.cuotaInfo || 'N/A') + ' | GPS: ' + (pa.gps || 'N/A') + ' | Atraso: $' + (parseFloat(pa.montoAtraso) || 0).toFixed(2) + ' | Nota: ' + (pa.nota || '') + '</em></div>' +
-                '<div style="display:flex; gap:4px;">' +
-                  '<button class="btn btn-warning btn-sm" onclick="imprimirReciboDirecto(' + pa.id + ')">🖨️</button>' +
-                  '<button class="btn btn-whatsapp btn-sm" onclick="enviarReciboWhatsAppDirecto(' + pa.id + ')">📲</button>' +
-                  btnBorrarPagoHtml +
-                '</div>' +
-              '</div>';
-            }).join('');
+    return '<div style="font-size:0.85rem; background:#fff; padding:12px; border-radius:8px; margin-top:8px; border:1px solid var(--border); border-left:4px solid var(--success); display:flex; flex-direction:column; gap:8px;">' +
+      '<div>' +
+        '<strong style="color:var(--success);">Abono: $' + (parseFloat(pa.monto) || 0).toFixed(2) + '</strong> (' + (pa.tipoPago || 'Efectivo') + ')<br>' +
+        '<span style="color:var(--text-muted); font-size:0.75rem;">📅 ' + (pa.fecha || '') + ' | Cuota: ' + (pa.cuotaInfo || 'N/A') + '</span><br>' +
+        '<span style="color:var(--text-muted); font-size:0.75rem;">🚨 Atraso: $' + (parseFloat(pa.montoAtraso) || 0).toFixed(2) + '</span>' +
+      '</div>' +
+      '<div style="display:flex; gap:8px; justify-content:flex-end;">' +
+        '<button class="btn btn-warning btn-sm" style="margin:0;" onclick="imprimirReciboDirecto(' + pa.id + ')">🖨️ Recibo</button>' +
+        '<button class="btn btn-whatsapp btn-sm" style="margin:0;" onclick="enviarReciboWhatsAppDirecto(' + pa.id + ')">📲 Enviar</button>' +
+        btnBorrarPagoHtml +
+      '</div>' +
+    '</div>';
+  }).join('');
+            
+            
+            
 
           var notasHtml = notasP.length === 0 ? '<p style="font-size:0.80rem; color:#475569;">No hay notas registradas.</p>' :
             notasP.map(function(no) {
