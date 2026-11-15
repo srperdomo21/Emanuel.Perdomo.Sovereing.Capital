@@ -1111,24 +1111,49 @@ function redondear(num) {
       <button class="sidebar-btn btn-warning" onclick="abrirModalImpresoraBluetooth()" style="color:#000;">🖨️ Configurar Impresora Bluetooth</button>
       <button id="btnInstalarPWA" class="sidebar-btn" onclick="instalarPWA()" style="display:none; background:linear-gradient(135deg,#6366f1,#4f46e5); color:white; font-weight:700;">📲 Instalar App (PWA)</button>
       <button class="sidebar-btn solo-admin-emp btn-danger" onclick="pedirClaveBorrarTodo()" style="color:white;">🔄 Borrar Base de Datos</button>
+      
+      
+      
+      <!-- BOTONES MOVIDOS DESDE EL HEADER -->
+<hr style="border:0; border-top:1px solid var(--border); margin:10px 0;">
+
+
+
+<button class="sidebar-btn" onclick="cerrarSesion()" style="background:#dc2626; color:white; font-weight:700;">
+  🚪 Cerrar Sesión (Salir)
+</button>
+      
+      
+      
     </div>
   </div>
 
   <!-- ENCABEZADO -->
-  <header class="no-print">
-    <div style="display:flex; align-items:center; gap:10px;">
-      <button class="btn btn-secondary btn-sm solo-admin-emp" onclick="toggleSidebar()" style="margin:0; padding:6px 10px; font-size:1.1rem;">☰</button>
-      <h1><img src="Logosv.png" id="headerLogoImg" class="header-logo" alt="Logo"> PERDOMO SOVEREIGN CAPITAL</h1>
-    </div>
-    <div class="header-icons">
-     <span id="badgeRolHeader" style="font-size:0.55rem; padding:2px 6px; border-radius:4px; font-weight:700; background:var(--danger); color:white;">SUPER ADMIN</span>
-<span id="badgeRolHeader" style="font-size:0.55rem; padding:2px 5px; border-radius:4px; font-weight:700; background:var(--accent); color:white;">EMPLEADO</span>
-<span id="badgeSyncStatus" style="font-size:0.55rem; padding:2px 5px; border-radius:4px; font-weight:600; background:rgba(255,255,255,0.15); color:white;" title="Estado de sincronización">☁️ Local</span>
-      <button id="btnThemeToggle" onclick="toggleDarkMode()" title="Modo Oscuro / Claro">🌙</button>
-      <span onclick="abrirModalImpresoraBluetooth()" style="cursor:pointer; font-size:1.2rem;" title="Configurar Impresora Bluetooth">⚙️</span>
-      <button class="btn btn-danger btn-sm" onclick="cerrarSesion()" style="margin:0; padding:4px 6px; font-size:0.65rem;">Salir</button>
-    </div>
-  </header>
+  <!-- ENCABEZADO OPTIMIZADO (MÁS DELGADO) -->
+<header class="no-print" style="padding: 6px 10px; display: flex; justify-content: space-between; align-items: center; height: 50px;">
+  <div style="display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0;">
+    <!-- Botón Menú Hamburguesa -->
+    <button class="btn btn-secondary btn-sm solo-admin-emp" onclick="toggleSidebar()" style="margin:0; padding:6px 10px; font-size:1.1rem; flex-shrink: 0;">☰</button>
+    
+    <!-- Logo y Nombre corto -->
+    <h1 style="font-size: 0.85rem; margin: 0; display: flex; align-items: center; gap: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%;">
+      <img src="Logosv.png" id="headerLogoImg" class="header-logo" alt="Logo" style="width: 24px; height: 24px; flex-shrink: 0;">
+      <span id="headerNombreEmpresa" style="overflow: hidden; text-overflow: ellipsis;">PERDOMO</span>
+    </h1>
+  </div>
+  
+  <div class="header-icons" style="flex-shrink: 0; gap: 8px; display: flex; align-items: center;">
+    <!-- SOLO UN Badge de Rol -->
+    <span id="badgeRolHeader" style="font-size:0.55rem; padding:2px 5px; border-radius:4px; font-weight:700; background:var(--danger); color:white; white-space: nowrap;">ADMIN</span>
+
+    <!-- Icono de Sincronización (Toca para forzar sync) -->
+    <span id="badgeSyncStatus" onclick="sincronizarConNube()" style="font-size:1.1rem; cursor:pointer;" title="Sincronizar ahora">☁️</span>
+
+    <!-- Botón Modo Oscuro -->
+    <button id="btnThemeToggle" onclick="toggleDarkMode()" title="Modo Oscuro" style="width:28px; height:28px; border-radius:6px; padding:0; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,0.15); border:none; color:white; cursor:pointer; font-size:0.9rem;">🌙</button>
+  </div>
+</header>
+
 
   <!-- NAVEGACIÓN INFERIOR -->
     
@@ -3462,28 +3487,14 @@ var logoSrc = emp.logo || 'Logosv.png';
   
 
   // Nombre de la empresa en el encabezado
-  var headerH1 = document.querySelector('header.no-print h1');
-  if (headerH1) {
-    var logoImg = headerH1.querySelector('img');
-    var nombreMostrar = emp.nombre || 'PERDOMO SOVEREIGN CAPITAL';
-    headerH1.innerHTML = '';
-    if (logoImg) {
-      logoImg.id = 'headerLogoImg';
-      logoImg.className = 'header-logo';
-      logoImg.src = logoSrc;
-      headerH1.appendChild(logoImg);
-    } else {
-      var newImg = document.createElement('img');
-      newImg.src = logoSrc;
-      newImg.id = 'headerLogoImg';
-      newImg.className = 'header-logo';
-      newImg.alt = 'Logo';
-      headerH1.appendChild(newImg);
-    }
-    headerH1.appendChild(document.createTextNode(' ' + nombreMostrar.toUpperCase()));
-  }
+var headerSpanNombre = document.getElementById('headerNombreEmpresa');
+if (headerSpanNombre) {
+  var nombreMostrar = emp.nombre || 'PERDOMO CAPITAL';
+  // Si el nombre es muy largo, podemos cortarlo o dejarlo con "..." automático
+  headerSpanNombre.textContent = nombreMostrar.toUpperCase();
 }
 
+}
     function actualizarLimitePorPlan(planSelectId, limiteInputId) {
       var plan = document.getElementById(planSelectId).value;
       var input = document.getElementById(limiteInputId);
