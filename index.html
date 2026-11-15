@@ -465,19 +465,38 @@ function redondear(num) {
   function clearLoginAttempts(key) {
     delete loginAttempts[key];
   }
+  
+  
+  
 
   // ========== MODO OSCURO ==========
-  function toggleDarkMode() {
-    document.body.classList.toggle('dark-mode');
-    var isDark = document.body.classList.contains('dark-mode');
-    localStorage.setItem('psc_dark_mode', isDark ? '1' : '0');
-    var btn = document.getElementById('btnThemeToggle');
-    if (btn) btn.textContent = isDark ? '☀️' : '🌙';
-    // Re-render charts with better colors if needed
-    if (typeof actualizarMetricas === 'function') {
-      setTimeout(function() { try { actualizarMetricas(); } catch(e){} }, 150);
-    }
+  // ========== MODO OSCURO ==========
+function toggleDarkMode() {
+  document.body.classList.toggle('dark-mode');
+  var isDark = document.body.classList.contains('dark-mode');
+  localStorage.setItem('psc_dark_mode', isDark ? '1' : '0');
+  
+  // Actualizar el ícono dentro del menú desplegable
+  var icon = document.getElementById('btnThemeToggleIcon');
+  if (icon) icon.textContent = isDark ? '☀️' : '🌙';
+  
+  if (typeof actualizarMetricas === 'function') {
+    setTimeout(function() { try { actualizarMetricas(); } catch(e){} }, 150);
   }
+}
+
+function aplicarTemaGuardado() {
+  var saved = localStorage.getItem('psc_dark_mode');
+  if (saved === '1') {
+    document.body.classList.add('dark-mode');
+    var icon = document.getElementById('btnThemeToggleIcon');
+    if (icon) icon.textContent = '☀️';
+  }
+}
+
+
+
+
 
   function aplicarTemaGuardado() {
     var saved = localStorage.getItem('psc_dark_mode');
@@ -1135,29 +1154,56 @@ function redondear(num) {
 
   <!-- ENCABEZADO -->
   <!-- ENCABEZADO OPTIMIZADO (MÁS DELGADO) -->
-<header class="no-print" style="padding: 6px 10px; display: flex; justify-content: space-between; align-items: center; height: 50px;">
+
+
+<!-- ENCABEZADO CON MENÚ DE AJUSTES -->
+<header class="no-print" style="padding: 4px 8px; display: flex; justify-content: space-between; align-items: center; height: 50px; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%) !important;">
+  
+  <!-- Lado Izquierdo: Menú y Nombre -->
   <div style="display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0;">
-    <!-- Botón Menú Hamburguesa -->
     <button class="btn btn-secondary btn-sm solo-admin-emp" onclick="toggleSidebar()" style="margin:0; padding:6px 10px; font-size:1.1rem; flex-shrink: 0;">☰</button>
     
-    <!-- Logo y Nombre corto -->
-    <h1 style="font-size: 0.85rem; margin: 0; display: flex; align-items: center; gap: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%;">
+    <h1 style="font-size: 0.9rem; margin: 0; display: flex; align-items: center; gap: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; color: white !important;">
       <img src="Logosv.png" id="headerLogoImg" class="header-logo" alt="Logo" style="width: 24px; height: 24px; flex-shrink: 0;">
       <span id="headerNombreEmpresa" style="overflow: hidden; text-overflow: ellipsis;">PERDOMO</span>
     </h1>
   </div>
-  
-  <div class="header-icons" style="flex-shrink: 0; gap: 8px; display: flex; align-items: center;">
-    <!-- SOLO UN Badge de Rol -->
-    <span id="badgeRolHeader" style="font-size:0.55rem; padding:2px 5px; border-radius:4px; font-weight:700; background:var(--danger); color:white; white-space: nowrap;">ADMIN</span>
 
-    <!-- Icono de Sincronización (Toca para forzar sync) -->
-    <span id="badgeSyncStatus" onclick="sincronizarConNube()" style="font-size:1.1rem; cursor:pointer;" title="Sincronizar ahora">☁️</span>
+  <!-- Lado Derecho: Botón de Ajustes (Tuerca) -->
+  <div style="position: relative; flex-shrink: 0;">
+    <button onclick="toggleSettingsMenu()" style="background: rgba(255,255,255,0.2); border: none; color: white; width: 36px; height: 36px; border-radius: 8px; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+      ⚙️
+    </button>
 
-    <!-- Botón Modo Oscuro -->
-    <button id="btnThemeToggle" onclick="toggleDarkMode()" title="Modo Oscuro" style="width:28px; height:28px; border-radius:6px; padding:0; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,0.15); border:none; color:white; cursor:pointer; font-size:0.9rem;">🌙</button>
+    <!-- MENÚ DESPLEGABLE DE AJUSTES -->
+    <div id="settingsDropdown" style="display: none; position: absolute; right: 0; top: 45px; background: white; border: 1px solid var(--border); border-radius: 10px; padding: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); z-index: 1000; width: 240px; flex-direction: column; gap: 12px;">
+      
+      <!-- Rol del Usuario -->
+      <div style="display: flex; flex-direction: column; gap: 4px;">
+        <span style="font-size: 0.7rem; color: #64748b; font-weight: 700; text-transform: uppercase;">Sesión Actual</span>
+        <span id="badgeRolHeader" style="font-size:0.75rem; padding:4px 8px; border-radius:6px; font-weight:700; background:var(--danger); color:white; text-align: center;">ADMIN</span>
+      </div>
+
+      <hr style="border: 0; border-top: 1px solid var(--border); margin: 0;">
+
+      <!-- Estado de Sincronización -->
+      <div onclick="sincronizarConNube()" style="display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 4px; border-radius: 6px; transition: background 0.2s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'">
+        <span style="font-size: 0.85rem; font-weight: 600; color: #334155;">Nube (Supabase)</span>
+        <span id="badgeSyncStatus" style="font-size:0.75rem; font-weight:700; color: #16a34a;">☁️ Sincronizado</span>
+      </div>
+
+      <hr style="border: 0; border-top: 1px solid var(--border); margin: 0;">
+
+      <!-- Modo Oscuro -->
+      <button onclick="toggleDarkMode()" style="display: flex; justify-content: space-between; align-items: center; background: #f8fafc; border: 1px solid var(--border); padding: 8px 10px; border-radius: 8px; cursor: pointer; width: 100%;">
+        <span style="font-size: 0.85rem; font-weight: 600; color: #334155;">Modo Oscuro</span>
+        <span id="btnThemeToggleIcon" style="font-size: 1rem;">🌙</span>
+      </button>
+
+    </div>
   </div>
 </header>
+
 
 
   <!-- NAVEGACIÓN INFERIOR -->
@@ -11210,11 +11256,30 @@ function guardarGastoCobrador(e) {
 
 
 
+// Función para abrir y cerrar el menú de ajustes
+function toggleSettingsMenu() {
+  var menu = document.getElementById('settingsDropdown');
+  if (menu.style.display === 'none') {
+    menu.style.display = 'flex';
+  } else {
+    menu.style.display = 'none';
+  }
+}
+
+// Cerrar el menú si se hace clic afuera
+document.addEventListener('click', function(event) {
+  var menu = document.getElementById('settingsDropdown');
+  var btn = event.target.closest('button[onclick="toggleSettingsMenu()"]');
+  if (menu && menu.style.display === 'flex' && !btn && !menu.contains(event.target)) {
+    menu.style.display = 'none';
+  }
+});
+
+
+
+
+
 </script>
-  
-  
-  
-  
 
 </body>
 </html>
