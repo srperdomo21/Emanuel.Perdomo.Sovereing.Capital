@@ -16,10 +16,6 @@
   <title>Perdomo Sovereign Capital - Sistema Maestro Empresarial v2 Secure</title>
 
   
-  
-  
-  
-  
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <!-- BCRYPT para hash seguro de contraseñas -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/bcryptjs/2.4.3/bcrypt.min.js"></script>
@@ -239,23 +235,13 @@ async function realizarCierreCaja() {
 </script>
 
 
-
-
-
-<script>
-    
-  
+<script> 
   var SUPABASE_URL = 'https://quspjrizkyhowquonyum.supabase.co';
 var SUPABASE_ANON_KEY = 'sb_publishable_2CFYvUocRvSErAAmRfDSMw_NbI_Gejt';
   
-  
-  
-
 var supabase = (window.supabase && window.supabase.createClient)
   ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
   : null;
-
-
 
 // --- MÉTODO DE RESPALDO INFALIBLE (POLLING) ---
 let ultimoCodigoId = null;
@@ -327,8 +313,6 @@ setInterval(async () => {
     console.error("Error buscando códigos:", err);
   }
 }, 5000); // Se ejecuta cada 5 segundos
-
-
 
 
   // ========== SEGURIDAD: Hash de contraseñas + anti fuerza bruta ==========
@@ -466,9 +450,6 @@ function redondear(num) {
     delete loginAttempts[key];
   }
   
-  
-  
-
   // ========== MODO OSCURO ==========
   // ========== MODO OSCURO ==========
 function toggleDarkMode() {
@@ -742,12 +723,7 @@ function aplicarTemaGuardado() {
   padding-top: 30px !important;
   padding-bottom: 50px !important;
 }
-    
-    
-    
-    
-    
-    
+       
     .modal-box { background: white; padding: 25px; border-radius: 10px; max-width: 420px; width: 100%; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
 
     .signature-pad-container { border: 1px solid var(--border); border-radius: 6px; background: #fff; margin-top: 5px; touch-action: none; position: relative; }
@@ -808,10 +784,6 @@ function aplicarTemaGuardado() {
       .container { max-width: 1300px; }
     }
 
-    
-  
-  
-  
   
     @media print {
   body * { visibility: hidden; }
@@ -1085,19 +1057,14 @@ function aplicarTemaGuardado() {
       
       <button class="sidebar-btn solo-admin-emp" onclick="showTabFromMenu('cartasTab')" style="background:#f0fdf4; color:#166534; font-weight:700;">✉️ Cartas y Notificaciones</button>
       
-      
-      
-      
-    
+       
     <button class="sidebar-btn solo-admin-emp" onclick="showTabFromMenu('businessIntelligenceTab')" style="background:#eff6ff; color:var(--primary); font-weight:700;">🧠 Inteligencia de Negocios (BI)</button>  
 
 <!-- PEGA TU NUEVO BOTÓN AQUÍ -->
 <button class="sidebar-btn" onclick="showTabFromMenu('buroCreditoTab')">🏦 Buró de Crédito (Score)</button>
 <!-- FIN DEL BOTÓN -->
 
-
-    
-    
+   
               
       <button class="sidebar-btn solo-super-admin" onclick="showTabFromMenu('superAdminTab')" style="background:#eff6ff; color:var(--primary); display:none;">🏢 Actualizar y Crear Empresa</button>
       <button class="sidebar-btn solo-admin-emp" onclick="showTabFromMenu('zonasTab')">MAPA Gestión de Zonas</button>
@@ -1353,13 +1320,7 @@ function aplicarTemaGuardado() {
     </div>
   </div>
 </div>
-
-
-
-
-
-
-    
+ 
         
               <!-- APARTADO: CREAR NUEVAS EMPRESAS (AISLADAS) -->
       <div id="crearEmpresaTab" class="tab-content">
@@ -1557,10 +1518,7 @@ function aplicarTemaGuardado() {
     <span style="font-size:0.7rem; color:#64748b; font-weight:600;">✅ Cobrado Hoy</span>
     <span id="mCobradoHoyRuta" style="font-weight:800; font-size:1.2rem; color:#059669;">$0.00</span>
   </div>
-</div>
-        
-        
-        
+</div>       
         
         <!-- FILTRO DE COBROS POR FECHA EN TABLERO -->
 <div class="card" style="background:#f8fafc; border:1px solid var(--border); padding:15px; margin-bottom:16px;">
@@ -1582,23 +1540,6 @@ function aplicarTemaGuardado() {
   </div>
 </div>
         
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-
         <!-- GRÁFICOS -->
         <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap:16px; margin-bottom:16px;">
           <div class="card" style="margin-bottom:0;">
@@ -1797,10 +1738,6 @@ function aplicarTemaGuardado() {
   💵 Cerrar Día (Calculadora de Efectivo)
 </button>
   
-  
-            
-            
-            
             
             <button class="btn btn-warning btn-sm" id="btnReabrirRutaManual" onclick="reabrirRutaManualAdmin()" style="display:none;">🔓 Reabrir / Editar Día</button>
           </div>
@@ -2330,8 +2267,6 @@ function aplicarTemaGuardado() {
 </div>
 
 
-
-
 <!-- NUEVO APARTADO: CONTRATOS LEGALES -->
 <div id="contratosTab" class="tab-content">
   <div class="card" id="vistaListaContratos">
@@ -2362,8 +2297,6 @@ function aplicarTemaGuardado() {
     </div>
   </div>
 </div>
-
-
 
       <!-- NUEVO PRÉSTAMO -->
       <div id="nuevoPrestamo" class="tab-content">
@@ -2808,16 +2741,10 @@ function aplicarTemaGuardado() {
   }
 </style>
 
-
-
-
   </div> <!-- ESTE ES EL CIERRE DE seccionModuloPrincipal -->
 
 </div> <!-- ESTE ES EL CIERRE DEL CONTAINER -->              
                            
-           
-      
-
   <!-- MODAL EDITAR COBRADOR -->
   <div id="modalEditarCobradorBox" class="modal-overlay">
     <div class="modal-box">
@@ -3483,8 +3410,6 @@ const resultados = resultadosRaw.map(r => {
   }
 }
 
-
-
     function previewLogoEmpresa(input, previewId, isEdit) {
       if (input.files && input.files[0]) {
         var reader = new FileReader();
@@ -3531,11 +3456,7 @@ var logoSrc = emp.logo || 'Logosv.png';
       el.style.display = 'none'; // Ocultar el logo si no se subió ninguno
     }
   }
-});
-  
-  
-  
-  
+}); 
 
   // Nombre de la empresa en el encabezado
 var headerSpanNombre = document.getElementById('headerNombreEmpresa');
@@ -3771,9 +3692,7 @@ if (headerSpanNombre) {
     alert("Error al imprimir por Bluetooth: " + error.message);
   }
 }
-    
-    
-    
+       
     function probarImpresionBluetooth() {
       var ticketPrueba = 
         "PERDOMO SOVEREIGN CAPITAL\n" +
@@ -3857,9 +3776,7 @@ if (headerSpanNombre) {
         divCustom.style.display = 'none';
       }
     }
-    
-    
-    
+       
 
     function verificarModalidadEdit() {
       var plazo = document.getElementById('editPrestamoPlazo').value;
@@ -4073,11 +3990,7 @@ async function guardarCobradorCalle(e) {
     alert("✅ Cobrador registrado localmente.");
   }
 }
-
-     
-     
-       
-            
+          
     function refrescarTodaLaInterfaz() {
       verificarPermisoBloqueoRuta();
       actualizarMetricas();
@@ -4130,10 +4043,7 @@ actualizarSelectsLoginEmpresa();
       localStorage.setItem(getKeyEmpresa('empleados'), JSON.stringify(empleadosDB || []));
       localStorage.setItem(getKeyEmpresa('controldia'), JSON.stringify(controlDiaDB || {abierto:false, fondoInicial:0, fecha:'', empleado:'', zona:''}));
     }
-    
-    
-    
-    
+      
     // ============================================================
 // SINCRONIZACIÓN BIDIRECCIONAL CON SUPABASE (Fase 8)
 // ============================================================
@@ -4228,10 +4138,6 @@ async function sincronizarTablaCompleta(nombreTabla, arrayLocal) {
 }
 
 
-
-
-
-
 async function guardarControlDiaSupabase() {
   if (!empresaIdActual) return;
   await supabase.from('control_dia').delete().eq('empresa_id', empresaIdActual);
@@ -4290,10 +4196,6 @@ function inicializarRealtime() {
 }
 
 
-
-
-
-
 // 🛰️ Actualiza marcador del cobrador al llegar un punto nuevo
 function manejarUbicacionRealtime(payload) {
   if (!payload || !payload.new) return;
@@ -4348,11 +4250,7 @@ function refrescarUIRealtime() {
     }
   } catch (e) { console.warn('UI refresh realtime:', e); }
 }
-
-
-    
- 
-                                                                                    
+                                                                                  
 
     function verificarPermisoBloqueoRuta() {
       var bloqueoDiv = document.getElementById('bloqueoRutaPantalla');
@@ -4511,8 +4409,6 @@ function refrescarUIRealtime() {
         if (loginTitle) loginTitle.textContent = 'PERDOMO SOVEREIGN CAPITAL';
       }
     }
-
-
 
 function cambiarTipoLogin(rol) {
   var divNom = document.getElementById('divNombrePersona');
@@ -4890,11 +4786,6 @@ async function realizarLogin(e) {
   }
 }
 
-
-
-
-
-
   
     function guardarSesionLocal() {
       try {
@@ -4957,13 +4848,7 @@ async function realizarLogin(e) {
         alert("Error al cambiar contraseña: " + e.message);
     }
 }
-    
-    
-    
-    
-    
-    
-    
+       
     function cerrarSesion() {
   if (confirm("¿Estás seguro que deseas cerrar sesión en el sistema?")) {
     // 1. Detener el GPS si un cobrador estaba en ruta
@@ -4983,10 +4868,6 @@ async function realizarLogin(e) {
     window.location.reload();
   }
 }
-    
-    
-    
-    
     
 
    function actualizarInterfazPorRol() {
@@ -5048,7 +4929,6 @@ if (rolUsuarioActual === 'cobrador') {
 function verificarPermisoEdicion() {
   return (rolUsuarioActual === 'admin' || rolUsuarioActual === 'empleado' || rolUsuarioActual === 'SuperAdmin');
 }
-
 
 
 async function pedirClaveBorrarTodo() {
@@ -5320,9 +5200,7 @@ if (tabId === 'cartasTab') {
   document.getElementById('vistaCartaAtraso').style.display = 'none';
   document.getElementById('vistaCartaSaldo').style.display = 'none';
 }
-     
-      
-      
+        
       if (tabId === 'cobradoresTab') renderCobradoresAdmin();
       if (tabId === 'empleadosTab') renderEmpleadosAdmin();
       if (tabId === 'inversionistasTab') renderInversionistas();
@@ -5366,9 +5244,6 @@ if (tabId === 'reportesTab') {
 }
 
 
-
-
-
 if (tabId === 'businessIntelligenceTab') {
   setTimeout(function() {
     try { renderBusinessIntelligence(); } catch(e) { console.warn('Error BI:', e); }
@@ -5378,21 +5253,10 @@ if (tabId === 'resumen') {
   setTimeout(function() {
     try { actualizarMetricas(); } catch(e) { console.warn('Error métricas:', e); }
   }, 100);
-}
-    
-    
-      
+} 
       
       try { localStorage.setItem('psc_ultima_pestana', tabId); } catch(e){}
     }
-
-
-
-
-
-
-
-
 
     async function guardarNuevaEmpresaAdmin(e) {
       e.preventDefault();
@@ -5469,15 +5333,6 @@ if (tabId === 'resumen') {
       renderEmpresasAisladasList();
       actualizarSelectsLoginEmpresa();
     }
-
-
-
-
-
-
-
-
-
 
 
     function renderSuperAdminEmpresas() {
@@ -5686,11 +5541,7 @@ if (tabId === 'resumen') {
     alert("Ocurrió un error al intentar eliminar la empresa en la nube. Revisa tu conexión a internet.\n\n" + err.message);
   }
 }
-    
-    
-   
-   
-   
+      
 
     function cargarFiltroZonasClientes() {
       var select = document.getElementById('selectFiltroZonaCliente');
@@ -6169,13 +6020,7 @@ function iniciarPadFirma() {
 
   canvasFirma._pscInit = true;
   _firmaPadIniciado = true;
-}
-    
-    
-    
-    
-    
-    
+}  
 
     function editarCliente(id) {
       if (!verificarPermisoEdicion()) {
@@ -6954,11 +6799,7 @@ if(prestamosCliente.length === 0) {
 }
 
 contenedorPerfil.innerHTML = html;
-contenedorPerfil.style.display = 'block';
-    
-    
-    
-    
+contenedorPerfil.style.display = 'block';    
     
     try { contenedorPerfil.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch(eScroll) {}
   } catch (errPerfil) {
@@ -6969,8 +6810,6 @@ contenedorPerfil.style.display = 'block';
   }
 }
     
-    
-   
 
     function abrirModalMora(prestamoId) {
       prestamoActualId = prestamoId;
@@ -7170,8 +7009,7 @@ contenedorPerfil.style.display = 'block';
         firma: clienteObj ? clienteObj.firma : "",
         estado: 'Activo'
       };
-
-      
+       
       prestamosDB.push(nuevoPrestamo);
 guardarEnLocalStorageLocal();
 
@@ -7220,10 +7058,7 @@ setTimeout(function() {
 
   document.getElementById('modalCobroBox').style.display = 'flex';
 }
-    
-    
-    
-    
+     
 
     function toggleCamposDeposito() {
       var tipo = document.getElementById('cobroTipo').value;
@@ -7496,8 +7331,6 @@ var tel = pago.telefonoCliente ? pago.telefonoCliente.replace(/[^0-9]/g, '') : '
   }
 }
     
-    
-
     function eliminarNota(notaId, clienteId) {
   if(confirm("Deseas eliminar esta nota?")) {
     // Borrar de Supabase
@@ -7899,15 +7732,7 @@ setTimeout(function() {
 
 // 4. Se limpia el formulario (esto lo dejas tal cual lo tenías)
 document.getElementById('formPrestamo').reset();
-
-
-
-
-
-
-
-
-      document.getElementById('pFechaInicio').valueAsDate = new Date();
+    document.getElementById('pFechaInicio').valueAsDate = new Date();
       document.getElementById('previewFotoConfirmacion').style.display = 'none';
       fotoConfirmacionTemporal = "";
       calcularCuotaPreview();
@@ -8158,12 +7983,6 @@ function descargarImagenRecibo(blob) {
 }
 
 
-
-
-
-
-
-
     function ocultarImpresiones() {
       document.getElementById('printContrato').style.display = 'none';
       document.getElementById('printRecibo').style.display = 'none';
@@ -8198,9 +8017,7 @@ function descargarImagenRecibo(blob) {
     }
 
     // ========== COBROS DE HOY Y SEMANA ANTERIOR EN TABLERO ==========
-    
-    
-    
+      
     // ========== FILTRO DE COBROS EN EL TABLERO ==========
 function filtrarCobrosTablero() {
   var desdeVal = document.getElementById('tableroFechaDesde').value;
@@ -8892,9 +8709,6 @@ if(document.getElementById('mCuotasSalientes')) {
         var btnEditar = '<button class="btn btn-secondary btn-sm" onclick="abrirModalEditarEmpresa(' + emp.id + ')" style="background:var(--primary); color:white;">✏️ Editar</button>';
 var btnEliminar = '<button class="btn btn-danger btn-sm" onclick="eliminarEmpresaAdmin(' + emp.id + ')" style="background:#dc2626; color:white;">🗑️ Eliminar</button>';
 
-
-
-
         return '<div style="background:#f8fafc; padding:12px; border-radius:6px; margin-top:8px; border:1px solid var(--border); font-size:0.85rem;">' +
           '<div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; flex-wrap:wrap;">' +
             '<div style="flex:1; display:flex; align-items:flex-start;">' +
@@ -8936,9 +8750,7 @@ var btnEliminar = '<button class="btn btn-danger btn-sm" onclick="eliminarEmpres
         } catch(e) {}
         return defVal;
       }
-      
-      
-      
+          
       cuadresDB = _load('cuadres', []);
 
       zonasDB = _load('zonas', [{"id":1,"numero":"1","nombre":"Zona Principal","dia":"Lunes"}]);
@@ -9001,11 +8813,7 @@ function cambiarEmpresaActiva(nombreEmpresa) {
     showTab('resumen', null);
   }
 }
-
-   
-    
-    
-    
+ 
     
     function actualizarSelectsLoginEmpresa() {
   var selectLogin = document.getElementById('loginEmpresaSelect');
@@ -10070,11 +9878,6 @@ try {
 });
 </script>
 
-
-
-
-
-
 <script>
 /* ============================================================
    MÓDULO MAPA + GPS EN TIEMPO REAL (agregado sin tocar sync core)
@@ -10719,13 +10522,9 @@ function cerrarContrato() {
 }
 
 
-
-
 </script>
 
-
 <script>
-    
     window.addEventListener('load', function () {
   setTimeout(function () {
     try { iniciarPadFirma(); } catch (e) { console.warn('Firma init:', e); }
@@ -10734,8 +10533,6 @@ function cerrarContrato() {
     
     
 </script>
-
-
 
   <!-- ========================================== -->
   <!-- MODAL CERRAR DÍA (HTML SUELTO)             -->
@@ -11267,11 +11064,6 @@ function deshacerRenovacion(nuevoPrestamoId) {
   
   verPerfilCreditoCliente(nuevoPrestamo.clienteId, 'clientes');
 }
-
-
-
-
-
 
 
 
