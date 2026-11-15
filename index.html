@@ -531,11 +531,22 @@ function redondear(num) {
     html, body { height: 100%; min-height: 100vh; }
     body { background: var(--bg); padding-bottom: 110px; margin: 0; overflow-x: hidden; -webkit-font-smoothing: antialiased; transition: background 0.3s ease, color 0.3s ease; }
 
-    header { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: white; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: var(--shadow-md); position: sticky; top: 0; z-index: 100; }
-    header h1, header * { color: white !important; }
-    header h1 { font-size: 1.1rem; font-weight: 700; letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px; }
-    .header-logo { width: 32px; height: 32px; object-fit: contain; border-radius: 4px; background: white; padding: 2px; }
-    .header-icons { display: flex; gap: 10px; font-size: 1rem; cursor: pointer; align-items: center; }
+    
+    header { 
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%) !important; 
+  color: white; 
+  padding: 6px 10px; 
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center; 
+  box-shadow: var(--shadow-md); 
+  position: sticky; 
+  top: 0; 
+  z-index: 100; 
+  height: 48px;
+}
+    
+    
 
     #btnThemeToggle {
       background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25);
@@ -608,8 +619,8 @@ function redondear(num) {
     .form-group { margin-bottom: 12px; }
     .form-group label { display: block; font-size: 0.8rem; font-weight: 600; margin-bottom: 4px; color: var(--text-main); }
     .form-group input, .form-group select, .form-group textarea {
-      width: 100%; padding: 11px 14px; border: 1.5px solid var(--border); border-radius: 10px;
-      font-size: 0.9rem; color: var(--text-main); background: #fff;
+      width: 100%; padding: 11px 10px; border: 1.5px solid var(--border); border-radius: 10px;
+      font-size: 0.85rem; color: var(--text-main); background: #fff;
       transition: border-color 0.2s, box-shadow 0.2s;
     }
     .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
@@ -844,13 +855,7 @@ function redondear(num) {
 <div id="appContainer" class="dashboard-layout" style="display: none;">
   
   <!-- Barra Superior / Header -->
-  <header class="app-header bg-black text-gold p-4 flex justify-between items-center border-b border-yellow-600">
-    <h1 class="text-xl font-bold tracking-wide">Perdomo Sovereign Capital — Panel Operativo</h1>
-    <div id="userInfoDisplay" class="text-sm">
-      <span class="font-semibold">Usuario:</span> <span id="lblUser">Admin</span> | 
-      <span class="font-semibold">Rol:</span> <span id="lblRol">Administrador</span>
-    </div>
-  </header>
+ 
 
   <div class="flex flex-row h-full">
     <!-- Menú Lateral de Navegación -->
