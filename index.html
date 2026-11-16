@@ -11519,23 +11519,44 @@ function compartirPorWhatsApp() {
 
 // Función para deshacer (eliminar un préstamo del historial)
 
-function eliminarPrestamoHistorial(prestamoId) {
+async function eliminarPrestamoHistorial(prestamoId) {
     if (!confirm("⚠️ ¿Estás seguro de que deseas ELIMINAR este préstamo? Esta acción servirá para deshacer una renovación.")) return;
 
-    // 1. Filtramos el préstamo asegurándonos de que los IDs coincidan
-    prestamosDB = prestamosDB.filter(p => String(p.id) !== String(prestamoId));
-    
-    // 2. Guardamos en local y en la nube
-    if (typeof guardarDatosEnNube === 'function') guardarDatosEnNube();
-    if (typeof guardarEnLocalStorageLocal === 'function') guardarEnLocalStorageLocal();
-    
-    // 3. Avisamos y esperamos 2 segundos antes de recargar
-    alert("Préstamo eliminado. Guardando cambios en la nube, por favor espera...");
-    
-    setTimeout(function() {
-        location.reload(); 
-    }, 2000); // 2000 milisegundos = 2 segundos de espera
+    try {
+        // 1. BORRAR DIRECTAMENTE EN SUPABASE (La Nube)
+        if (typeof supabase !== 'undefined' && supabase) {
+            // Usamos el nombre exacto de tu tabla: 'prestamos'
+            const { error } = await supabase
+                .from('prestamos') 
+                .delete()
+                .eq('id', prestamoId);
+
+            if (error) {
+                console.error("Error al borrar en Supabase:", error);
+                alert("No se pudo borrar en la nube. Revisa tu conexión a internet.");
+                return; // Si falla en la nube, detenemos todo
+            }
+        }
+
+        // 2. Borrar de la memoria local
+        prestamosDB = prestamosDB.filter(p => String(p.id) !== String(prestamoId));
+        
+        // 3. Guardar en el celular
+        if (typeof guardarEnLocalStorageLocal === 'function') guardarEnLocalStorageLocal();
+        
+        // 4. Mostrar mensaje de éxito y recargar la página
+        alert("✅ Préstamo eliminado correctamente. Guardando cambios...");
+        setTimeout(function() {
+            location.reload(); 
+        }, 1000);
+
+    } catch (err) {
+        console.error("Error general:", err);
+        alert("Ocurrió un error al intentar borrar el préstamo.");
+    }
 }
+
+
 
 // Función para abrir el perfil al tocar una fila del historial
 function verDetallePrestamoDesdeHistorial(prestamoId) {
