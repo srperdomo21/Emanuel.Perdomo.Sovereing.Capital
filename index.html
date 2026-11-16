@@ -16,6 +16,10 @@
   <title>Perdomo Sovereign Capital - Sistema Maestro Empresarial v2 Secure</title>
 
   
+  
+  
+  
+  
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <!-- BCRYPT para hash seguro de contraseñas -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/bcryptjs/2.4.3/bcrypt.min.js"></script>
@@ -235,13 +239,23 @@ async function realizarCierreCaja() {
 </script>
 
 
-<script> 
+
+
+
+<script>
+    
+  
   var SUPABASE_URL = 'https://quspjrizkyhowquonyum.supabase.co';
 var SUPABASE_ANON_KEY = 'sb_publishable_2CFYvUocRvSErAAmRfDSMw_NbI_Gejt';
   
+  
+  
+
 var supabase = (window.supabase && window.supabase.createClient)
   ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
   : null;
+
+
 
 // --- MÉTODO DE RESPALDO INFALIBLE (POLLING) ---
 let ultimoCodigoId = null;
@@ -313,6 +327,8 @@ setInterval(async () => {
     console.error("Error buscando códigos:", err);
   }
 }, 5000); // Se ejecuta cada 5 segundos
+
+
 
 
   // ========== SEGURIDAD: Hash de contraseñas + anti fuerza bruta ==========
@@ -450,7 +466,10 @@ function redondear(num) {
     delete loginAttempts[key];
   }
   
+  
+  
 
+  // ========== MODO OSCURO ==========
   // ========== MODO OSCURO ==========
 function toggleDarkMode() {
   document.body.classList.toggle('dark-mode');
@@ -723,7 +742,12 @@ function aplicarTemaGuardado() {
   padding-top: 30px !important;
   padding-bottom: 50px !important;
 }
-       
+    
+    
+    
+    
+    
+    
     .modal-box { background: white; padding: 25px; border-radius: 10px; max-width: 420px; width: 100%; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
 
     .signature-pad-container { border: 1px solid var(--border); border-radius: 6px; background: #fff; margin-top: 5px; touch-action: none; position: relative; }
@@ -784,6 +808,10 @@ function aplicarTemaGuardado() {
       .container { max-width: 1300px; }
     }
 
+    
+  
+  
+  
   
     @media print {
   body * { visibility: hidden; }
@@ -1057,14 +1085,19 @@ function aplicarTemaGuardado() {
       
       <button class="sidebar-btn solo-admin-emp" onclick="showTabFromMenu('cartasTab')" style="background:#f0fdf4; color:#166534; font-weight:700;">✉️ Cartas y Notificaciones</button>
       
-       
+      
+      
+      
+    
     <button class="sidebar-btn solo-admin-emp" onclick="showTabFromMenu('businessIntelligenceTab')" style="background:#eff6ff; color:var(--primary); font-weight:700;">🧠 Inteligencia de Negocios (BI)</button>  
 
 <!-- PEGA TU NUEVO BOTÓN AQUÍ -->
 <button class="sidebar-btn" onclick="showTabFromMenu('buroCreditoTab')">🏦 Buró de Crédito (Score)</button>
 <!-- FIN DEL BOTÓN -->
 
-   
+
+    
+    
               
       <button class="sidebar-btn solo-super-admin" onclick="showTabFromMenu('superAdminTab')" style="background:#eff6ff; color:var(--primary); display:none;">🏢 Actualizar y Crear Empresa</button>
       <button class="sidebar-btn solo-admin-emp" onclick="showTabFromMenu('zonasTab')">MAPA Gestión de Zonas</button>
@@ -1320,7 +1353,13 @@ function aplicarTemaGuardado() {
     </div>
   </div>
 </div>
- 
+
+
+
+
+
+
+    
         
               <!-- APARTADO: CREAR NUEVAS EMPRESAS (AISLADAS) -->
       <div id="crearEmpresaTab" class="tab-content">
@@ -1518,7 +1557,10 @@ function aplicarTemaGuardado() {
     <span style="font-size:0.7rem; color:#64748b; font-weight:600;">✅ Cobrado Hoy</span>
     <span id="mCobradoHoyRuta" style="font-weight:800; font-size:1.2rem; color:#059669;">$0.00</span>
   </div>
-</div>       
+</div>
+        
+        
+        
         
         <!-- FILTRO DE COBROS POR FECHA EN TABLERO -->
 <div class="card" style="background:#f8fafc; border:1px solid var(--border); padding:15px; margin-bottom:16px;">
@@ -1540,6 +1582,23 @@ function aplicarTemaGuardado() {
   </div>
 </div>
         
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+
         <!-- GRÁFICOS -->
         <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap:16px; margin-bottom:16px;">
           <div class="card" style="margin-bottom:0;">
@@ -1738,6 +1797,10 @@ function aplicarTemaGuardado() {
   💵 Cerrar Día (Calculadora de Efectivo)
 </button>
   
+  
+            
+            
+            
             
             <button class="btn btn-warning btn-sm" id="btnReabrirRutaManual" onclick="reabrirRutaManualAdmin()" style="display:none;">🔓 Reabrir / Editar Día</button>
           </div>
@@ -2267,6 +2330,8 @@ function aplicarTemaGuardado() {
 </div>
 
 
+
+
 <!-- NUEVO APARTADO: CONTRATOS LEGALES -->
 <div id="contratosTab" class="tab-content">
   <div class="card" id="vistaListaContratos">
@@ -2297,6 +2362,8 @@ function aplicarTemaGuardado() {
     </div>
   </div>
 </div>
+
+
 
       <!-- NUEVO PRÉSTAMO -->
       <div id="nuevoPrestamo" class="tab-content">
@@ -2741,10 +2808,16 @@ function aplicarTemaGuardado() {
   }
 </style>
 
+
+
+
   </div> <!-- ESTE ES EL CIERRE DE seccionModuloPrincipal -->
 
 </div> <!-- ESTE ES EL CIERRE DEL CONTAINER -->              
                            
+           
+      
+
   <!-- MODAL EDITAR COBRADOR -->
   <div id="modalEditarCobradorBox" class="modal-overlay">
     <div class="modal-box">
@@ -3410,6 +3483,8 @@ const resultados = resultadosRaw.map(r => {
   }
 }
 
+
+
     function previewLogoEmpresa(input, previewId, isEdit) {
       if (input.files && input.files[0]) {
         var reader = new FileReader();
@@ -3450,13 +3525,17 @@ var logoSrc = emp.logo || 'Logosv.png';
   var el = document.getElementById(id);
   if (el) {
     if (emp.logo) {
-      el.src = logoSrc;
+      el.src = emp.logo;
       el.style.display = 'block'; // Mostrar el logo subido
     } else {
-      el.style.display = 'none'; // Ocultar el logo si no tiene
+      el.style.display = 'none'; // Ocultar el logo si no se subió ninguno
     }
   }
 });
+  
+  
+  
+  
 
   // Nombre de la empresa en el encabezado
 var headerSpanNombre = document.getElementById('headerNombreEmpresa');
@@ -3692,7 +3771,9 @@ if (headerSpanNombre) {
     alert("Error al imprimir por Bluetooth: " + error.message);
   }
 }
-       
+    
+    
+    
     function probarImpresionBluetooth() {
       var ticketPrueba = 
         "PERDOMO SOVEREIGN CAPITAL\n" +
@@ -3776,7 +3857,9 @@ if (headerSpanNombre) {
         divCustom.style.display = 'none';
       }
     }
-       
+    
+    
+    
 
     function verificarModalidadEdit() {
       var plazo = document.getElementById('editPrestamoPlazo').value;
@@ -3990,7 +4073,11 @@ async function guardarCobradorCalle(e) {
     alert("✅ Cobrador registrado localmente.");
   }
 }
-          
+
+     
+     
+       
+            
     function refrescarTodaLaInterfaz() {
       verificarPermisoBloqueoRuta();
       actualizarMetricas();
@@ -4043,7 +4130,10 @@ actualizarSelectsLoginEmpresa();
       localStorage.setItem(getKeyEmpresa('empleados'), JSON.stringify(empleadosDB || []));
       localStorage.setItem(getKeyEmpresa('controldia'), JSON.stringify(controlDiaDB || {abierto:false, fondoInicial:0, fecha:'', empleado:'', zona:''}));
     }
-      
+    
+    
+    
+    
     // ============================================================
 // SINCRONIZACIÓN BIDIRECCIONAL CON SUPABASE (Fase 8)
 // ============================================================
@@ -4138,6 +4228,10 @@ async function sincronizarTablaCompleta(nombreTabla, arrayLocal) {
 }
 
 
+
+
+
+
 async function guardarControlDiaSupabase() {
   if (!empresaIdActual) return;
   await supabase.from('control_dia').delete().eq('empresa_id', empresaIdActual);
@@ -4196,6 +4290,10 @@ function inicializarRealtime() {
 }
 
 
+
+
+
+
 // 🛰️ Actualiza marcador del cobrador al llegar un punto nuevo
 function manejarUbicacionRealtime(payload) {
   if (!payload || !payload.new) return;
@@ -4250,7 +4348,11 @@ function refrescarUIRealtime() {
     }
   } catch (e) { console.warn('UI refresh realtime:', e); }
 }
-                                                                                  
+
+
+    
+ 
+                                                                                    
 
     function verificarPermisoBloqueoRuta() {
       var bloqueoDiv = document.getElementById('bloqueoRutaPantalla');
@@ -4409,6 +4511,8 @@ function refrescarUIRealtime() {
         if (loginTitle) loginTitle.textContent = 'PERDOMO SOVEREIGN CAPITAL';
       }
     }
+
+
 
 function cambiarTipoLogin(rol) {
   var divNom = document.getElementById('divNombrePersona');
@@ -4786,6 +4890,11 @@ async function realizarLogin(e) {
   }
 }
 
+
+
+
+
+
   
     function guardarSesionLocal() {
       try {
@@ -4848,7 +4957,13 @@ async function realizarLogin(e) {
         alert("Error al cambiar contraseña: " + e.message);
     }
 }
-       
+    
+    
+    
+    
+    
+    
+    
     function cerrarSesion() {
   if (confirm("¿Estás seguro que deseas cerrar sesión en el sistema?")) {
     // 1. Detener el GPS si un cobrador estaba en ruta
@@ -4868,6 +4983,10 @@ async function realizarLogin(e) {
     window.location.reload();
   }
 }
+    
+    
+    
+    
     
 
    function actualizarInterfazPorRol() {
@@ -4929,6 +5048,7 @@ if (rolUsuarioActual === 'cobrador') {
 function verificarPermisoEdicion() {
   return (rolUsuarioActual === 'admin' || rolUsuarioActual === 'empleado' || rolUsuarioActual === 'SuperAdmin');
 }
+
 
 
 async function pedirClaveBorrarTodo() {
@@ -5200,7 +5320,9 @@ if (tabId === 'cartasTab') {
   document.getElementById('vistaCartaAtraso').style.display = 'none';
   document.getElementById('vistaCartaSaldo').style.display = 'none';
 }
-        
+     
+      
+      
       if (tabId === 'cobradoresTab') renderCobradoresAdmin();
       if (tabId === 'empleadosTab') renderEmpleadosAdmin();
       if (tabId === 'inversionistasTab') renderInversionistas();
@@ -5244,6 +5366,9 @@ if (tabId === 'reportesTab') {
 }
 
 
+
+
+
 if (tabId === 'businessIntelligenceTab') {
   setTimeout(function() {
     try { renderBusinessIntelligence(); } catch(e) { console.warn('Error BI:', e); }
@@ -5253,10 +5378,21 @@ if (tabId === 'resumen') {
   setTimeout(function() {
     try { actualizarMetricas(); } catch(e) { console.warn('Error métricas:', e); }
   }, 100);
-} 
+}
+    
+    
+      
       
       try { localStorage.setItem('psc_ultima_pestana', tabId); } catch(e){}
     }
+
+
+
+
+
+
+
+
 
     async function guardarNuevaEmpresaAdmin(e) {
       e.preventDefault();
@@ -5333,6 +5469,15 @@ if (tabId === 'resumen') {
       renderEmpresasAisladasList();
       actualizarSelectsLoginEmpresa();
     }
+
+
+
+
+
+
+
+
+
 
 
     function renderSuperAdminEmpresas() {
@@ -5541,7 +5686,11 @@ if (tabId === 'resumen') {
     alert("Ocurrió un error al intentar eliminar la empresa en la nube. Revisa tu conexión a internet.\n\n" + err.message);
   }
 }
-      
+    
+    
+   
+   
+   
 
     function cargarFiltroZonasClientes() {
       var select = document.getElementById('selectFiltroZonaCliente');
@@ -6020,7 +6169,13 @@ function iniciarPadFirma() {
 
   canvasFirma._pscInit = true;
   _firmaPadIniciado = true;
-}  
+}
+    
+    
+    
+    
+    
+    
 
     function editarCliente(id) {
       if (!verificarPermisoEdicion()) {
@@ -6629,178 +6784,248 @@ function iniciarPadFirma() {
       }
     }
     
-    // ... (código anterior de la función verPerfilCreditoCliente)
-
-if(prestamosCliente.length === 0) {
-  html += '<div class="card" style="text-align: center; padding: 25px;">' +
-      '<p style="font-size:0.9rem; color:#475569;">Este cliente no tiene registros de prestamos.</p>' +
-    '</div>';
-} else {
-  var hoy = new Date();
-  hoy.setHours(0,0,0,0);
-
-  // SEPARAMOS LOS PRÉSTAMOS: ACTIVOS Y ANTIGUOS
-  var prestamosActivos = prestamosCliente.filter(function(p) { return p.balancePendiente > 0; });
-  var prestamosViejos = prestamosCliente.filter(function(p) { return p.balancePendiente <= 0; });
-
-  // FUNCIÓN INTERNA PARA DIBUJAR EL PRÉSTAMO (Para no repetir código)
-  function dibujarPrestamo(p) {
-    try {
-      prestamoActualId = p.id;
-      var pagosP = cobrosDB.filter(function(cp) { return cp.prestamoId == p.id; })
-        .sort(function(a, b) {
-          var ta = a.timestamp || (a.fecha ? new Date(a.fecha).getTime() : 0) || 0;
-          var tb = b.timestamp || (b.fecha ? new Date(b.fecha).getTime() : 0) || 0;
-          return ta - tb;
-        });
-      var notasP = notasDB.filter(function(np) { return np.prestamoId == p.id; });
-      
-      var totalPagado = pagosP.reduce(function(acc, curr) { return acc + (parseFloat(curr.monto) || 0); }, 0);
-      var capitalPrestado = parseFloat(p.monto) || 0;
-      var cuotasReales = parseInt(p.numCuotas) || 13;
-      var tasaReal = parseFloat(p.tasa) || 30;
-      var valorCuotaOriginal = parseFloat(p.valorCuota) || 0;
-
-      var totalConInteres = p.plazo === 'personalizado' ? (valorCuotaOriginal * cuotasReales) : (capitalPrestado + (capitalPrestado * (tasaReal / 100)));
-      if (isNaN(totalConInteres) || totalConInteres === null) totalConInteres = 0;
-
-      var totalNumCuotas = cuotasReales;
-      var valorCuotaReal = p.plazo === 'personalizado' ? valorCuotaOriginal : (totalConInteres / totalNumCuotas);
-      
-      if (isNaN(valorCuotaReal) || valorCuotaReal === 0 || valorCuotaReal === null) valorCuotaReal = 1;
-
-      p.valorCuota = valorCuotaReal;
-      p.totalPagar = totalConInteres;
-
-      var cuotasPagadasEfectivas = Math.floor(totalPagado / valorCuotaReal);
-      var balanceRealPendiente = Math.max(0, totalConInteres - totalPagado);
-      p.balancePendiente = balanceRealPendiente;
-      var numCuotaActual = Math.min(totalNumCuotas, cuotasPagadasEfectivas + 1);
-
-      var fechaInicioObj = new Date(p.fechaInicio + 'T00:00:00');
-      var diffDiasInicio = Math.floor((hoy - fechaInicioObj) / (1000 * 60 * 60 * 24));
-      var cuotasEsperadasTranscurridas = Math.floor(diffDiasInicio / 7) + 1;
-      if (cuotasEsperadasTranscurridas > totalNumCuotas) cuotasEsperadasTranscurridas = totalNumCuotas;
-      if (cuotasEsperadasTranscurridas < 0) cuotasEsperadasTranscurridas = 0;
-      
-      var cuotasDebidasReal = Math.max(0, cuotasEsperadasTranscurridas - cuotasPagadasEfectivas);
-      var referenciaFecha = pagosP.length > 0 ? pagosP[pagosP.length - 1].fecha : p.fechaInicio;
-      var diffDias = Math.floor((hoy - new Date(referenciaFecha)) / (1000 * 60 * 60 * 24));
-      var semanasAtrasoCliente = Math.max(cuotasDebidasReal, diffDias >= 14 ? Math.floor(diffDias / 7) : 0);
-      
-      if (p.moraManualFija === undefined || p.moraManualFija === null) {
-        p.moraManualFija = (semanasAtrasoCliente > 0 && balanceRealPendiente > 0) ? valorCuotaReal * 0.03 : 0;
-      }
-      var moraCalculada = parseFloat(p.moraManualFija) || 0;
-      var montoEnAtrasoActual = calcularMontoAtrasoPrestamo(p, hoy);
-      if (isNaN(montoEnAtrasoActual) || montoEnAtrasoActual === null) montoEnAtrasoActual = 0;
-
-      var estadoPrestamoColor = p.balancePendiente === 0 ? 'var(--success)' : 'var(--danger)';
-      var estadoPrestamoTexto = p.balancePendiente === 0 ? 'SALDADO / FINALIZADO' : 'ACTIVO';
-      var ultimoPagoFecha = pagosP.length > 0 ? pagosP[pagosP.length - 1].fecha : 'Sin pagos';
-
-      var pagosHtml = pagosP.length === 0 ? '<p style="font-size:0.80rem; color:#475569;">No hay pagos registrados.</p>' :
-        pagosP.map(function(pa) {
-          var btnBorrarPagoHtml = verificarPermisoEdicion() ? 
-            '<button class="btn btn-danger btn-sm" onclick="eliminarPagoDirectoAdmin(' + pa.id + ',' + cliente.id + ')">🗑️</button>' :
-            '<button class="btn btn-danger btn-sm" onclick="solicitarEliminarElementoCobrador(' + pa.id + ', \'pago\')">🗑️</button>';
-          return '<div style="font-size:0.85rem; background:#fff; padding:12px; border-radius:8px; margin-top:8px; border:1px solid var(--border); border-left:4px solid var(--success); display:flex; flex-direction:column; gap:8px;">' +
-            '<div><strong style="color:var(--success);">Abono: $' + (parseFloat(pa.monto) || 0).toFixed(2) + '</strong> (' + (pa.tipoPago || 'Efectivo') + ')<br>' +
-            '<span style="color:var(--text-muted); font-size:0.75rem;">📅 ' + (pa.fecha || '') + ' | Cuota: ' + (pa.cuotaInfo || 'N/A') + '</span><br>' +
-            '<span style="color:var(--text-muted); font-size:0.75rem;">🚨 Atraso: $' + (parseFloat(pa.montoAtraso) || 0).toFixed(2) + '</span></div>' +
-            '<div style="display:flex; gap:8px; justify-content:flex-end;">' +
-              '<button class="btn btn-warning btn-sm" style="margin:0;" onclick="imprimirReciboDirecto(' + pa.id + ')">🖨️ Recibo</button>' +
-              '<button class="btn btn-whatsapp btn-sm" style="margin:0;" onclick="enviarReciboWhatsAppDirecto(' + pa.id + ')">📲 Enviar</button>' +
-              btnBorrarPagoHtml +
-            '</div></div>';
-        }).join('');
-
-      var notasHtml = notasP.length === 0 ? '<p style="font-size:0.80rem; color:#475569;">No hay notas registradas.</p>' :
-        notasP.map(function(no) {
-          var btnBorrarNotaHtml = verificarPermisoEdicion() ? 
-            '<button class="btn btn-danger btn-sm" onclick="eliminarNota(' + no.id + ',' + cliente.id + ')">🗑️</button>' :
-            '<button class="btn btn-danger btn-sm" onclick="solicitarEliminarElementoCobrador(' + no.id + ', \'nota\')">🗑️ Solicitar Borrar</button>';
-          return '<div style="font-size:0.8rem; background:#fef3c7; padding:10px; border-radius:6px; margin-top:8px; border-left:3px solid var(--warning); display:flex; justify-content:space-between; align-items:center;">' +
-            '<div>📅 ' + no.fecha + ' — <em>' + no.texto + '</em></div>' + btnBorrarNotaHtml + '</div>';
-        }).join('');
-
-      var pctPagado = totalNumCuotas > 0 ? Math.min(100, Math.round((cuotasPagadasEfectivas / totalNumCuotas) * 100)) : 0;
-      var colorBarra = pctPagado >= 70 ? '#16a34a' : (pctPagado >= 30 ? '#d97706' : '#dc2626');
-
-      // BOTÓN PARA DESHACER RENOVACIÓN (Solo si el préstamo está activo)
-      var btnDeshacerRenovacion = (p.balancePendiente > 0) ? '<button class="btn btn-sm" style="flex:1; min-width:120px; background:#475569; color:white;" onclick="deshacerRenovacion(' + p.id + ')">↩️ Deshacer Renovación</button>' : '';
-
-      return '<div class="loan-title-bar">' +
-          '<span>Préstamo #' + ((p && p.id != null) ? String(p.id).slice(-6) : 'S/N') + '</span>' +
-          '<span class="days-badge" style="background:' + estadoPrestamoColor + ';">' + estadoPrestamoTexto + '</span>' +
-        '</div>' +
-        '<div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;">' +
-          (p.balancePendiente > 0 ? '<button class="btn btn-success btn-sm" style="flex:1; min-width:120px;" onclick="abrirModalCobro(' + p.id + ', ' + valorCuotaReal + ', ' + moraCalculada + ', ' + numCuotaActual + ', ' + totalNumCuotas + ')">💵 Cobrar Cuota</button>' : '<button class="btn btn-secondary btn-sm" disabled style="flex:1; min-width:120px; background:#cbd5e1; color:#64748b;">✅ Préstamo Saldado</button>') +
-          '<button class="btn btn-warning btn-sm" style="flex:1; min-width:120px;" onclick="abrirModalNota(' + p.id + ')">📝 Crear Nota</button>' +
-          '<button class="btn btn-secondary btn-sm" style="flex:1; min-width:120px; background:#1e3a8a;" onclick="abrirModalRenovacion(' + p.id + ')">🔄 Renovar</button>' +
-          (verificarPermisoEdicion() ? '<button class="btn btn-danger btn-sm" style="flex:1; min-width:120px;" onclick="abrirModalMora(' + p.id + ')">⚖️ Editar Mora</button>' : '') +
-          btnDeshacerRenovacion +
-        '</div>' +
-        '<div class="loan-grid-table">' +
-          '<div class="loan-grid-row"><div class="loan-grid-label">MODALIDAD</div><div class="loan-grid-val">' + String(p.plazo || '').replace(/_/g, ' ').toUpperCase() + '</div></div>' +
-          '<div class="loan-grid-row"><div class="loan-grid-label">CAPITAL $</div><div class="loan-grid-val">' + capitalPrestado.toFixed(2) + '</div></div>' +
-          '<div class="loan-grid-row"><div class="loan-grid-label">MONTO CUOTA $</div><div class="loan-grid-val" style="color:var(--primary); font-weight:700;">' + valorCuotaReal.toFixed(2) + '</div></div>' +
-          '<div class="loan-grid-row"><div class="loan-grid-label">SEM. PAGADAS</div><div class="loan-grid-val" style="color:var(--success); font-weight:700;">' + cuotasPagadasEfectivas + ' / ' + totalNumCuotas + ' sem.</div></div>' +
-          '<div class="loan-grid-row"><div class="loan-grid-label">CUOTA ACTUAL</div><div class="loan-grid-val" style="color:var(--primary); font-weight:700;">#' + numCuotaActual + ' de ' + totalNumCuotas + '</div></div>' +
-          '<div class="loan-grid-row"><div class="loan-grid-label">TOTAL PAGADO $</div><div class="loan-grid-val" style="color:var(--success); font-weight:700;">' + totalPagado.toFixed(2) + '</div></div>' +
-          '<div class="loan-grid-row"><div class="loan-grid-label">BALANCE PEND. $</div><div class="loan-grid-val" style="color:var(--danger); font-weight:700;">' + balanceRealPendiente.toFixed(2) + '</div></div>' +
-          '<div class="loan-grid-row"><div class="loan-grid-label">MORA $</div><div class="loan-grid-val" style="color:var(--danger); font-weight:700;">' + moraCalculada.toFixed(2) + '</div></div>' +
-          '<div class="loan-grid-row" style="border:2px solid var(--danger);"><div class="loan-grid-label" style="background:var(--danger);">MONTO EN ATRASO $</div><div class="loan-grid-val" style="color:var(--danger); font-size:0.95rem; font-weight:800;">' + montoEnAtrasoActual.toFixed(2) + '</div></div>' +
-          '<div class="loan-grid-row"><div class="loan-grid-label">SEMANAS ATRASO</div><div class="loan-grid-val" style="color:var(--danger); font-weight:700;">' + semanasAtrasoCliente + ' sem.</div></div>' +
-          '<div class="loan-grid-row"><div class="loan-grid-label">ÚLTIMO PAGO</div><div class="loan-grid-val" style="font-weight:700;">' + ultimoPagoFecha + '</div></div>' +
-          '<div class="loan-grid-row"><div class="loan-grid-label">FECHA INICIO</div><div class="loan-grid-val">' + (p.fechaInicio || 'N/A') + '</div></div>' +
-          '<div class="loan-grid-row"><div class="loan-grid-label">FECHA TÉRMINO</div><div class="loan-grid-val" style="color:var(--accent); font-weight:700;">' + (p.fechaTermino || 'N/A') + '</div></div>' +
-        '</div>' +
-        '<div style="margin:14px 0 8px 0;">' +
-          '<div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text-muted); margin-bottom:4px;">' +
-            '<span>Progreso del préstamo</span><span style="font-weight:700; color:' + colorBarra + ';">' + pctPagado + '%</span>' +
-          '</div>' +
-          '<div style="height:10px; background:#fee2e2; border-radius:999px; overflow:hidden;">' +
-            '<div style="height:100%; width:' + pctPagado + '%; background:' + colorBarra + '; border-radius:999px; transition:width 0.3s;"></div>' +
-          '</div>' +
-        '</div>' +
-        '<div class="card" style="margin-top: 15px;">' +
-          '<h3>Historial de Abonos</h3>' +
-          '<div style="margin-bottom: 12px;">' + pagosHtml + '</div>' +
-          '<h3 style="margin-top:14px;">Notas de Seguimiento</h3>' +
-          '<div>' + notasHtml + '</div>' +
-        '</div>';
-    } catch (errPrestamo) {
-      console.error('Error procesando préstamo', errPrestamo);
-      return '<div style="background:#fef2f2; color:red; padding:10px;">Error al cargar préstamo #' + p.id + '</div>';
+    
+    
+    
+    
+    
+    function verPerfilCreditoCliente(clienteId, origen) {
+  try {
+    // Asegurar que la pestaña Clientes esté visible
+    var tabClientes = document.getElementById('clientes');
+    if (tabClientes && !tabClientes.classList.contains('active')) {
+      document.querySelectorAll('.tab-content').forEach(function(t) { t.classList.remove('active'); });
+      tabClientes.classList.add('active');
+      document.querySelectorAll('nav button').forEach(function(b) { b.classList.remove('active'); });
+      var navCli = document.querySelector('nav button[onclick*="clientes"]');
+      if (navCli) navCli.classList.add('active');
     }
-  }
 
-  // 1. DIBUJAMOS EL PRÉSTAMO ACTIVO (Si hay)
-  if (prestamosActivos.length > 0) {
-    html += dibujarPrestamo(prestamosActivos[0]);
-  } else {
-    html += '<div class="card" style="text-align: center; padding: 20px; background: #dcfce7; border-color: #bbf7d0;"><h3 style="color: #16a34a; margin:0;">✅ Todos los préstamos están saldados</h3></div>';
-  }
+    var contenedorPerfil = document.getElementById('perfilClienteDetalle');
+    if (!contenedorPerfil) {
+      alert('Error: no se encontró el contenedor del perfil.');
+      return;
+    }
+    var secLista = document.getElementById('seccionListaClientes');
+    var secForm = document.getElementById('seccionFormCliente');
+    var secEdit = document.getElementById('seccionEditarCliente');
+    if (secLista) secLista.style.display = 'none';
+    if (secForm) secForm.style.display = 'none';
+    if (secEdit) secEdit.style.display = 'none';
 
-  // 2. DIBUJAMOS EL HISTORIAL ANTERIOR EN UN ACORDEÓN
-  if (prestamosViejos.length > 0) {
-    html += '<details style="margin-top: 20px; background: #f8fafc; padding: 15px; border-radius: 10px; border: 1px solid var(--border); cursor: pointer;">' +
-            '<summary style="font-weight: 700; color: var(--primary); font-size: 1rem;">📂 Ver Historial de Préstamos Anteriores (' + prestamosViejos.length + ')</summary>' +
-            '<div style="margin-top: 15px; border-top: 1px solid var(--border); padding-top: 15px;">';
-    
-    // Dibujamos todos los viejos dentro del acordeón
-    prestamosViejos.forEach(function(pOld) {
-       html += '<div style="margin-bottom: 30px; opacity: 0.8;">' + dibujarPrestamo(pOld) + '</div>';
-    });
-    
-    html += '</div></details>';
-  }
-}
+    var cliente = (clientesDB || []).find(function(c) { return c.id == clienteId; });
+    if (!cliente) {
+      alert("No se encontró el cliente en la base de datos (ID: " + clienteId + ").");
+      if (secLista) secLista.style.display = 'block';
+      return;
+    }
 
-contenedorPerfil.innerHTML = html;
-contenedorPerfil.style.display = 'block';    
-    
+    var prestamosCliente = prestamosDB.filter(function(p) { return p.clienteId == clienteId; });
+
+    var avatarPerfilHtml = cliente.foto ? '<img src="' + cliente.foto + '" class="profile-header-avatar">' : '<div class="profile-header-avatar">👤</div>';
+    var apodoHeader = cliente.apodo ? ' <span style="font-size:0.85rem; color:var(--primary);">("' + cliente.apodo + '")</span>' : '';
+
+    var html = '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">' +
+        '<h3 style="color: var(--primary);">Historial e Informacion del Cliente</h3>' +
+        '<button class="btn btn-secondary btn-sm" onclick="cerrarPerfilCliente()">← Volver</button>' +
+      '</div>' +
+      '<div style="margin-bottom: 12px; display: flex; gap: 8px; flex-wrap: wrap;">' +
+        (verificarPermisoEdicion() ? '<button class="btn btn-warning btn-sm" onclick="editarCliente(' + cliente.id + ')">✏️ Editar Cliente</button>' : '') +
+        (verificarPermisoEdicion() ? '<button class="btn btn-danger btn-sm" onclick="eliminarCliente(' + cliente.id + ')">🗑️ Eliminar Cliente</button>' : '') +
+      '</div>' +
+
+      '<div class="loan-detail-header-card">' +
+        avatarPerfilHtml +
+        '<div class="profile-header-details">' +
+          '<div class="profile-header-name">' + cliente.nombre + apodoHeader + ' <span style="font-size:0.8rem; color:var(--accent);">[' + (cliente.zona || 'General') + ']</span></div>' +
+          '<div class="profile-header-info">🪪 <span>Cedula:</span> ' + cliente.cedula + '</div>' +
+          '<div class="profile-header-info" style="color:var(--accent);">📞 <span>Telefono:</span> ' + cliente.telefono + '</div>' +
+          '<div class="profile-header-info">📍 <span>Direccion:</span> ' + (cliente.direccion || 'N/A') + '</div>' +
+          (function(){
+            var r = calcularRiesgoCliente(cliente.id);
+            if (r.nivel === 'sin_prestamo') return '';
+            return '<div style="margin-top:6px; display:inline-flex; align-items:center; gap:6px; background:' + r.color + '15; border:1px solid ' + r.color + '40; padding:4px 10px; border-radius:20px;">' +
+              '<span style="font-size:0.85rem;">' + r.emoji + '</span>' +
+              '<span style="font-size:0.8rem; font-weight:700; color:' + r.color + ';">' + r.etiqueta + ' · Score ' + r.score + '/100</span>' +
+            '</div>' +
+            '<div style="font-size:0.72rem; color:var(--text-muted); margin-top:3px;">' + r.detalle + '</div>';
+          })() +
+        '</div>' +
+      '</div>';
+
+    if(prestamosCliente.length === 0) {
+      html += '<div class="card" style="text-align: center; padding: 25px;">' +
+          '<p style="font-size:0.9rem; color:#475569;">Este cliente no tiene registros de prestamos.</p>' +
+        '</div>';
+    } else {
+      var hoy = new Date();
+      hoy.setHours(0,0,0,0);
+
+      prestamosCliente.forEach(function(p) {
+        try {
+          prestamoActualId = p.id;
+          var pagosP = cobrosDB.filter(function(cp) { return cp.prestamoId == p.id; })
+            .sort(function(a, b) {
+              var ta = a.timestamp || (a.fecha ? new Date(a.fecha).getTime() : 0) || 0;
+              var tb = b.timestamp || (b.fecha ? new Date(b.fecha).getTime() : 0) || 0;
+              return ta - tb;
+            });
+          var notasP = notasDB.filter(function(np) { return np.prestamoId == p.id; });
+          
+          // --- BLINDAJE CONTRA VALORES NULL Y NaN ---
+          var totalPagado = pagosP.reduce(function(acc, curr) { return acc + (parseFloat(curr.monto) || 0); }, 0);
+          var capitalPrestado = parseFloat(p.monto) || 0;
+          var cuotasReales = parseInt(p.numCuotas) || 13;
+          var tasaReal = parseFloat(p.tasa) || 30;
+          var valorCuotaOriginal = parseFloat(p.valorCuota) || 0;
+
+          var totalConInteres = p.plazo === 'personalizado' 
+            ? (valorCuotaOriginal * cuotasReales) 
+            : (capitalPrestado + (capitalPrestado * (tasaReal / 100)));
+            
+          if (isNaN(totalConInteres) || totalConInteres === null) totalConInteres = 0;
+
+          var totalNumCuotas = cuotasReales;
+          var valorCuotaReal = p.plazo === 'personalizado' ? valorCuotaOriginal : (totalConInteres / totalNumCuotas);
+          
+          if (isNaN(valorCuotaReal) || valorCuotaReal === 0 || valorCuotaReal === null) valorCuotaReal = 1;
+
+          p.valorCuota = valorCuotaReal;
+          p.totalPagar = totalConInteres;
+
+          var cuotasPagadasEfectivas = Math.floor(totalPagado / valorCuotaReal);
+          var balanceRealPendiente = Math.max(0, totalConInteres - totalPagado);
+          p.balancePendiente = balanceRealPendiente;
+
+          var numCuotaActual = Math.min(totalNumCuotas, cuotasPagadasEfectivas + 1);
+
+          var fechaInicioObj = new Date(p.fechaInicio + 'T00:00:00');
+          var diffDiasInicio = Math.floor((hoy - fechaInicioObj) / (1000 * 60 * 60 * 24));
+          var cuotasEsperadasTranscurridas = Math.floor(diffDiasInicio / 7) + 1;
+          if (cuotasEsperadasTranscurridas > totalNumCuotas) cuotasEsperadasTranscurridas = totalNumCuotas;
+          if (cuotasEsperadasTranscurridas < 0) cuotasEsperadasTranscurridas = 0;
+          
+          var cuotasDebidasReal = Math.max(0, cuotasEsperadasTranscurridas - cuotasPagadasEfectivas);
+
+          var referenciaFecha = pagosP.length > 0 ? pagosP[pagosP.length - 1].fecha : p.fechaInicio;
+          var diffDias = Math.floor((hoy - new Date(referenciaFecha)) / (1000 * 60 * 60 * 24));
+          var semanasAtrasoCliente = Math.max(cuotasDebidasReal, diffDias >= 14 ? Math.floor(diffDias / 7) : 0);
+          
+          if (p.moraManualFija === undefined || p.moraManualFija === null) {
+            p.moraManualFija = (semanasAtrasoCliente > 0 && balanceRealPendiente > 0) ? valorCuotaReal * 0.03 : 0;
+          }
+          var moraCalculada = parseFloat(p.moraManualFija) || 0;
+          
+          var montoEnAtrasoActual = calcularMontoAtrasoPrestamo(p, hoy);
+          if (isNaN(montoEnAtrasoActual) || montoEnAtrasoActual === null) montoEnAtrasoActual = 0;
+
+          var estadoPrestamoColor = p.balancePendiente === 0 ? 'var(--success)' : 'var(--danger)';
+          var estadoPrestamoTexto = p.balancePendiente === 0 ? 'SALDADO / FINALIZADO' : 'ACTIVO';
+
+          var ultimoPagoFecha = pagosP.length > 0 ? pagosP[pagosP.length - 1].fecha : 'Sin pagos';
+
+          var pagosHtml = pagosP.length === 0 ? '<p style="font-size:0.80rem; color:#475569;">No hay pagos registrados.</p>' :
+  pagosP.map(function(pa) {
+    var btnBorrarPagoHtml = verificarPermisoEdicion() ? 
+      '<button class="btn btn-danger btn-sm" onclick="eliminarPagoDirectoAdmin(' + pa.id + ',' + cliente.id + ')">🗑️</button>' :
+      '<button class="btn btn-danger btn-sm" onclick="solicitarEliminarElementoCobrador(' + pa.id + ', \'pago\')">🗑️</button>';
+
+    return '<div style="font-size:0.85rem; background:#fff; padding:12px; border-radius:8px; margin-top:8px; border:1px solid var(--border); border-left:4px solid var(--success); display:flex; flex-direction:column; gap:8px;">' +
+      '<div>' +
+        '<strong style="color:var(--success);">Abono: $' + (parseFloat(pa.monto) || 0).toFixed(2) + '</strong> (' + (pa.tipoPago || 'Efectivo') + ')<br>' +
+        '<span style="color:var(--text-muted); font-size:0.75rem;">📅 ' + (pa.fecha || '') + ' | Cuota: ' + (pa.cuotaInfo || 'N/A') + '</span><br>' +
+        '<span style="color:var(--text-muted); font-size:0.75rem;">🚨 Atraso: $' + (parseFloat(pa.montoAtraso) || 0).toFixed(2) + '</span>' +
+      '</div>' +
+      '<div style="display:flex; gap:8px; justify-content:flex-end;">' +
+        '<button class="btn btn-warning btn-sm" style="margin:0;" onclick="imprimirReciboDirecto(' + pa.id + ')">🖨️ Recibo</button>' +
+        '<button class="btn btn-whatsapp btn-sm" style="margin:0;" onclick="enviarReciboWhatsAppDirecto(' + pa.id + ')">📲 Enviar</button>' +
+        btnBorrarPagoHtml +
+      '</div>' +
+    '</div>';
+  }).join('');
+            
+            
+            
+
+          var notasHtml = notasP.length === 0 ? '<p style="font-size:0.80rem; color:#475569;">No hay notas registradas.</p>' :
+            notasP.map(function(no) {
+              var btnBorrarNotaHtml = verificarPermisoEdicion() ? 
+                '<button class="btn btn-danger btn-sm" onclick="eliminarNota(' + no.id + ',' + cliente.id + ')">🗑️</button>' :
+                '<button class="btn btn-danger btn-sm" onclick="solicitarEliminarElementoCobrador(' + no.id + ', \'nota\')">🗑️ Solicitar Borrar</button>';
+
+              return '<div style="font-size:0.8rem; background:#fef3c7; padding:10px; border-radius:6px; margin-top:8px; border-left:3px solid var(--warning); display:flex; justify-content:space-between; align-items:center;">' +
+                '<div>📅 ' + no.fecha + ' — <em>' + no.texto + '</em></div>' +
+                btnBorrarNotaHtml +
+              '</div>';
+            }).join('');
+
+          var pctPagado = totalNumCuotas > 0 ? Math.min(100, Math.round((cuotasPagadasEfectivas / totalNumCuotas) * 100)) : 0;
+          var colorBarra = pctPagado >= 70 ? '#16a34a' : (pctPagado >= 30 ? '#d97706' : '#dc2626');
+
+          html += '<div class="loan-title-bar">' +
+              '<span>Préstamo #' + ((p && p.id != null) ? String(p.id).slice(-6) : 'S/N') + '</span>' +
+              '<span class="days-badge" style="background:' + estadoPrestamoColor + ';">' + estadoPrestamoTexto + '</span>' +
+            '</div>' +
+
+            '<div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px;">' +
+              (p.balancePendiente > 0 ? 
+  '<button class="btn btn-success btn-sm" style="flex:1; min-width:120px;" onclick="abrirModalCobro(' + p.id + ', ' + valorCuotaReal + ', ' + moraCalculada + ', ' + numCuotaActual + ', ' + totalNumCuotas + ')">💵 Cobrar Cuota</button>' 
+  : 
+  '<button class="btn btn-secondary btn-sm" disabled style="flex:1; min-width:120px; background:#cbd5e1; color:#64748b;">✅ Préstamo Saldado</button>'
+) +
+              
+              
+              
+              
+              '<button class="btn btn-warning btn-sm" style="flex:1; min-width:120px;" onclick="abrirModalNota(' + p.id + ')">📝 Crear Nota</button>' +
+              '<button class="btn btn-secondary btn-sm" style="flex:1; min-width:120px; background:#1e3a8a;" onclick="abrirModalRenovacion(' + p.id + ')">🔄 Renovar</button>' +
+              (verificarPermisoEdicion() ? '<button class="btn btn-danger btn-sm" style="flex:1; min-width:120px;" onclick="abrirModalMora(' + p.id + ')">⚖️ Editar Mora</button>' : '') +
+            '</div>' +
+
+            '<div class="loan-grid-table">' +
+              '<div class="loan-grid-row"><div class="loan-grid-label">MODALIDAD</div><div class="loan-grid-val">' + String(p.plazo || '').replace(/_/g, ' ').toUpperCase() + '</div></div>' +
+              '<div class="loan-grid-row"><div class="loan-grid-label">CAPITAL $</div><div class="loan-grid-val">' + capitalPrestado.toFixed(2) + '</div></div>' +
+              '<div class="loan-grid-row"><div class="loan-grid-label">MONTO CUOTA $</div><div class="loan-grid-val" style="color:var(--primary); font-weight:700;">' + valorCuotaReal.toFixed(2) + '</div></div>' +
+              '<div class="loan-grid-row"><div class="loan-grid-label">SEM. PAGADAS</div><div class="loan-grid-val" style="color:var(--success); font-weight:700;">' + cuotasPagadasEfectivas + ' / ' + totalNumCuotas + ' sem.</div></div>' +
+              '<div class="loan-grid-row"><div class="loan-grid-label">CUOTA ACTUAL</div><div class="loan-grid-val" style="color:var(--primary); font-weight:700;">#' + numCuotaActual + ' de ' + totalNumCuotas + '</div></div>' +
+              '<div class="loan-grid-row"><div class="loan-grid-label">TOTAL PAGADO $</div><div class="loan-grid-val" style="color:var(--success); font-weight:700;">' + totalPagado.toFixed(2) + '</div></div>' +
+              '<div class="loan-grid-row"><div class="loan-grid-label">BALANCE PEND. $</div><div class="loan-grid-val" style="color:var(--danger); font-weight:700;">' + balanceRealPendiente.toFixed(2) + '</div></div>' +
+              '<div class="loan-grid-row"><div class="loan-grid-label">MORA $</div><div class="loan-grid-val" style="color:var(--danger); font-weight:700;">' + moraCalculada.toFixed(2) + '</div></div>' +
+              '<div class="loan-grid-row" style="border:2px solid var(--danger);"><div class="loan-grid-label" style="background:var(--danger);">MONTO EN ATRASO $</div><div class="loan-grid-val" style="color:var(--danger); font-size:0.95rem; font-weight:800;">' + montoEnAtrasoActual.toFixed(2) + '</div></div>' +
+              '<div class="loan-grid-row"><div class="loan-grid-label">SEMANAS ATRASO</div><div class="loan-grid-val" style="color:var(--danger); font-weight:700;">' + semanasAtrasoCliente + ' sem.</div></div>' +
+              '<div class="loan-grid-row"><div class="loan-grid-label">ÚLTIMO PAGO</div><div class="loan-grid-val" style="font-weight:700;">' + ultimoPagoFecha + '</div></div>' +
+              '<div class="loan-grid-row"><div class="loan-grid-label">FECHA INICIO</div><div class="loan-grid-val">' + (p.fechaInicio || 'N/A') + '</div></div>' +
+              '<div class="loan-grid-row"><div class="loan-grid-label">FECHA TÉRMINO</div><div class="loan-grid-val" style="color:var(--accent); font-weight:700;">' + (p.fechaTermino || 'N/A') + '</div></div>' +
+            '</div>' +
+
+            '<div style="margin:14px 0 8px 0;">' +
+              '<div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text-muted); margin-bottom:4px;">' +
+                '<span>Progreso del préstamo</span><span style="font-weight:700; color:' + colorBarra + ';">' + pctPagado + '%</span>' +
+              '</div>' +
+              '<div style="height:10px; background:#fee2e2; border-radius:999px; overflow:hidden;">' +
+                '<div style="height:100%; width:' + pctPagado + '%; background:' + colorBarra + '; border-radius:999px; transition:width 0.3s;"></div>' +
+              '</div>' +
+            '</div>' +
+
+            '<div class="card" style="margin-top: 15px;">' +
+              '<h3>Historial de Abonos</h3>' +
+              '<div style="margin-bottom: 12px;">' + pagosHtml + '</div>' +
+              '<h3 style="margin-top:14px;">Notas de Seguimiento</h3>' +
+              '<div>' + notasHtml + '</div>' +
+            '</div>';
+        
+        } catch (errPrestamo) {
+          console.error('Error procesando préstamo #' + (p && p.id != null ? p.id : 'S/N'), errPrestamo);
+          html += '<div style="background:#fef2f2; border:1px solid #fecaca; padding:12px; border-radius:8px; margin-bottom:10px; color:#991b1b;">' +
+            '<strong>⚠️ Préstamo con datos incompletos (#' + ((p && p.id != null) ? String(p.id).slice(-6) : 'S/N') + ')</strong><br>' +
+            '<small>' + (errPrestamo && errPrestamo.message ? errPrestamo.message : errPrestamo) + '</small>' +
+          '</div>';
+        }
+      });
+    }
+
+    contenedorPerfil.innerHTML = html;
+    contenedorPerfil.style.display = 'block';
     try { contenedorPerfil.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch(eScroll) {}
   } catch (errPerfil) {
     console.error('Error abriendo perfil del cliente:', errPerfil);
@@ -6810,6 +7035,8 @@ contenedorPerfil.style.display = 'block';
   }
 }
     
+    
+   
 
     function abrirModalMora(prestamoId) {
       prestamoActualId = prestamoId;
@@ -7009,7 +7236,8 @@ contenedorPerfil.style.display = 'block';
         firma: clienteObj ? clienteObj.firma : "",
         estado: 'Activo'
       };
-       
+
+      
       prestamosDB.push(nuevoPrestamo);
 guardarEnLocalStorageLocal();
 
@@ -7017,21 +7245,8 @@ guardarEnLocalStorageLocal();
 guardarDatosEnNube();
 
 cerrarModalRenovacion();
-alert("✅ Renovación procesada con éxito.");
-
-// IMPRIMIR EL MINI CONTRATO CON UN PEQUEÑO RETRASO
-setTimeout(function() {
-    imprimirContratoDetalle(nuevoPrestamo);
-    
-    // Preguntar si quiere el contrato legal en PDF
-    setTimeout(function() {
-        var quierePDF = confirm("✅ Contrato Térmico generado.\n\n¿Deseas abrir también el Contrato Legal (PDF) para imprimirlo o guardarlo?");
-        if (quierePDF) {
-            showTab('contratosTab', document.querySelector('button[onclick*="contratosTab"]'));
-            verContratoLegal(nuevoPrestamo.id);
-        }
-    }, 500);
-}, 300);
+alert("Renovacion procesada con exito!");
+imprimirContratoDetalle(nuevoPrestamo);  
     }
 
     function abrirModalCobro(prestamoId, sugeridoMonto, sugeridoMora, cuotaActual, cuotasTotales) {
@@ -7058,7 +7273,10 @@ setTimeout(function() {
 
   document.getElementById('modalCobroBox').style.display = 'flex';
 }
-     
+    
+    
+    
+    
 
     function toggleCamposDeposito() {
       var tipo = document.getElementById('cobroTipo').value;
@@ -7331,6 +7549,8 @@ var tel = pago.telefonoCliente ? pago.telefonoCliente.replace(/[^0-9]/g, '') : '
   }
 }
     
+    
+
     function eliminarNota(notaId, clienteId) {
   if(confirm("Deseas eliminar esta nota?")) {
     // Borrar de Supabase
@@ -7732,7 +7952,15 @@ setTimeout(function() {
 
 // 4. Se limpia el formulario (esto lo dejas tal cual lo tenías)
 document.getElementById('formPrestamo').reset();
-    document.getElementById('pFechaInicio').valueAsDate = new Date();
+
+
+
+
+
+
+
+
+      document.getElementById('pFechaInicio').valueAsDate = new Date();
       document.getElementById('previewFotoConfirmacion').style.display = 'none';
       fotoConfirmacionTemporal = "";
       calcularCuotaPreview();
@@ -7983,6 +8211,12 @@ function descargarImagenRecibo(blob) {
 }
 
 
+
+
+
+
+
+
     function ocultarImpresiones() {
       document.getElementById('printContrato').style.display = 'none';
       document.getElementById('printRecibo').style.display = 'none';
@@ -8017,7 +8251,9 @@ function descargarImagenRecibo(blob) {
     }
 
     // ========== COBROS DE HOY Y SEMANA ANTERIOR EN TABLERO ==========
-      
+    
+    
+    
     // ========== FILTRO DE COBROS EN EL TABLERO ==========
 function filtrarCobrosTablero() {
   var desdeVal = document.getElementById('tableroFechaDesde').value;
@@ -8709,6 +8945,9 @@ if(document.getElementById('mCuotasSalientes')) {
         var btnEditar = '<button class="btn btn-secondary btn-sm" onclick="abrirModalEditarEmpresa(' + emp.id + ')" style="background:var(--primary); color:white;">✏️ Editar</button>';
 var btnEliminar = '<button class="btn btn-danger btn-sm" onclick="eliminarEmpresaAdmin(' + emp.id + ')" style="background:#dc2626; color:white;">🗑️ Eliminar</button>';
 
+
+
+
         return '<div style="background:#f8fafc; padding:12px; border-radius:6px; margin-top:8px; border:1px solid var(--border); font-size:0.85rem;">' +
           '<div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; flex-wrap:wrap;">' +
             '<div style="flex:1; display:flex; align-items:flex-start;">' +
@@ -8750,7 +8989,9 @@ var btnEliminar = '<button class="btn btn-danger btn-sm" onclick="eliminarEmpres
         } catch(e) {}
         return defVal;
       }
-          
+      
+      
+      
       cuadresDB = _load('cuadres', []);
 
       zonasDB = _load('zonas', [{"id":1,"numero":"1","nombre":"Zona Principal","dia":"Lunes"}]);
@@ -8813,7 +9054,11 @@ function cambiarEmpresaActiva(nombreEmpresa) {
     showTab('resumen', null);
   }
 }
- 
+
+   
+    
+    
+    
     
     function actualizarSelectsLoginEmpresa() {
   var selectLogin = document.getElementById('loginEmpresaSelect');
@@ -9878,6 +10123,11 @@ try {
 });
 </script>
 
+
+
+
+
+
 <script>
 /* ============================================================
    MÓDULO MAPA + GPS EN TIEMPO REAL (agregado sin tocar sync core)
@@ -10522,9 +10772,13 @@ function cerrarContrato() {
 }
 
 
+
+
 </script>
 
+
 <script>
+    
     window.addEventListener('load', function () {
   setTimeout(function () {
     try { iniciarPadFirma(); } catch (e) { console.warn('Firma init:', e); }
@@ -10533,6 +10787,8 @@ function cerrarContrato() {
     
     
 </script>
+
+
 
   <!-- ========================================== -->
   <!-- MODAL CERRAR DÍA (HTML SUELTO)             -->
@@ -11019,51 +11275,7 @@ document.addEventListener('click', function(event) {
   }
 });
 
-// ========== FUNCIÓN PARA DESHACER UNA RENOVACIÓN ==========
-function deshacerRenovacion(nuevoPrestamoId) {
-  if (!verificarPermisoEdicion()) {
-    alert('Solo el Administrador puede deshacer renovaciones.');
-    return;
-  }
 
-  var nuevoPrestamo = prestamosDB.find(function(p) { return p.id == nuevoPrestamoId; });
-  if (!nuevoPrestamo) return alert("No se encontró el préstamo actual.");
-
-  // 1. Buscar el cobro de tipo "Renovacion" que saldó el préstamo viejo
-  var pagosRenovacion = cobrosDB.filter(function(c) { 
-      return c.tipoPago === 'Renovacion' && c.clienteNombre === nuevoPrestamo.clienteNombre; 
-  });
-  
-  if (pagosRenovacion.length === 0) {
-      return alert("⚠️ No se puede deshacer. Este préstamo no fue creado por una renovación o el registro ya no existe.");
-  }
-
-  // Tomamos el pago de renovación más reciente
-  var ultimoPagoRenov = pagosRenovacion[pagosRenovacion.length - 1];
-  var prestamoViejo = prestamosDB.find(function(p) { return p.id == ultimoPagoRenov.prestamoId; });
-
-  if (!prestamoViejo) {
-      return alert("⚠️ No se encontró el préstamo original en los registros.");
-  }
-
-  if (!confirm("⚠️ ¿Estás SEGURO de deshacer esta renovación?\n\nSe eliminará el préstamo #" + String(nuevoPrestamoId).slice(-6) + " y se reactivará el préstamo #" + String(prestamoViejo.id).slice(-6) + " con el balance que tenía antes.")) return;
-
-  // 2. Restaurar el préstamo viejo
-  prestamoViejo.balancePendiente = ultimoPagoRenov.monto; // Se le devuelve el balance
-  prestamoViejo.estado = 'Activo';
-
-  // 3. Eliminar el cobro de renovación para que no sume en caja
-  cobrosDB = cobrosDB.filter(function(c) { return c.id !== ultimoPagoRenov.id; });
-
-  // 4. Eliminar el nuevo préstamo
-  prestamosDB = prestamosDB.filter(function(p) { return p.id !== nuevoPrestamoId; });
-
-  // 5. Guardar y refrescar pantalla
-  guardarDatosEnNube();
-  alert("✅ Renovación deshecha. El préstamo anterior está activo de nuevo.");
-  
-  verPerfilCreditoCliente(nuevoPrestamo.clienteId, 'clientes');
-}
 
 
 
