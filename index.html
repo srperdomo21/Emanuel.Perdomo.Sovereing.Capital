@@ -11422,11 +11422,9 @@ function generarMiniContrato(prestamoId, esRenovacion = false, saldoAnterior = 0
   const cliente = (clientesDB || []).find(c => c.id == prestamo.clienteId);
   if (!cliente) return;
 
-  // 2. Datos de la empresa y cobrador (Ajusta estos nombres según tus variables globales)
+  // 2. Datos de la empresa y cobrador
   const nombreEmpresa = document.getElementById('headerNombreEmpresa') ? document.getElementById('headerNombreEmpresa').innerText : "PERDOMO CAPITAL";
-  // Si tienes una variable con los datos de la empresa, úsala aquí. Ej: configuracionEmpresa.telefono
-  const telefonoEmpresa = "809-000-0000"; 
-  
+  const telefonoEmpresa = "809-000-0000"; // Puedes cambiarlo por tu número real
   const nombreCobrador = usuarioActual ? usuarioActual.nombre : "Oficina";
   const zonaCobrador = cliente.zona || "General";
   
@@ -11444,32 +11442,28 @@ function generarMiniContrato(prestamoId, esRenovacion = false, saldoAnterior = 0
   let montoEntregado = montoPrestado;
   if (esRenovacion) {
     montoEntregado = (prestamo.monto - saldoAnterior).toLocaleString('en-US', {minimumFractionDigits: 2});
-    saldoAnterior = saldoAnterior.toLocaleString('en-US', {minimumFractionDigits: 2});
+    saldoAnterior = (saldoAnterior || 0).toLocaleString('en-US', {minimumFractionDigits: 2});
   }
 
-  // 4. Armar el HTML del ticket
+  // 4. Armar el HTML del ticket idéntico a tus fotos
   const titulo = esRenovacion ? "RENOVO DE PRÉSTAMO" : "CONTRATO DE PRÉSTAMO";
-  
+  const textoLegal = esRenovacion 
+    ? "POR ESTE MEDIO ME COMPROMETO A PAGAR EL TOTAL DEL RENOVO EN TRECE (13) CUOTAS SEMANALES CONSECUTIVAS. EL INCUMPLIMIENTO GENERARÁ LA MORA INDICADA."
+    : "POR ESTE MEDIO ME COMPROMETO A PAGAR LA CANTIDAD TOTAL DEL PRÉSTAMO MÁS INTERESES EN TRECE (13) CUOTAS SEMANALES CONSECUTIVAS, SEGÚN EL PLAZO ESTABLECIDO. EL INCUMPLIMIENTO EN EL PAGO GENERARÁ LA MORA INDICADA.";
+
   let html = `
     <div class="ticket-header">
       <h2>${titulo}</h2>
-      <p>${nombreEmpresa}</p>
-      <p>Tel: ${telefonoEmpresa}</p>
-      <p>Fecha: ${fechaHoy}</p>
     </div>
     
     <div class="ticket-row"><span>CLIENTE:</span> <span>${cliente.nombre.toUpperCase()}</span></div>
     <div class="ticket-row"><span>CÉDULA:</span> <span>${cliente.cedula || 'N/A'}</span></div>
-    <div class="ticket-row"><span>COBRADOR:</span> <span>${nombreCobrador.toUpperCase()}</span></div>
-    <div class="ticket-row"><span>ZONA/RUTA:</span> <span>${zonaCobrador.toUpperCase()}</span></div>
-    
-    <div class="ticket-divider"></div>
   `;
 
   if (esRenovacion) {
     html += `
-      <div class="ticket-row"><span>SALDO ANTERIOR:</span> <span>$${saldoAnterior}</span></div>
       <div class="ticket-row"><span>PRÉSTAMO NUEVO:</span> <span>$${montoPrestado}</span></div>
+      <div class="ticket-row"><span>SALDO ANTERIOR:</span> <span>$${saldoAnterior}</span></div>
       <div class="ticket-row"><span>MONTO ENTREGADO:</span> <span>$${montoEntregado}</span></div>
     `;
   } else {
@@ -11481,14 +11475,14 @@ function generarMiniContrato(prestamoId, esRenovacion = false, saldoAnterior = 0
   html += `
     <div class="ticket-row"><span>PLAZO:</span> <span>${cantidadCuotas} SEMANAS</span></div>
     <div class="ticket-row"><span>CUOTA SEMANAL:</span> <span>$${montoCuota}</span></div>
-    <div class="ticket-row"><span>TOTAL A PAGAR:</span> <span>$${totalPagar}</span></div>
     <div class="ticket-row"><span>F. INICIO:</span> <span>${fechaInicio}</span></div>
     <div class="ticket-row"><span>F. TÉRMINO:</span> <span>${fechaTermino}</span></div>
+    <div class="ticket-row"><span>MORA:</span> <span>5% semanal</span></div> <!-- Ajusta el % si es variable -->
     
     <div class="ticket-divider"></div>
     
     <div class="ticket-text">
-      POR ESTE MEDIO ME COMPROMETO A PAGAR LA CANTIDAD TOTAL DEL PRÉSTAMO EN ${cantidadCuotas} CUOTAS SEMANALES CONSECUTIVAS. EL INCUMPLIMIENTO GENERARÁ LA MORA CORRESPONDIENTE.
+      ${textoLegal}
     </div>
     
     <div class="ticket-firma">
@@ -11501,19 +11495,20 @@ function generarMiniContrato(prestamoId, esRenovacion = false, saldoAnterior = 0
   document.getElementById('ticketContenido').innerHTML = html;
   document.getElementById('modalMiniContrato').style.display = 'flex';
 
-  // 6. Guardar texto para WhatsApp
+  // 6. Guardar texto para WhatsApp (con los nuevos datos incluidos)
   textoContratoWhatsApp = `*${nombreEmpresa}*\n*${titulo}*\n\n` +
-    `Hola *${cliente.nombre}*, aquí está el detalle de su contrato:\n\n` +
-    `📅 *Fecha:* ${fechaHoy}\n` +
-    `👤 *Cobrador:* ${nombreCobrador} (${zonaCobrador})\n` +
+    `Hola *${cliente.nombre}*, aquí está el detalle:\n\n` +
+    `👤 *Cédula:* ${cliente.cedula || 'N/A'}\n` +
     (esRenovacion ? `💵 *Saldo Anterior:* $${saldoAnterior}\n💵 *Monto Entregado:* $${montoEntregado}\n` : `💵 *Monto Prestado:* $${montoPrestado}\n`) +
     `⏳ *Plazo:* ${cantidadCuotas} semanas\n` +
     `💰 *Cuota Semanal:* $${montoCuota}\n` +
-    `💳 *Total a Pagar:* $${totalPagar}\n` +
     `📆 *Inicio:* ${fechaInicio}\n` +
     `📆 *Término:* ${fechaTermino}\n\n` +
     `_Me comprometo a pagar en las fechas establecidas._`;
 }
+
+
+
 
 function compartirPorWhatsApp() {
   if (!textoContratoWhatsApp) return;
