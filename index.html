@@ -4688,6 +4688,8 @@ async function realizarLogin(e) {
     e.preventDefault();
     e.stopPropagation();
   }
+  
+  try {
 
   var empresaNombre = document.getElementById('loginEmpresaSelect').value;
   var rol = document.getElementById('loginRolSelect').value;
@@ -4723,7 +4725,7 @@ async function realizarLogin(e) {
     return;
   }
 
-  try {
+  
     // 1. PRIMERO DESCARGAMOS LA EMPRESA DE SUPABASE
     var { data: empresa, error: errEmp } = await supabase
       .from('empresas')
