@@ -15,11 +15,6 @@
 
   <title>Perdomo Sovereign Capital - Sistema Maestro Empresarial v2 Secure</title>
 
-  
-  
-  
-  
-  
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <!-- BCRYPT para hash seguro de contraseñas -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/bcryptjs/2.4.3/bcrypt.min.js"></script>
@@ -7034,10 +7029,13 @@ function iniciarPadFirma() {
               '<div class="loan-grid-row"><div class="loan-grid-label">TOTAL PAGADO $</div><div class="loan-grid-val" style="color:var(--success); font-weight:700;">' + totalPagado.toFixed(2) + '</div></div>' +
               '<div class="loan-grid-row"><div class="loan-grid-label">BALANCE PEND. $</div><div class="loan-grid-val" style="color:var(--danger); font-weight:700;">' + balanceRealPendiente.toFixed(2) + '</div></div>' +
               '<div class="loan-grid-row"><div class="loan-grid-label">MORA $</div><div class="loan-grid-val" style="color:var(--danger); font-weight:700;">' + moraCalculada.toFixed(2) + '</div></div>' +
-              '<div class="loan-grid-row" style="border:2px solid var(--danger);"><div class="loan-grid-label" style="background:var(--danger);">MONTO EN ATRASO $</div><div class="loan-grid-val" style="color:var(--danger); font-size:0.95rem; font-weight:800;">' + montoEnAtrasoActual.toFixed(2) + '</div></div>' +
-              '<div class="loan-grid-row"><div class="loan-grid-label">SEMANAS ATRASO</div><div class="loan-grid-val"  semanasAtrasoCliente + ' sem.</div></div>' +
+              '<div class="loan-grid-row"><div class="loan-grid-label">MONTO EN ATRASO $</div><div class="loan-grid-val" style="font-size:0.95rem; font-weight:800;">' + montoEnAtrasoActual.toFixed(2) + '</div></div>' +
+'<div class="loan-grid-row"><div class="loan-grid-label">SEMANAS ATRASO</div><div class="loan-grid-val">' + semanasAtrasoCliente + ' sem.</div></div>' +
+              
+              
+               
               '<div class="loan-grid-row"><div class="loan-grid-label">ÚLTIMO PAGO</div><div class="loan-grid-val" style="font-weight:700;">' + ultimoPagoFecha + '</div></div>' +
-              '<div class="loan-grid-row"><div class="loan-grid-label">FECHA INICIO</div><div class="loan-grid-val">' + (p.fechaInicio || 'N/A') + '</div></div>' +
+'<div class="loan-grid-row"><div class="loan-grid-label">FECHA INICIO</div><div class="loan-grid-val">' + (p.fechaInicio || 'N/A') + '</div></div>' +
               '<div class="loan-grid-row"><div class="loan-grid-label">FECHA TÉRMINO</div><div class="loan-grid-val" style="color:var(--accent); font-weight:700;">' + (p.fechaTermino || 'N/A') + '</div></div>' +
             '</div>' +
 
@@ -11593,11 +11591,9 @@ function filtrarClientesPrestamo(texto) {
 
 
 
-
+Created by Perdomo Sovereign Capital
 
 </body>
 </html>
 
-
-Created by Perdomo Sovereign Capital
 
