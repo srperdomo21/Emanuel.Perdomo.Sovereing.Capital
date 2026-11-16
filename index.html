@@ -11522,20 +11522,19 @@ function compartirPorWhatsApp() {
 function eliminarPrestamoHistorial(prestamoId) {
     if (!confirm("⚠️ ¿Estás seguro de que deseas ELIMINAR este préstamo? Esta acción servirá para deshacer una renovación.")) return;
 
-    // 1. Filtramos el préstamo asegurándonos de que los IDs coincidan como texto
+    // 1. Filtramos el préstamo asegurándonos de que los IDs coincidan
     prestamosDB = prestamosDB.filter(p => String(p.id) !== String(prestamoId));
     
     // 2. Guardamos en local y en la nube
-    if (typeof guardarEnLocalStorageLocal === 'function') guardarEnLocalStorageLocal();
     if (typeof guardarDatosEnNube === 'function') guardarDatosEnNube();
+    if (typeof guardarEnLocalStorageLocal === 'function') guardarEnLocalStorageLocal();
     
-    // 3. Mostramos el mensaje y esperamos 2 segundos antes de recargar
-    // Esto le da tiempo a Supabase de procesar el borrado
-    alert("Préstamo eliminado. Los cambios se están guardando en la nube, por favor espera...");
+    // 3. Avisamos y esperamos 2 segundos antes de recargar
+    alert("Préstamo eliminado. Guardando cambios en la nube, por favor espera...");
     
     setTimeout(function() {
         location.reload(); 
-    }, 2000); // 2000 milisegundos = 2 segundos
+    }, 2000); // 2000 milisegundos = 2 segundos de espera
 }
 
 // Función para abrir el perfil al tocar una fila del historial
