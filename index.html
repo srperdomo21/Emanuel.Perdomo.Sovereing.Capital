@@ -15,6 +15,11 @@
 
   <title>Perdomo Sovereign Capital - Sistema Maestro Empresarial v2 Secure</title>
 
+  
+  
+  
+  
+  
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <!-- BCRYPT para hash seguro de contraseñas -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/bcryptjs/2.4.3/bcrypt.min.js"></script>
@@ -6900,6 +6905,10 @@ function iniciarPadFirma() {
       hoy.setHours(0,0,0,0);
 
       prestamosCliente.forEach(function(p) {
+      
+      
+      if (p.balancePendiente <= 0) return; // Ocultar los préstamos ya saldados
+      
         try {
           prestamoActualId = p.id;
           var pagosP = cobrosDB.filter(function(cp) { return cp.prestamoId == p.id; })
