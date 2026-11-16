@@ -7299,16 +7299,8 @@ alert("Renovacion procesada con exito!");
   // 1. Se abre el NUEVO contrato térmico (Renovación)
 // Le pasamos 'true' para que sepa que es renovación y el 'balancePendiente' que capturaste en la línea 7201
 generarMiniContrato(nuevoPrestamo.id, true, balancePendiente);
+}
 
-// 2. Preguntar si quiere el PDF legal completo
-setTimeout(function() {
-    var quierePDF = confirm("✅ Renovación guardada. ¿Deseas abrir también el Contrato Legal en formato PDF?");
-    if (quierePDF) {
-        showTab('contratosTab', document.querySelector('button[onclick*="contratosTab"]'));
-        verContratoLegal(nuevoPrestamo.id);
-    }
-}, 400);
-    }
 
     function abrirModalCobro(prestamoId, sugeridoMonto, sugeridoMora, cuotaActual, cuotasTotales) {
   // 1. VERIFICACIÓN NUEVA: Evitar cobros a préstamos saldados
@@ -8009,23 +8001,11 @@ setTimeout(function() {
 // 2. Se actualiza la lista de contratos legales en la pestaña
 if (typeof renderContratos === 'function') renderContratos();
 
-// 3. Se pregunta si desea ver el contrato legal en PDF
-setTimeout(function() {
-    var quierePDF = confirm("✅ Préstamo guardado. ¿Deseas abrir también el Contrato Legal en formato PDF (Hoja completa)?");
-    if (quierePDF) {
-        showTab('contratosTab', document.querySelector('button[onclick*="contratosTab"]'));
-        verContratoLegal(nuevoPrestamo.id);
-    }
-}, 1500);
+
+  
 
 // 4. Se limpia el formulario (esto lo dejas tal cual lo tenías)
 document.getElementById('formPrestamo').reset();
-
-
-
-
-
-
 
 
       document.getElementById('pFechaInicio').valueAsDate = new Date();
