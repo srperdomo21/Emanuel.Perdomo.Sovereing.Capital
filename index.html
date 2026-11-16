@@ -2403,6 +2403,14 @@ function aplicarTemaGuardado() {
           <form id="formPrestamo" onsubmit="guardarPrestamo(event)">
             <div class="form-group">
               <label>Cliente</label>
+              
+              
+          <div class="form-group">
+    <label>🔍 Buscar Cliente Rápido</label>
+    <input type="text" id="inputBuscarClientePrestamo" placeholder="Escribe nombre o cédula..." onkeyup="filtrarClientesPrestamo(this.value)" style="width:100%; padding:10px; border:1px solid var(--border); border-radius:8px; margin-bottom:8px;">
+</div>   
+              
+              
               <select id="pClienteSelect" required onchange="mostrarScoreEnPrestamo()"></select>
 <div id="buroInfoBox" style="display:none; margin-top:10px;"></div>
 
@@ -7027,7 +7035,7 @@ function iniciarPadFirma() {
               '<div class="loan-grid-row"><div class="loan-grid-label">BALANCE PEND. $</div><div class="loan-grid-val" style="color:var(--danger); font-weight:700;">' + balanceRealPendiente.toFixed(2) + '</div></div>' +
               '<div class="loan-grid-row"><div class="loan-grid-label">MORA $</div><div class="loan-grid-val" style="color:var(--danger); font-weight:700;">' + moraCalculada.toFixed(2) + '</div></div>' +
               '<div class="loan-grid-row" style="border:2px solid var(--danger);"><div class="loan-grid-label" style="background:var(--danger);">MONTO EN ATRASO $</div><div class="loan-grid-val" style="color:var(--danger); font-size:0.95rem; font-weight:800;">' + montoEnAtrasoActual.toFixed(2) + '</div></div>' +
-              '<div class="loan-grid-row"><div class="loan-grid-label">SEMANAS ATRASO</div><div class="loan-grid-val" style="color:var(--danger); font-weight:700;">' + semanasAtrasoCliente + ' sem.</div></div>' +
+              '<div class="loan-grid-row"><div class="loan-grid-label">SEMANAS ATRASO</div><div class="loan-grid-val"  semanasAtrasoCliente + ' sem.</div></div>' +
               '<div class="loan-grid-row"><div class="loan-grid-label">ÚLTIMO PAGO</div><div class="loan-grid-val" style="font-weight:700;">' + ultimoPagoFecha + '</div></div>' +
               '<div class="loan-grid-row"><div class="loan-grid-label">FECHA INICIO</div><div class="loan-grid-val">' + (p.fechaInicio || 'N/A') + '</div></div>' +
               '<div class="loan-grid-row"><div class="loan-grid-label">FECHA TÉRMINO</div><div class="loan-grid-val" style="color:var(--accent); font-weight:700;">' + (p.fechaTermino || 'N/A') + '</div></div>' +
@@ -11352,24 +11360,31 @@ function verHistorialPrestamosCliente(clienteId) {
         `;
         
         historial.forEach(p => {
-            // Determinamos el estado del préstamo
-            const esActivo = (p.balancePendiente > 0);
-            const estadoHtml = esActivo 
-                ? '<span style="background:#dcfce7; color:#166534; padding:3px 8px; border-radius:12px; font-weight:700; font-size:0.75rem;">ACTIVO</span>' 
-                : '<span style="background:#f1f5f9; color:#475569; padding:3px 8px; border-radius:12px; font-weight:700; font-size:0.75rem;">SALDADO</span>';
+    const esActivo = (p.balancePendiente > 0);
+    const estadoHtml = esActivo 
+        ? '<span style="background:#dcfce7; color:#166534; padding:3px 8px; border-radius:12px; font-weight:700; font-size:0.75rem;">ACTIVO</span>' 
+        : '<span style="background:#f1f5f9; color:#475569; padding:3px 8px; border-radius:12px; font-weight:700; font-size:0.75rem;">SALDADO</span>';
+    
+    // Agregamos el onclick a la fila y el botón de eliminar al final
+    html += `
+        <tr style="border-bottom:1px solid var(--border); cursor:pointer;" 
+            onclick="verDetallePrestamoDesdeHistorial('${p.id}')" 
+            onmouseover="this.style.background='#f1f5f9'" 
+            onmouseout="this.style.background='transparent'">
             
-            html += `
-                <tr style="border-bottom:1px solid var(--border);">
-                    <td style="padding:10px;">${p.fechaInicio || 'N/A'}</td>
-                    <td style="padding:10px;">${p.modalidad || 'N/A'}</td>
-                    <td style="padding:10px; font-weight:700;">RD$ ${(p.monto || 0).toLocaleString('en-US', {minimumFractionDigits:2})}</td>
-                    <td style="padding:10px; font-weight:700; color:${esActivo ? 'var(--danger)' : 'var(--success)'};">
-                        RD$ ${(p.balancePendiente || 0).toLocaleString('en-US', {minimumFractionDigits:2})}
-                    </td>
-                    <td style="padding:10px;">${estadoHtml}</td>
-                </tr>
-            `;
-        });
+            <td style="padding:10px;">${p.fechaInicio || 'N/A'}</td>
+            <td style="padding:10px;">${p.modalidad || 'N/A'}</td>
+            <td style="padding:10px; font-weight:700;">RD$ ${(p.monto || 0).toLocaleString('en-US', {minimumFractionDigits:2})}</td>
+            <td style="padding:10px; font-weight:700; color:${esActivo ? 'var(--danger)' : 'var(--success)'};">
+                RD$ ${(p.balancePendiente || 0).toLocaleString('en-US', {minimumFractionDigits:2})}
+            </td>
+            <td style="padding:10px;">${estadoHtml}</td>
+            <td style="padding:10px; text-align:center;">
+                <button onclick="event.stopPropagation(); eliminarPrestamoHistorial('${p.id}')" style="background:var(--danger); color:white; border:none; padding:5px 10px; border-radius:5px; cursor:pointer;" title="Eliminar Préstamo">🗑️</button>
+            </td>
+        </tr>
+    `;
+});
         
         html += `</tbody></table>`;
     }
@@ -11492,6 +11507,56 @@ function compartirPorWhatsApp() {
   // Abre WhatsApp Web o App con el mensaje
   const url = `https://wa.me/?text=${encodeURIComponent(textoContratoWhatsApp)}`;
   window.open(url, '_blank');
+}
+
+
+// Función para deshacer (eliminar un préstamo del historial)
+function eliminarPrestamoHistorial(prestamoId) {
+    if (!confirm("⚠️ ¿Estás seguro de que deseas ELIMINAR este préstamo? Esta acción servirá para deshacer una renovación.")) return;
+
+    prestamosDB = prestamosDB.filter(p => p.id != prestamoId);
+    
+    if (typeof guardarDatosEnNube === 'function') guardarDatosEnNube();
+    if (typeof guardarEnLocalStorageLocal === 'function') guardarEnLocalStorageLocal();
+    
+    alert("Préstamo eliminado. Ve al perfil del cliente y edita el préstamo anterior para reactivar su balance.");
+    location.reload(); 
+}
+
+// Función para abrir el perfil al tocar una fila del historial
+function verDetallePrestamoDesdeHistorial(prestamoId) {
+    document.getElementById('modalHistorialPrestamos').style.display='none';
+    
+    var p = prestamosDB.find(function(item){ return item.id == prestamoId; });
+    if (p) {
+        // Asumimos que tu función para abrir el perfil se llama así:
+        if (typeof abrirPerfilCliente === 'function') {
+            abrirPerfilCliente(p.clienteId);
+        } else if (typeof verPerfilCliente === 'function') {
+            verPerfilCliente(p.clienteId);
+        } else {
+            alert("Por favor, busca al cliente manualmente en la lista.");
+        }
+    }
+}
+
+
+
+function filtrarClientesPrestamo(texto) {
+    var select = document.getElementById('pClienteSelect');
+    if (!select) return;
+    
+    var textoBusqueda = texto.toLowerCase();
+    var options = select.options;
+    
+    for (var i = 0; i < options.length; i++) {
+        var textoOpcion = options[i].text.toLowerCase();
+        if (textoOpcion.includes(textoBusqueda) || options[i].value === "") {
+            options[i].style.display = "";
+        } else {
+            options[i].style.display = "none";
+        }
+    }
 }
 
 
