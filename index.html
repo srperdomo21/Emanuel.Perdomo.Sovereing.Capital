@@ -7997,8 +7997,14 @@ window.ocultarFormularioCliente = ocultarFormularioCliente;
 guardarDatosEnNube();
 
 
-// 1. Se abre el NUEVO contrato térmico
-generarMiniContrato(nuevoPrestamo.id, false);
+// 1. Se abre el NUEVO contrato térmico (con retraso para que no choque con el PDF)
+setTimeout(function() {
+    if (typeof generarMiniContrato === 'function') {
+        generarMiniContrato(nuevoPrestamo.id, false);
+    }
+}, 800); // Espera 0.8 segundos para mostrarse
+
+
 
 // 2. Se actualiza la lista de contratos legales en la pestaña
 if (typeof renderContratos === 'function') renderContratos();
@@ -8010,7 +8016,7 @@ setTimeout(function() {
         showTab('contratosTab', document.querySelector('button[onclick*="contratosTab"]'));
         verContratoLegal(nuevoPrestamo.id);
     }
-}, 400);
+}, 1500);
 
 // 4. Se limpia el formulario (esto lo dejas tal cual lo tenías)
 document.getElementById('formPrestamo').reset();
