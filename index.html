@@ -450,7 +450,7 @@ function redondear(num) {
     delete loginAttempts[key];
   }
   
-  // ========== MODO OSCURO ==========
+
   // ========== MODO OSCURO ==========
 function toggleDarkMode() {
   document.body.classList.toggle('dark-mode');
@@ -3450,13 +3450,13 @@ var logoSrc = emp.logo || 'Logosv.png';
   var el = document.getElementById(id);
   if (el) {
     if (emp.logo) {
-      el.src = emp.logo;
+      el.src = logoSrc;
       el.style.display = 'block'; // Mostrar el logo subido
     } else {
-      el.style.display = 'none'; // Ocultar el logo si no se subió ninguno
+      el.style.display = 'none'; // Ocultar el logo si no tiene
     }
   }
-}); 
+});
 
   // Nombre de la empresa en el encabezado
 var headerSpanNombre = document.getElementById('headerNombreEmpresa');
