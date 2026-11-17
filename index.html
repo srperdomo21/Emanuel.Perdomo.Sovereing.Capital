@@ -263,72 +263,68 @@ let ultimoCodigoId = null;
 setInterval(async () => {
   if (!supabase) return;
   
-  // 🔒 FILTRO DE SEGURIDAD: Solo la oficina (Admin, SuperAdmin, Empleado) puede ver los códigos
+  // 🔒 FILTRO DE SEGURIDAD
   if (rolUsuarioActual !== 'admin' && rolUsuarioActual !== 'SuperAdmin' && rolUsuarioActual !== 'empleado') {
-    return; // Si es cobrador o no ha iniciado sesión, se detiene aquí y no muestra nada.
+    return; 
   }
   
   try {
-    // Pregunta a Supabase cada 5 segundos si hay un código nuevo
-    // Pregunta a Supabase cada 5 segundos si hay un código nuevo
-    const { data, error } = await supabase
-      .from('codigos_jornada')
-      .select('*')
-      .order('id', { ascending: false })
-      .limit(1);
+    // ✅ SOLUCIÓN: Función autoejecutable para que el 'await' funcione sí o sí
+    (async () => {
+      const { data, error } = await supabase
+        .from('codigos_jornada')
+        .select('*')
+        .order('id', { ascending: false })
+        .limit(1);
 
-    if (error) throw error;
+      if (error) throw error;
 
-    if (data && data.length > 0) {
-      const registroActual = data[0];
+      if (data && data.length > 0) {
+        const registroActual = data[0];
 
-      // Si es un código nuevo y no ha sido usado
-      if (ultimoCodigoId !== registroActual.id && !registroActual.usado) {
-        
-        // Solo mostrarlo si es reciente (menos de 2 minutos)
-        const fechaCreacion = new Date(registroActual.created_at).getTime();
-        if (Date.now() - fechaCreacion < 120000) {
+        if (ultimoCodigoId !== registroActual.id && !registroActual.usado) {
+          const fechaCreacion = new Date(registroActual.created_at).getTime();
           
-          ultimoCodigoId = registroActual.id;
-          const codigoGenerado = registroActual.codigo_hash;
-          const usuario = registroActual.usuario_nombre;
+          if (Date.now() - fechaCreacion < 120000) {
+            ultimoCodigoId = registroActual.id;
+            const codigoGenerado = registroActual.codigo_hash;
+            const usuario = registroActual.usuario_nombre;
 
-          // 1. Mostrar el cuadro verde flotante
-          const toast = document.createElement('div');
-          toast.style.cssText = 'position:fixed; top:20px; right:20px; background:#16a34a; color:white; padding:20px; border-radius:10px; box-shadow:0 10px 25px rgba(0,0,0,0.5); z-index:99999; font-family:sans-serif; border-left: 8px solid #fff; min-width: 300px; transition: all 0.3s ease;';
-          toast.innerHTML = `
-            <div style="font-size:18px; margin-bottom:5px;">🚨 <strong>Jornada Solicitada</strong></div>
-            <div style="font-size:14px; margin-bottom:10px;">Cobrador: <b>${usuario}</b></div>
-            <div style="font-size:14px;">Código de Autorización:</div>
-            <div style="font-size:32px; letter-spacing:8px; background:#fff; color:#16a34a; padding:5px 10px; border-radius:6px; text-align:center; font-weight:900; margin-top:5px;">${codigoGenerado}</div>
-          `;
-          document.body.appendChild(toast);
+            // 1. Mostrar el cuadro verde flotante
+            const toast = document.createElement('div');
+            toast.style.cssText = 'position:fixed; top:20px; right:20px; background:#16a34a; color:white; padding:20px; border-radius:10px; box-shadow:0 10px 25px rgba(0,0,0,0.5); z-index:99999; font-family:sans-serif; border-left: 8px solid #fff; min-width: 300px; transition: all 0.3s ease;';
+            toast.innerHTML = `
+              <div style="font-size:18px; margin-bottom:5px;">🚨 <strong>Jornada Solicitada</strong></div>
+              <div style="font-size:14px; margin-bottom:10px;">Cobrador: <b>${usuario}</b></div>
+              <div style="font-size:14px;">Código de Autorización:</div>
+              <div style="font-size:32px; letter-spacing:8px; background:#fff; color:#16a34a; padding:5px 10px; border-radius:6px; text-align:center; font-weight:900; margin-top:5px;">${codigoGenerado}</div>
+            `;
+            document.body.appendChild(toast);
 
-          // 2. Pitido
-          try {
-            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            const oscillator = audioCtx.createOscillator();
-            oscillator.type = 'sine';
-            oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); 
-            oscillator.connect(audioCtx.destination);
-            oscillator.start();
-            oscillator.stop(audioCtx.currentTime + 0.4);
-          } catch(e) { console.log('Audio bloqueado por el navegador'); }
+            // 2. Pitido
+            try {
+              const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+              const oscillator = audioCtx.createOscillator();
+              oscillator.type = 'sine';
+              oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); 
+              oscillator.connect(audioCtx.destination);
+              oscillator.start();
+              oscillator.stop(audioCtx.currentTime + 0.4);
+            } catch(e) { console.log('Audio bloqueado por el navegador'); }
 
-          // 3. Desaparecer en 20 segundos
-          setTimeout(() => {
-            toast.style.opacity = '0';
-            setTimeout(() => { if(toast.parentNode) toast.parentNode.removeChild(toast); }, 300);
-          }, 20000);
+            // 3. Desaparecer en 20 segundos
+            setTimeout(() => {
+              toast.style.opacity = '0';
+              setTimeout(() => { if(toast.parentNode) toast.parentNode.removeChild(toast); }, 300);
+            }, 20000);
+          }
         }
       }
-    }
+    })();
   } catch (err) {
     console.error("Error buscando códigos:", err);
   }
-}, 5000); // Se ejecuta cada 5 segundos
-
-
+}, 5000);
 
 
   // ========== SEGURIDAD: Hash de contraseñas + anti fuerza bruta ==========
@@ -4870,118 +4866,6 @@ async function realizarLogin(e) {
     
     
     
-    try {
-      if (rol === 'cobrador' && supabase) {
-        var { data: cobCloud } = await supabase.from('cobradores').select('*').eq('empresa_id', empresa.id).eq('nombre', nombrePersona).single();
-        if (cobCloud) usuarioDB = cobCloud;
-      } else if (rol === 'empleado' && supabase) {
-        var { data: empCloud } = await supabase.from('empleados').select('*').eq('empresa_id', empresa.id).eq('nombre', nombrePersona).single();
-        if (empCloud) usuarioDB = empCloud;
-      }
-    } catch (e) {
-      console.log("Buscando en local...");
-    }
-
-    if (!usuarioDB) {
-      if (rol === 'cobrador') usuarioDB = cobradoresDB.find(function(c) { return c.nombre === nombrePersona; });
-      else if (rol === 'empleado') usuarioDB = empleadosDB.find(function(e) { return e.nombre === nombrePersona; });
-    }
-
-    if (!usuarioDB) {
-      if (typeof registerFailedLogin === 'function') registerFailedLogin(rateKey);
-      alert('Usuario no encontrado en el sistema.');
-      return;
-    }
-
-    var hashGuardado = usuarioDB.password_hash; 
-    var passValidado = false;
-
-    if (hashGuardado) {
-      passValidado = typeof verifyPassword === 'function' ? verifyPassword(password, hashGuardado) : (password === hashGuardado);
-    } else {
-      passValidado = (password === usuarioDB.password);
-    }
-
-    if (!passValidado) {
-      if (typeof registerFailedLogin === 'function') registerFailedLogin(rateKey);
-      alert('Usuario o contraseña incorrectos.');
-      return;
-    }
-
-    if (typeof clearLoginAttempts === 'function') clearLoginAttempts(rateKey);
-
-    // FLUJO 2FA PARA COBRADOR
-    if (rol === 'cobrador') {
-      loginPendiente2FA = { empresa: empresa, rol: rol, nombre: nombrePersona, zona: zonaPersona || '' };
-      
-      var elCobrador = document.getElementById('lbl2FACobrador');
-      if (elCobrador) elCobrador.innerText = nombrePersona;
-
-      var elZona = document.getElementById('lbl2FAZona');
-      if (elZona) elZona.innerText = loginPendiente2FA.zona || '';
-
-      await solicitarCodigoJornada(nombrePersona, loginPendiente2FA.zona || '');
-
-      var loginScreen = document.getElementById('loginScreen');
-      if (loginScreen) loginScreen.style.display = 'none';
-
-      var modal2FA = document.getElementById('modal2FAJornada');
-      if (modal2FA) {
-          modal2FA.style.display = 'flex';
-          var input2FA = document.getElementById('input2FAJornada');
-          if (input2FA) input2FA.focus();
-      } else {
-          alert("Aviso: El modal visual de 2FA no se encontró, pero el login continuará.");
-          if (typeof confirmar2FAJornada === 'function') confirmar2FAJornada(); 
-      }
-      return;
-    }
-
-    // LOGIN EXITOSO EMPLEADO
-    var sesionUsuario = {
-      empresa_id: empresa.id,
-      empresa_nombre: empresa.nombre,
-      usuario: nombrePersona,
-      rol: rol,
-      usuario_id: usuarioDB.id,
-      zonas: usuarioDB.zonas || [zonaPersona],
-      color: empresa.color_primario || '#1e3a8a',
-      plan: empresa.plan || 'premium'
-    };
-    localStorage.setItem('psc_sesion', JSON.stringify(sesionUsuario));
-    localStorage.setItem('psc_empresa_activa', empresa.nombre);
-    localStorage.setItem('psc_sesion_activa', 'true');
-
-    empresaActual = empresa.nombre;
-    empresaIdActual = empresa.id;
-    rolUsuarioActual = rol;
-    nombreUsuarioActual = nombrePersona;
-    zonaUsuarioActual = zonaPersona || (usuarioDB.zonas ? usuarioDB.zonas[0] : '');
-
-            // ... código anterior ...
-        
-        if (typeof aplicarTemaEmpresa === 'function') 
-            aplicarTemaEmpresa();
-
-        document.getElementById('loginScreen').style.display = 'none';
-        alert('¡Bienvenido ' + nombreUsuarioActual + ' (' + rol + ')!');
-
-        if (typeof sincronizarConNube === 'function') 
-            sincronizarConNube();
-}
-}catch (error) {
-      
-        // --- ESTO VA DENTRO DEL CATCH ---
-        console.error('Error crítico en login:', error);
-        alert('Error de conexión. Revisa la consola.');
-    } // <--- 🚨 CERRAMOS EL CATCH AQUÍ 🚨
-
-    // --- ESTO VA FUERA DEL CATCH ---
-    // Llamar a la función que organiza el menú según el rol
-    if (typeof configurarMenuPorRol === 'function') 
-        configurarMenuPorRol();
-
-} // <--- 🚨 ESTA LLAVE CIERRA LA FUNCIÓN realizarLogin 🚨
 
 
 
@@ -11687,7 +11571,48 @@ function configurarMenuPorRol() {
         }
     }
 }
+// ✅ SOLUCIÓN AL ERROR DE LA FIRMA
+window.iniciarPadFirma = function() {
+    const canvas = document.getElementById('canvasFirma');
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    let drawing = false;
 
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.lineWidth = 2;
+    ctx.lineCap = "round";
+    ctx.strokeStyle = "#000000";
+
+    canvas.addEventListener('mousedown', (e) => { drawing = true; ctx.beginPath(); ctx.moveTo(e.offsetX, e.offsetY); });
+    canvas.addEventListener('mousemove', (e) => { if (drawing) { ctx.lineTo(e.offsetX, e.offsetY); ctx.stroke(); } });
+    canvas.addEventListener('mouseup', () => { drawing = false; });
+    canvas.addEventListener('mouseout', () => { drawing = false; });
+
+    canvas.addEventListener('touchstart', (e) => { 
+        e.preventDefault(); 
+        drawing = true; 
+        const rect = canvas.getBoundingClientRect();
+        ctx.beginPath(); 
+        ctx.moveTo(e.touches[0].clientX - rect.left, e.touches[0].clientY - rect.top); 
+    });
+    canvas.addEventListener('touchmove', (e) => { 
+        e.preventDefault(); 
+        if (drawing) { 
+            const rect = canvas.getBoundingClientRect();
+            ctx.lineTo(e.touches[0].clientX - rect.left, e.touches[0].clientY - rect.top); 
+            ctx.stroke(); 
+        } 
+    });
+    canvas.addEventListener('touchend', (e) => { e.preventDefault(); drawing = false; });
+
+    console.log('Pad de firma inicializado correctamente');
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    window.iniciarPadFirma();
+});
 
 
 </script>
@@ -11726,5 +11651,3 @@ Created by Perdomo Sovereign Capital
 
 </body>
 </html>
-
-
