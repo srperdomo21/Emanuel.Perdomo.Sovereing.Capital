@@ -4681,6 +4681,16 @@ function actualizarZonasLogin(nombreCobrador) {
     if (btn) { btn.textContent = '👁️'; btn.title = 'Ver contraseña'; }
   }
 }
+    
+    function iniciarPadFirma() {
+    console.log("Pad de firma iniciado");
+    // Aquí puedes poner la lógica para limpiar el canvas de la firma si lo deseas
+    if (typeof limpiarFirma === 'function') {
+        limpiarFirma();
+    }
+}
+    
+    
                                                  
 // ========== LOGIN REAL CONTRA SUPABASE (ESTRICTO Y SEGURO) ==========
 async function realizarLogin(e) {
@@ -4807,38 +4817,51 @@ if (typeof configurarMenuPorRol === 'function') {
       var passOkAdmin = (typeof verifyPassword === 'function') ? verifyPassword(password, storedPassAdmin) : (password === storedPassAdmin);
           
       if (passOkAdmin) {
-        if (typeof clearLoginAttempts === 'function') clearLoginAttempts(rateKey);
+  if (typeof clearLoginAttempts === 'function') clearLoginAttempts(rateKey);
 
-        var sesion = {
-          empresa_id: empresa.id,
-          empresa_nombre: empresa.nombre,
-          usuario: empresa.usuarioAdmin || 'admin',
-          rol: 'admin',
-          color: empresa.color_primario || '#1e3a8a',
-          plan: empresa.plan || 'premium'
-        };
-        localStorage.setItem('psc_sesion', JSON.stringify(sesion));
-        localStorage.setItem('psc_empresa_activa', empresa.nombre);
-        localStorage.setItem('psc_sesion_activa', 'true');
+  var sesion = {
+    empresa_id: empresa.id,
+    empresa_nombre: empresa.nombre,
+    usuario: empresa.usuarioAdmin || 'admin',
+    rol: 'admin',
+    color: empresa.color_primario || empresa.colorPrimario || '#1e3a8a',
+    plan: empresa.plan || 'premium'
+  };
+  localStorage.setItem('psc_sesion', JSON.stringify(sesion));
+  localStorage.setItem('psc_empresa_activa', empresa.nombre);
+  localStorage.setItem('psc_sesion_activa', 'true');
 
-        empresaActual = empresa.nombre;
-        empresaIdActual = empresa.id;
-        rolUsuarioActual = 'admin';
-        nombreUsuarioActual = 'Administrador de ' + empresa.nombre;
-        zonaUsuarioActual = 'Todas las Zonas (Oficina)';
+  empresaActual = empresa.nombre;
+  empresaIdActual = empresa.id;
+  rolUsuarioActual = 'admin';
+  nombreUsuarioActual = 'Administrador de ' + empresa.nombre;
+  zonaUsuarioActual = 'Todas las Zonas (Oficina)';
 
-        if (!empresasGlobalesDB.some(function(e) { return e.id == empresa.id; })) {
-            empresasGlobalesDB.push(empresa);
-        }
-        if (typeof aplicarTemaEmpresa === 'function') aplicarTemaEmpresa(empresa);
+  // 🔥 ESTO ERA LO QUE FALTABA
+  if (typeof guardarSesionLocal === 'function') {
+    guardarSesionLocal();
+  }
 
-        if (typeof sincronizarConNube === 'function') sincronizarConNube();
-        return;
-      }
-      if (typeof registerFailedLogin === 'function') registerFailedLogin(rateKey);
-      alert('Contraseña de Administrador incorrecta.');
-      return;
-    }
+  if (!empresasGlobalesDB.some(function(e) { return e.id == empresa.id; })) {
+      empresasGlobalesDB.push(empresa);
+  }
+
+  // Ocultar login
+  var loginScreen = document.getElementById('loginScreen');
+  if (loginScreen) loginScreen.style.display = 'none';
+
+  // Aplicar tema y menú
+  if (typeof aplicarTemaEmpresa === 'function') aplicarTemaEmpresa(empresa);
+  if (typeof configurarMenuPorRol === 'function') configurarMenuPorRol();
+  if (typeof actualizarInterfazPorRol === 'function') actualizarInterfazPorRol();
+
+  if (typeof sincronizarConNube === 'function') sincronizarConNube();
+  
+  alert('¡Bienvenido Administrador de ' + empresa.nombre + '!');
+  return;
+}
+
+
 
     // 4. VALIDAR EMPLEADOS Y COBRADORES
     var usuarioDB = null;
@@ -4930,26 +4953,30 @@ if (typeof configurarMenuPorRol === 'function') {
     nombreUsuarioActual = nombrePersona;
     zonaUsuarioActual = zonaPersona || (usuarioDB.zonas ? usuarioDB.zonas[0] : '');
 
-    if (typeof aplicarTemaEmpresa === 'function') aplicarTemaEmpresa();
-    document.getElementById('loginScreen').style.display = 'none';
-    alert('¡Bienvenido ' + nombreUsuarioActual + ' (' + rol + ')!');
+            // ... código anterior ...
+        
+        if (typeof aplicarTemaEmpresa === 'function') 
+            aplicarTemaEmpresa();
 
-    if (typeof sincronizarConNube === 'function') sincronizarConNube();
+        document.getElementById('loginScreen').style.display = 'none';
+        alert('¡Bienvenido ' + nombreUsuarioActual + ' (' + rol + ')!');
 
-  } catch (error) {
-    console.error('Error crítico en login:', error);
-    alert('Error de conexión. Revisa la consola.');
-    
-      
-    // Llamar a la función que organiza el menú según el rol
-if (typeof configurarMenuPorRol === 'function') configurarMenuPorRol();
-    
-    
-    
-    
-  }
+        if (typeof sincronizarConNube === 'function') 
+            sincronizarConNube();
 }
+}catch (error) {
+      
+        // --- ESTO VA DENTRO DEL CATCH ---
+        console.error('Error crítico en login:', error);
+        alert('Error de conexión. Revisa la consola.');
+    } // <--- 🚨 CERRAMOS EL CATCH AQUÍ 🚨
 
+    // --- ESTO VA FUERA DEL CATCH ---
+    // Llamar a la función que organiza el menú según el rol
+    if (typeof configurarMenuPorRol === 'function') 
+        configurarMenuPorRol();
+
+} // <--- 🚨 ESTA LLAVE CIERRA LA FUNCIÓN realizarLogin 🚨
 
 
 
