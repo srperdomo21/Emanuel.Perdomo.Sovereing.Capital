@@ -1436,6 +1436,30 @@ function aplicarTemaGuardado() {
                 <input type="password" id="nuevaEmpresaPass" required placeholder="••••••••">
               </div>
             </div>
+            
+           <!-- 👇 NUEVOS CAMPOS PARA EMPLEADO Y COBRADOR 👇 -->
+<div class="form-row">
+    <div class="form-group">
+        <label>Usuario Empleado (Opcional)</label>
+        <input type="text" id="nuevaEmpresaUserEmp" placeholder="Ej. empleado_norte">
+    </div>
+    <div class="form-group">
+        <label>Contraseña Empleado</label>
+        <input type="password" id="nuevaEmpresaPassEmp" placeholder="••••••••">
+    </div>
+</div>
+<div class="form-row">
+    <div class="form-group">
+        <label>Usuario Cobrador (Opcional)</label>
+        <input type="text" id="nuevaEmpresaUserCob" placeholder="Ej. cobrador_norte">
+    </div>
+    <div class="form-group">
+        <label>Contraseña Cobrador</label>
+        <input type="password" id="nuevaEmpresaPassCob" placeholder="••••••••">
+    </div>
+</div> 
+              
+                     
             <div class="form-row">
               <div class="form-group">
                 <label>📦 Plan de Suscripción</label>
@@ -4754,117 +4778,98 @@ async function realizarLogin(e) {
       return;
     }
 
-    // 2. VALIDAR SUPERADMIN
-    if (rol === 'SuperAdmin') {
-      var storedPass = null;
-      
-      if (supabase) {
-          var { data: userData } = await supabase.from('usuarios').select('password_hash').eq('rol', 'superadmin').single();
-          if (userData && userData.password_hash) storedPass = userData.password_hash;
-      }
-      
-      if (!storedPass) storedPass = empresa.password_hash || empresa.passwordAdmin;
-
-      if (!storedPass) {
-        alert('Error: No hay contraseña configurada para el Super Admin.');
-        return;
-      }
-
-      var passOk = (typeof verifyPassword === 'function') 
-        ? verifyPassword(password, storedPass) 
-        : (password === storedPass);
-
-      if (passOk) {
-        empresaActual = empresaNombre;
-        var empObjSuper = empresasGlobalesDB.find(function(e) { return e.nombre === empresaNombre; });
-        empresaIdActual = empObjSuper ? empObjSuper.id : empresa.id;
+            // 2. BUSCAR AL USUARIO EN LA TABLA 'usuarios' (AISLADO POR EMPRESA)
+        // Usamos empresa.id (que ya obtuviste en la línea 4740)
         
-        rolUsuarioActual = 'SuperAdmin';
-        nombreUsuarioActual = 'Super Administrador';
-        zonaUsuarioActual = 'Todas las Zonas (Global)';
+        // Si es empleado o cobrador, el nombre viene del select. 
+        // Si es Admin o SuperAdmin, asumimos que también deberías tener un input para su usuario.
+        // (Si no tienes input para Admin, usa 'empresa.usuarioAdmin' por defecto).
+        var usuarioABuscar = nombrePersona; 
+        if (rol === 'Administrador' || rol === 'admin') usuarioABuscar = empresa.usuarioAdmin || 'admin';
+        if (rol === 'SuperAdmin') usuarioABuscar = empresa.usuarioSuperAdmin || 'superadmin';
+
+        // Consulta estricta a Supabase
+        const { data: usuarioDB, error: errUser } = await supabase
+            .from('usuarios')
+            .select('*')
+            .eq('empresa_id', empresa.id) // 🚨 AISLAMIENTO: Solo busca en esta empresa
+            .eq('usuario', usuarioABuscar) // Y que el nombre coincida
+            .single();
+
+        // Si no existe el usuario en esa empresa...
+        if (errUser || !usuarioDB) {
+            if (typeof registerFailedLogin === 'function') registerFailedLogin(rateKey);
+            alert('Usuario no encontrado en esta empresa. Verifica tus credenciales.');
+            return;
+        }
+
+        // 3. VALIDAR CONTRASEÑA
+        var storedPass = usuarioDB.password; // Asumiendo que tu columna se llama 'password' o 'password_hash'
+        var passOk = (typeof verifyPassword === 'function') 
+            ? verifyPassword(password, storedPass) 
+            : (password === storedPass);
+
+        if (!passOk) {
+            if (typeof registerFailedLogin === 'function') registerFailedLogin(rateKey);
+            alert('Contraseña incorrecta.');
+            return;
+        }
+
+        // 4. LOGIN EXITOSO (Configurar sesión)
+        if (typeof clearLoginAttempts === 'function') clearLoginAttempts(rateKey);
+
+        empresaActual = empresa.nombre;
+        empresaIdActual = empresa.id;
+        rolUsuarioActual = usuarioDB.rol; 
+        nombreUsuarioActual = usuarioDB.nombre || usuarioABuscar; 
         
+        // Manejo de zonas
+        if (rolUsuarioActual === 'cobrador') {
+            zonaUsuarioActual = usuarioDB.zona || zonaPersona || 'Todas las Zonas';
+        } else {
+            zonaUsuarioActual = 'Todas las Zonas (Oficina)';
+        }
+
+        var session = {
+            empresa_id: empresa.id,
+            empresa_nombre: empresa.nombre,
+            usuario: usuarioABuscar,
+            rol: rolUsuarioActual,
+            color: empresa.color_primario || empresa.colorPrimario || '#1e3a8a',
+            plan: empresa.plan || 'premium'
+        };
+
+        localStorage.setItem('psc_session', JSON.stringify(session));
+        localStorage.setItem('psc_empresa_activa', empresa.nombre);
+        localStorage.setItem('psc_sesion_activa', 'true');
+
+        if (typeof guardarSessionLocal === 'function') guardarSessionLocal();
+
+        // Ocultar login y mostrar sistema
         document.getElementById('loginScreen').style.display = 'none';
         
-    // Organizar el menú según el rol
-if (typeof configurarMenuPorRol === 'function') {
-    configurarMenuPorRol();
-}
-        localStorage.setItem('psc_empresa_activa', empresaActual);
-        localStorage.setItem('psc_sesion_activa', 'true');
-        
-            if (typeof guardarSesionLocal === 'function') {
-        guardarSesionLocal();
-    }
+        if (typeof aplicarTemaEmpresa === 'function') aplicarTemaEmpresa(empresa);
+        if (typeof configurarMenuPorRol === 'function') configurarMenuPorRol();
+        if (typeof actualizarInterfazPorRol === 'function') actualizarInterfazPorRol();
+        if (typeof sincronizarConNube === 'function') sincronizarConNube();
+
+        alert('¡Bienvenido ' + nombreUsuarioActual + ' (' + rolUsuarioActual + ')!');
+        return; 
+
+    } catch (error) {
+        console.error('Error crítico en login:', error);
+        alert('Error de conexión. Revisa la consola.');
+    } 
     
-    return; // Si todo salió bien, se detiene aquí y no muestra error
-
-} else {
-    alert('Contraseña de Super Admin incorrecta.');
-    return;
+    if (typeof configurarMenuPorRol === 'function') configurarMenuPorRol();
 }
-}  // cierra if (rol === 'SuperAdmin')
     
-
-    // 3. VALIDAR ADMINISTRADOR
-    if (rol === 'Administrador' || rol === 'admin') {
-      var storedPassAdmin = empresa.password_hash || empresa.passwordAdmin;
-      
-      if (!storedPassAdmin) {
-         alert('Error: No hay contraseña configurada para el Administrador.');
-         return;
-      }
-
-      var passOkAdmin = (typeof verifyPassword === 'function') ? verifyPassword(password, storedPassAdmin) : (password === storedPassAdmin);
-          
-      if (passOkAdmin) {
-  if (typeof clearLoginAttempts === 'function') clearLoginAttempts(rateKey);
-
-  var sesion = {
-    empresa_id: empresa.id,
-    empresa_nombre: empresa.nombre,
-    usuario: empresa.usuarioAdmin || 'admin',
-    rol: 'admin',
-    color: empresa.color_primario || empresa.colorPrimario || '#1e3a8a',
-    plan: empresa.plan || 'premium'
-  };
-  localStorage.setItem('psc_sesion', JSON.stringify(sesion));
-  localStorage.setItem('psc_empresa_activa', empresa.nombre);
-  localStorage.setItem('psc_sesion_activa', 'true');
-
-  empresaActual = empresa.nombre;
-  empresaIdActual = empresa.id;
-  rolUsuarioActual = 'admin';
-  nombreUsuarioActual = 'Administrador de ' + empresa.nombre;
-  zonaUsuarioActual = 'Todas las Zonas (Oficina)';
-
-  // 🔥 ESTO ERA LO QUE FALTABA
-  if (typeof guardarSesionLocal === 'function') {
-    guardarSesionLocal();
-  }
-
-  if (!empresasGlobalesDB.some(function(e) { return e.id == empresa.id; })) {
-      empresasGlobalesDB.push(empresa);
-  }
-
-  // Ocultar login
-  var loginScreen = document.getElementById('loginScreen');
-  if (loginScreen) loginScreen.style.display = 'none';
-
-  // Aplicar tema y menú
-  if (typeof aplicarTemaEmpresa === 'function') aplicarTemaEmpresa(empresa);
-  if (typeof configurarMenuPorRol === 'function') configurarMenuPorRol();
-  if (typeof actualizarInterfazPorRol === 'function') actualizarInterfazPorRol();
-
-  if (typeof sincronizarConNube === 'function') sincronizarConNube();
-  
-  alert('¡Bienvenido Administrador de ' + empresa.nombre + '!');
-  return;
-}
-
-
-
-    // 4. VALIDAR EMPLEADOS Y COBRADORES
-    var usuarioDB = null;
+    
+    
+    
+    
+    
+    
     try {
       if (rol === 'cobrador' && supabase) {
         var { data: cobCloud } = await supabase.from('cobradores').select('*').eq('empresa_id', empresa.id).eq('nombre', nombrePersona).single();
@@ -5657,57 +5662,87 @@ if (tabId === 'resumen') {
       document.getElementById('modalEditarEmpresaBox').style.display = 'none';
     }
 
-    function guardarEdicionEmpresaForm(e) {
-      e.preventDefault();
-      var id = parseInt(document.getElementById('editEmpGlobalId').value);
-      var emp = empresasGlobalesDB.find(function(item) { return item.id == id; });
-      if (!emp) return alert("Empresa no encontrada.");
+    
+    async function guardarEdicionEmpresaForm(e) {
+    if (e) e.preventDefault();
 
-      var nuevoNombre = document.getElementById('editEmpGlobalNombre').value.trim();
-      var nuevoRNC = document.getElementById('editEmpGlobalRNC').value.trim();
-      var nuevaCedula = document.getElementById('editEmpGlobalCedula').value.trim();
-      var nuevoUsuario = document.getElementById('editEmpGlobalUsuario').value.trim();
-      var nuevaPass = document.getElementById('editEmpGlobalPassword').value.trim();
-      var nuevaFecha = document.getElementById('editEmpGlobalFechaPago').value;
-      var nuevoEstado = document.getElementById('editEmpGlobalEstado').value;
-      var nuevoRequiere = document.getElementById('editEmpGlobalRequierePago').value === 'true';
-      var nuevoColor = document.getElementById('editEmpGlobalColor').value || '#1e3a8a';
+    // 1. Capturamos los datos del formulario
+    var empresaId = document.getElementById('editEmpGlobalId').value;
+    var nuevoNombre = document.getElementById('editEmpGlobalNombre').value.trim();
+    var nuevoRNC = document.getElementById('editEmpGlobalRNC').value.trim();
+    var nuevaCedula = document.getElementById('editEmpGlobalCedula').value.trim();
+    var nuevoUsuario = document.getElementById('editEmpGlobalUsuario').value.trim();
+    
+    // Buscamos el input de la contraseña (el ID puede variar, aquí busco uno común)
+    var inputPass = document.getElementById('editEmpGlobalPassword'); 
+    var nuevaPass = inputPass ? inputPass.value.trim() : '';
 
-      if (!nuevoNombre || !nuevoUsuario || !nuevaPass) {
-        alert("Nombre, usuario y contraseña son obligatorios.");
+    if (!empresaId || !nuevoNombre) {
+        alert("Faltan datos obligatorios (ID o Nombre de la empresa).");
         return;
-      }
-
-      var nombreAnterior = emp.nombre;
-      emp.nombre = nuevoNombre;
-      emp.rnc = nuevoRNC;
-      emp.cedula = nuevaCedula;
-      emp.usuarioAdmin = nuevoUsuario;
-      emp.passwordAdmin = isPasswordHashed(nuevaPass) ? nuevaPass : hashPassword(nuevaPass);
-      emp.fechaPago = nuevaFecha;
-      emp.estado = nuevoEstado;
-      emp.requierePago = nuevoRequiere;
-      emp.colorPrimario = nuevoColor;
-      emp.plan = document.getElementById('editEmpGlobalPlan') ? document.getElementById('editEmpGlobalPlan').value : (emp.plan || 'profesional');
-      emp.limiteCobradores = parseInt(document.getElementById('editEmpGlobalLimiteCobradores') ? document.getElementById('editEmpGlobalLimiteCobradores').value : 15) || 15;
-      if (logoEmpresaEditTemporal) emp.logo = logoEmpresaEditTemporal;
-
-      if (empresaActual === nombreAnterior && nombreAnterior !== nuevoNombre) {
-        empresaActual = nuevoNombre;
-        localStorage.setItem('psc_empresa_activa', empresaActual);
-      }
-
-      localStorage.setItem('psc_empresas_globales', JSON.stringify(empresasGlobalesDB));
-      if (db) db.ref('psc_empresas_globales').set(empresasGlobalesDB);
-      guardarDatosEnNube();
-      cerrarModalEditarEmpresa();
-      alert("✅ Datos de la empresa actualizados.\n\nEstado: " + (nuevoEstado === 'bloqueada' ? '🔒 SISTEMA TUMBADO' : '✅ Activo') + "\nFecha de pago: " + nuevaFecha + (nuevoRNC ? "\nRNC: " + nuevoRNC : ""));
-      renderSuperAdminEmpresas();
-      actualizarSelectsLoginEmpresa();
-      renderEmpresasAisladasList();
-      verificarEstadoSuscripcionEmpresa();
-      if (empresaActual === emp.nombre) aplicarTemaEmpresa();
     }
+
+    try {
+        // 2. ACTUALIZAR LA TABLA 'empresas' EN SUPABASE
+        const { error: errEmp } = await supabase
+            .from('empresas')
+            .update({
+                nombre: nuevoNombre,
+                rnc: nuevoRNC,
+                cedula: nuevaCedula,
+                usuarioAdmin: nuevoUsuario // Mantenemos esto por compatibilidad
+            })
+            .eq('id', empresaId);
+
+        if (errEmp) throw errEmp;
+
+        // 3. ACTUALIZAR AL USUARIO EN LA TABLA 'usuarios' EN SUPABASE
+        var datosUsuario = { usuario: nuevoUsuario };
+        
+        // Si el administrador escribió una nueva contraseña, la encriptamos
+        if (nuevaPass !== '') {
+            datosUsuario.password_hash = hashPassword(nuevaPass); 
+        }
+
+        // Actualizamos al usuario que pertenece a esta empresa y tiene rol de admin
+        const { error: errUser } = await supabase
+            .from('usuarios')
+            .update(datosUsuario)
+            .eq('empresa_id', empresaId)
+            .eq('rol', 'admin'); // Ojo: si en tu base de datos el rol se guarda como 'Administrador', cámbialo aquí.
+
+        if (errUser) {
+            console.warn("La empresa se actualizó, pero hubo un detalle con el usuario:", errUser);
+        }
+
+        // 4. ACTUALIZAR LA MEMORIA LOCAL (Para que se vea el cambio sin recargar)
+        var empIndex = empresasGlobalesDB.findIndex(function(item) { return item.id == empresaId; });
+        if (empIndex > -1) {
+            empresasGlobalesDB[empIndex].nombre = nuevoNombre;
+            empresasGlobalesDB[empIndex].rnc = nuevoRNC;
+            empresasGlobalesDB[empIndex].cedula = nuevaCedula;
+            empresasGlobalesDB[empIndex].usuarioAdmin = nuevoUsuario;
+        }
+
+        alert("✅ Empresa y credenciales actualizadas correctamente en Supabase.");
+        
+        // 5. REFRESCAR LA PANTALLA Y CERRAR EL MODAL
+        if (typeof renderListaEmpresasAdmin === 'function') renderListaEmpresasAdmin();
+        if (typeof renderListaEmpresasAisladas === 'function') renderListaEmpresasAisladas();
+        
+        // Cerrar el modal
+        var modal = document.getElementById('modalEditarEmpresa'); // Asegúrate que este sea el ID correcto de tu modal
+        if (modal) modal.style.display = 'none';
+
+    } catch (error) {
+        console.error("Error crítico al guardar:", error);
+        alert("Ocurrió un error al guardar los cambios. Revisa la consola.");
+    }
+}
+    
+    
+    
+
 
     function cambiarEstadoEmpresaAdmin(nombreEmpresa, nuevoEstado) {
 
