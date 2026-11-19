@@ -331,6 +331,105 @@ setInterval(async () => {
 
 
 
+
+// ==========================================
+// FUNCIÓN PARA GENERAR E IMPRIMIR EL TICKET
+// ==========================================
+function generarTicketImpresion(tipo, datos) {
+  // tipo puede ser 'nuevo' o 'renovo'
+  const esRenovo = tipo === 'renovo';
+  
+  // Fecha y Hora actual
+  const ahora = new Date();
+  const fecha = ahora.toLocaleDateString('es-DO');
+  const hora = ahora.toLocaleTimeString('es-DO', { hour: '2-digit', minute: '2-digit' });
+
+  // Buscar datos del cliente y cobrador si solo pasaste el ID
+  let clienteNombre = datos.clienteNombre || 'Cliente Desconocido';
+  let cedula = datos.cedula || '---';
+  let telefono = datos.telefono || '---';
+  let direccion = datos.direccion || '---';
+  let zona = datos.zona || '---';
+  let cobrador = datos.cobrador || '---';
+
+  // Si tienes un array de clientesDB, puedes buscar aquí:
+  if (datos.clienteId && typeof clientesDB !== 'undefined') {
+    const clienteDB = clientesDB.find(c => String(c.id) === String(datos.clienteId));
+    if (clienteDB) {
+  clienteNombre = clienteDB.nombre;
+  // Leemos las variables exactas de tu sistema
+  cedula = clienteDB.cliCedula || clienteDB.cedula || '---';
+  telefono = clienteDB.cliTelefono || clienteDB.telefono || '---';
+  direccion = clienteDB.cliCalle || clienteDB.direccion || '---';
+  zona = clienteDB.zona || datos.zona || '---';
+}
+  }
+
+  const titulo = esRenovo ? "RENOVO DE PRÉSTAMO" : "CONTRATO DE PRÉSTAMO";
+  const logoHtml = esRenovo ? 
+    `<div class="logo-ticket">
+       <div style="border:1px solid #000; display:inline-block; padding:2px 8px; border-radius:10px; font-size:0.7rem; font-weight:bold;">
+         FAST LOANS RÁPIDOS<br><span style="font-size:0.55rem;">- PRÉSTAMOS -</span>
+       </div>
+     </div>` : 
+    `<div class="logo-ticket"><img src="Logosv.png" alt="Logo"></div>`;
+
+  let html = `
+    ${logoHtml}
+    <div class="titulo-ticket">${titulo}</div>
+    
+    <div class="fila"><span>Fecha:</span> <span>${fecha} | ${hora}</span></div>
+    <div class="fila"><span>Cliente:</span> <span>${clienteNombre}</span></div>
+    <div class="fila"><span>Cédula:</span> <span>${cedula}</span></div>
+    <div class="fila"><span>Teléfono:</span> <span>${telefono}</span></div>
+    <div class="fila"><span>Dirección:</span> <span>${direccion}</span></div>
+    <div class="fila"><span>Zona:</span> <span>${zona}</span></div>
+    <div class="fila"><span>Cobrador:</span> <span>${cobrador}</span></div>
+    <div style="border-top:1px dashed #000; margin:8px 0;"></div>
+  `;
+
+  if (esRenovo) {
+    // DATOS PARA RENOVO
+    html += `
+      <div class="fila"><span>Préstamo Nuevo:</span> <span>RD$ ${(datos.montoNuevo || 0).toFixed(2)}</span></div>
+      <div class="fila"><span>Saldo Anterior:</span> <span>RD$ ${(datos.saldoAnterior || 0).toFixed(2)}</span></div>
+      <div class="fila"><span>Monto Entregado:</span> <span>RD$ ${(datos.montoEntregado || 0).toFixed(2)}</span></div>
+    `;
+  } else {
+    // DATOS PARA PRÉSTAMO NUEVO
+    html += `
+      <div class="fila"><span>Monto Prestado:</span> <span>RD$ ${(datos.montoNuevo || 0).toFixed(2)}</span></div>
+    `;
+  }
+
+  // Datos comunes (Plazo, Cuota, Mora)
+  const plazo = datos.plazo || 13;
+  const cuota = datos.cuotaSemanal || 0;
+  const mora = datos.mora || 10;
+
+  html += `
+    <div class="fila"><span>Plazo:</span> <span>${plazo} SEMANAS</span></div>
+    <div class="fila"><span>Cuota Semanal:</span> <span>RD$ ${cuota.toFixed(2)}</span></div>
+    <div class="fila"><span>Mora:</span> <span>${mora}% semanal</span></div>
+    
+    <div class="parrafo">
+      POR ESTE MEDIO ME COMPROMETO A PAGAR EL TOTAL ${esRenovo ? 'DEL RENOVO' : 'DEL PRÉSTAMO MÁS INTERESES'} EN ${plazo} CUOTAS SEMANALES CONSECUTIVAS. EL INCUMPLIMIENTO GENERARÁ LA MORA INDICADA.
+    </div>
+    
+    <div class="firma">
+      <div class="firma-linea"></div>
+      FIRMA DEL CLIENTE
+    </div>
+  `;
+
+  // Inyectar HTML y mostrar el modal
+  document.getElementById('areaTicketImpresion').innerHTML = html;
+  document.getElementById('modalImprimirTicket').style.display = 'flex';
+}
+
+
+
+
   // ========== SEGURIDAD: Hash de contraseñas + anti fuerza bruta ==========
   var BCRYPT_ROUNDS = 10;
   var loginAttempts = {};
@@ -2890,6 +2989,41 @@ function aplicarTemaGuardado() {
     50% { transform: scale(1.25); opacity: 0.75; }
     100% { transform: scale(1); opacity: 1; }
   }
+  
+  
+  /* ========== ESTILOS PARA TICKETS TÉRMICOS DE PRÉSTAMOS Y RENOVOS ========== */
+.modal-ticket-termico {
+  display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.7); z-index: 99999; justify-content: center; align-items: center; padding: 15px;
+  overflow-y: auto;
+}
+.ticket-impresion {
+  background: #fff; color: #000; width: 100%; max-width: 320px;
+  font-family: 'Courier New', Courier, monospace;
+  padding: 15px 10px; border-radius: 4px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  text-align: left; line-height: 1.3; font-size: 0.85rem;
+}
+.ticket-impresion .logo-ticket { text-align: center; margin-bottom: 10px; }
+.ticket-impresion .logo-ticket img { max-height: 50px; }
+.ticket-impresion .titulo-ticket { text-align: center; font-size: 1.2rem; font-weight: 900; text-transform: uppercase; margin-bottom: 10px; border-bottom: 2px dashed #000; padding-bottom: 5px;}
+.ticket-impresion .fila { display: flex; justify-content: space-between; margin-bottom: 4px; }
+.ticket-impresion .fila span:first-child { font-weight: bold; }
+.ticket-impresion .fila span:last-child { text-align: right; }
+.ticket-impresion .parrafo { text-align: justify; font-size: 0.75rem; margin-top: 10px; margin-bottom: 15px; }
+.ticket-impresion .firma { margin-top: 30px; text-align: center; }
+.ticket-impresion .firma-linea { border-top: 1px solid #000; width: 80%; margin: 0 auto 5px auto; }
+
+/* REGLA PARA IMPRIMIR SOLO EL TICKET */
+@media print {
+  body * { visibility: hidden; }
+  .modal-ticket-termico, .modal-ticket-termico *, .ticket-impresion, .ticket-impresion * { visibility: visible; }
+  .modal-ticket-termico { position: absolute; left: 0; top: 0; background: transparent; padding: 0; display: block !important; }
+  .ticket-impresion { box-shadow: none; max-width: 100%; width: 80mm; margin: 0 auto; }
+  .no-print { display: none !important; }
+}
+  
+  
+  
 </style>
 
 
@@ -7421,15 +7555,29 @@ alert("Renovacion procesada con exito!");
 // Le pasamos 'true' para que sepa que es renovación y el 'balancePendiente' que capturaste en la línea 7201
 generarMiniContrato(nuevoPrestamo.id, true, balancePendiente);
 
-// 2. Preguntar si quiere el PDF legal completo
+// 1. Se abre el NUEVO contrato térmico (Renovación)
+generarMiniContrato(nuevoPrestamo.id, true, balancePendiente);
+
+// 2. NUEVO: Generar e Imprimir Ticket de Renovo (Se abre primero)
+generarTicketImpresion('renovo', {
+    clienteId: nuevoPrestamo.clienteId, 
+    montoNuevo: nuevoPrestamo.monto,    
+    saldoAnterior: balancePendiente,    
+    montoEntregado: nuevoPrestamo.montoNeto || nuevoPrestamo.monto, 
+    plazo: nuevoPrestamo.numCuotas,
+    cuotaSemanal: nuevoPrestamo.valorCuota,
+    mora: nuevoPrestamo.tasa,
+    cobrador: typeof nombreUsuarioActual !== 'undefined' ? nombreUsuarioActual : '---'
+});
+
+// 3. Preguntar si quiere el PDF legal completo (damos 1 segundo para que se vea el ticket)
 setTimeout(function() {
-    var quierePDF = confirm("✅ Renovación guardada. ¿Deseas abrir también el Contrato Legal en formato PDF?");
+    var quierePDF = confirm("✅ Renovación guardada y ticket generado. ¿Deseas abrir también el Contrato Legal en formato PDF?");
     if (quierePDF) {
         showTab('contratosTab', document.querySelector('button[onclick*="contratosTab"]'));
         verContratoLegal(nuevoPrestamo.id);
     }
-}, 400);
-    }
+}, 1000); // <-- Cambiamos 400 por 3000 (3 segundo)
 
     function abrirModalCobro(prestamoId, sugeridoMonto, sugeridoMora, cuotaActual, cuotasTotales) {
   // 1. VERIFICACIÓN NUEVA: Evitar cobros a préstamos saldados
@@ -7439,6 +7587,23 @@ setTimeout(function() {
       alert("⚠️ Este préstamo ya está totalmente saldado. No se pueden registrar más pagos. Si el cliente desea más dinero, debe crear un NUEVO préstamo.");
       return;
   }
+// ==========================================
+// NUEVO: GENERAR E IMPRIMIR TICKET DE RENOVO
+// ==========================================
+generarTicketImpresion('renovo', {
+    clienteId: nuevoPrestamo.clienteId, // Usamos el ID del nuevo préstamo para que busque al cliente
+    montoNuevo: nuevoPrestamo.monto,    // El monto total del nuevo préstamo
+    saldoAnterior: balancePendiente,    // La variable que capturaste antes de renovar
+    montoEntregado: nuevoPrestamo.montoNeto || nuevoPrestamo.monto, // Lo que se le entregó al cliente
+    plazo: nuevoPrestamo.numCuotas,
+    cuotaSemanal: nuevoPrestamo.valorCuota,
+    mora: nuevoPrestamo.tasa,
+    cobrador: typeof nombreUsuarioActual !== 'undefined' ? nombreUsuarioActual : '---'
+});
+
+
+
+
 
   // 2. RESTO DEL CÓDIGO ORIGINAL (Si pasa la verificación, abre el modal)
   prestamoActualId = prestamoId;
@@ -8137,12 +8302,6 @@ setTimeout(function() {
 document.getElementById('formPrestamo').reset();
 
 
-
-
-
-
-
-
       document.getElementById('pFechaInicio').valueAsDate = new Date();
       document.getElementById('previewFotoConfirmacion').style.display = 'none';
       fotoConfirmacionTemporal = "";
@@ -8150,6 +8309,44 @@ document.getElementById('formPrestamo').reset();
 
       
     }
+    
+    // ==========================================
+// GENERAR E IMPRIMIR TICKET (PRÉSTAMO NUEVO)
+// ==========================================
+
+// Verificamos si es un préstamo nuevo o un renovo.
+// Si tu sistema maneja una variable para saber si es renovo, úsala aquí.
+// Por defecto, asumimos que es un préstamo nuevo en esta pantalla:
+
+generarTicketImpresion('nuevo', {
+    clienteId: nuevoPrestamo.clienteId,
+    montoNuevo: nuevoPrestamo.monto, 
+    plazo: nuevoPrestamo.numCuotas,       // Usamos numCuotas que es la variable real
+    cuotaSemanal: nuevoPrestamo.valorCuota, // Usamos valorCuota que es la variable real
+    mora: nuevoPrestamo.tasa,             // Usamos tasa
+    cobrador: typeof nombreUsuarioActual !== 'undefined' ? nombreUsuarioActual : '---',
+   zona: datos.zona || '---'
+});
+
+// Si en esta misma pantalla también se procesan los renovos, 
+// descomenta este bloque (quítale las barras /* y */):
+
+/*
+if (typeof esRenovo !== 'undefined' && esRenovo) {
+    generarTicketImpresion('renovo', {
+        clienteId: cliente.id,
+        montoNuevo: nuevoPrestamo.monto,
+        saldoAnterior: balancePendienteViejo,
+        montoEntregado: nuevoPrestamo.montoNeto || nuevoPrestamo.monto,
+        plazo: nuevoPrestamo.numCuotas,
+        cuotaSemanal: nuevoPrestamo.valorCuota,
+        mora: nuevoPrestamo.tasa,
+        cobrador: typeof nombreUsuarioActual !== 'undefined' ? nombreUsuarioActual : '---'
+    });
+}
+*/
+    
+     
 
     function imprimirContratoDetalle(p) {
       var cliente = clientesDB.find(function(c) { return c.id == p.clienteId; });
@@ -12140,6 +12337,8 @@ function verDetallePrestamoDesdeHistorial(idPrestamo) {
 
 
 
+
+
 </script>
 
 
@@ -12184,12 +12383,7 @@ function verDetallePrestamoDesdeHistorial(idPrestamo) {
     </div>
   </div>
 </div>
-
-
-
-
-
-Created by Perdomo Sovereign Capital
+     
 
 
 <!-- MODAL PARA VER PRÉSTAMOS HISTÓRICOS (SOLO LECTURA) -->
@@ -12209,6 +12403,27 @@ Created by Perdomo Sovereign Capital
 </div>
 
 
+
+<!-- MODAL PARA IMPRIMIR TICKET DE PRÉSTAMO O RENOVO -->
+<div id="modalImprimirTicket" class="modal-ticket-termico">
+  <div>
+    <!-- Este div es el que se imprime -->
+    <div id="areaTicketImpresion" class="ticket-impresion">
+      <!-- El contenido se llena con JavaScript -->
+    </div>
+    <!-- Botones de acción (No se imprimen) -->
+    <div class="no-print" style="display:flex; gap:10px; margin-top:15px; justify-content:center;">
+      <button onclick="document.getElementById('modalImprimirTicket').style.display='none'" style="padding:10px 15px; border:none; border-radius:5px; background:#64748b; color:white; font-weight:bold; cursor:pointer;">Cerrar</button>
+      <button onclick="window.print()" style="padding:10px 15px; border:none; border-radius:5px; background:#16a34a; color:white; font-weight:bold; cursor:pointer;">🖨️ Imprimir Ticket</button>
+    </div>
+  </div>
+</div>
+
+
+
+
+Created by Perdomo Sovereign Capital
+     
 
 
 </body>
