@@ -11608,7 +11608,7 @@ function verDetalleCuadre(id) {
   window._cuadreActualId = id;
 }
 
-
+(window.listaCobrosPendientes || prestamosDB).forEach(function(c) {
 
 // =========================================================
 // NUEVO: AGREGAR CAJA DE EFECTIVO RECIBIDO Y BOTONES
@@ -11675,7 +11675,7 @@ if (!cajaRecibido) {
   if (c.efectivoRecibido !== undefined) {
     calcularDiferenciaAdmin(id);
   }
-}
+});
 // =========================================================
 
 
@@ -12383,7 +12383,12 @@ function verDetallePrestamoDesdeHistorial(idPrestamo) {
     </div>
   </div>
 </div>
-     
+
+
+
+
+
+Created by Perdomo Sovereign Capital
 
 
 <!-- MODAL PARA VER PRÉSTAMOS HISTÓRICOS (SOLO LECTURA) -->
@@ -12421,9 +12426,6 @@ function verDetallePrestamoDesdeHistorial(idPrestamo) {
 
 
 
-
-Created by Perdomo Sovereign Capital
-     
 
 
 </body>
