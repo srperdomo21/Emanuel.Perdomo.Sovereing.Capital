@@ -898,6 +898,51 @@ function aplicarTemaGuardado() {
   <!-- Leaflet para mapas OpenStreetMap (gratis, sin API key) -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  
+  
+  
+  <!-- PEGA ESTO JUSTO ANTES DE </head> -->
+<style>
+/* ========== ESTILOS PARA EL TICKET DE CUADRE (IMPRESORA TÉRMICA) ========== */
+#modalTicketCuadre {
+  display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.7); z-index: 99999; justify-content: center; align-items: center; padding: 15px;
+  overflow-y: auto;
+}
+.ticket-cuadre-termico {
+  background: #fff; color: #000; width: 100%; max-width: 320px;
+  font-family: 'Courier New', Courier, monospace;
+  padding: 15px 10px; border-radius: 4px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  text-align: left; line-height: 1.3;
+}
+.ticket-cuadre-termico .ticket-header { text-align: center; margin-bottom: 10px; border-bottom: 2px dashed #000; padding-bottom: 5px; }
+.ticket-cuadre-termico .ticket-header h2 { font-size: 1.1rem; margin: 0; font-weight: 900; text-transform: uppercase; }
+.ticket-cuadre-termico .ticket-header p { font-size: 0.75rem; margin: 2px 0; font-weight: bold; }
+.ticket-cuadre-termico .ticket-row { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 4px; font-weight: bold;}
+.ticket-cuadre-termico .ticket-divider { border-top: 1px dashed #000; margin: 8px 0; }
+.ticket-cuadre-termico .ticket-total { font-size: 1rem; font-weight: 900; margin-top: 10px; text-align: right;}
+.ticket-cuadre-termico .ticket-firma { margin-top: 20px; text-align: center; font-size: 0.75rem; font-weight: bold; }
+
+/* REGLA PARA IMPRIMIR SOLO EL TICKET DE CUADRE */
+@media print {
+  body * { visibility: hidden; }
+  #modalTicketCuadre, #modalTicketCuadre *, .ticket-cuadre-termico, .ticket-cuadre-termico * { visibility: visible; }
+  #modalTicketCuadre { position: absolute; left: 0; top: 0; background: transparent; padding: 0; display: block !important; }
+  .ticket-cuadre-termico { box-shadow: none; max-width: 100%; width: 80mm; margin: 0 auto; }
+  .no-print { display: none !important; }
+}
+
+/* Estilos para las cajas de Efectivo Recibido / Diferencia en el Admin */
+.box-efectivo-recibido { background: #eff6ff; border: 1px solid #3b82f6; padding: 10px; border-radius: 6px; margin-top: 10px; }
+.box-diferencia { font-weight: 800; font-size: 1.1rem; padding: 8px; border-radius: 6px; text-align: center; margin-top: 8px; }
+.dif-cuadrado { background: #dcfce7; color: #166534; border: 1px solid #16a34a; }
+.dif-falta { background: #fee2e2; color: #991b1b; border: 1px solid #dc2626; }
+.dif-sobra { background: #fef3c7; color: #92400e; border: 1px solid #d97706; }
+</style>
+<!-- FIN DEL BLOQUE NUEVO -->
+  
+  
+  
 
 </head>
  <body>
@@ -6789,7 +6834,48 @@ function iniciarPadFirma() {
       alert("Liquidacion y cuadre de caja enviado correctamente a la Oficina para revision!");
       document.getElementById('cuadreEfectivoTraido').value = '';
       document.getElementById('cuadrePersonaRecibe').value = '';
-    }
+      
+      
+      
+        
+  // =========================================================
+  // NUEVO: GENERAR E IMPRIMIR TICKET DE CUADRE (COBRADOR)
+  // =========================================================
+  try {
+      // Verificamos que la función del ticket exista
+      if (typeof generarTicketCuadre === 'function') {
+          
+          // NOTA: Si tus variables de totales se llaman diferente, cámbialas aquí abajo
+          let totalCobradoDia = (typeof totalCobrado !== 'undefined') ? totalCobrado : 0;
+          let totalPrestamosDia = (typeof totalPrestamo !== 'undefined') ? totalPrestamo : 0;
+          let totalGastosDia = (typeof totalGastos !== 'undefined') ? totalGastos : 0;
+          
+          // Buscamos el desglose de billetes si es que tienes un arreglo para eso
+          let arregloDesglose = [];
+          if (typeof desgloseBilletes !== 'undefined') {
+              arregloDesglose = desgloseBilletes;
+          }
+
+          // Preparamos los datos
+          var datosParaTicket = {
+              cobrador: document.getElementById('infoNombreEmpleado') ? document.getElementById('infoNombreEmpleado').innerText : 'Cobrador',
+              fecha: new Date().toLocaleString('es-DO'),
+              totalCobrado: totalCobradoDia,
+              prestamos: totalPrestamosDia,
+              gastos: totalGastosDia,
+              efectivoEntregar: efectivoTeorico || 0, // La variable que se ve en tu captura
+              desglose: arregloDesglose
+          };
+
+          // Llamamos a la función que abre la ventana del ticket
+          generarTicketCuadre(datosParaTicket);
+      }
+  } catch (e) {
+      console.error("Error al generar el ticket: ", e);
+  }
+  // =========================================================
+
+} // 👈 ESTA ES LA LLAVE DE CIERRE DE TU FUNCIÓN (No la borres)
 
     function renderArqueoCaja() {
       var hoyStr = new Date().toLocaleDateString();
@@ -10855,6 +10941,21 @@ function cerrarContrato() {
   <!-- ========================================== -->
   <!-- MODAL CERRAR DÍA (HTML SUELTO)             -->
   <!-- ========================================== -->
+  <!-- MODAL PARA IMPRIMIR TICKET DE CUADRE (COBRADOR) -->
+<div id="modalTicketCuadre" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 99999; justify-content: center; align-items: center; padding: 15px; overflow-y: auto;">
+  <div style="display:flex; flex-direction:column; align-items:center; width:100%; max-width:350px;">
+    <div id="ticketCuadreContenido" class="ticket-cuadre-termico" style="background:#fff; color:#000; width:100%; font-family:'Courier New', Courier, monospace; padding:15px 10px; border-radius:4px; text-align:left;">
+      <!-- Aquí JavaScript inyectará los datos -->
+    </div>
+    <div class="no-print" style="display:flex; gap:10px; margin-top:15px; width:100%;">
+      <button type="button" class="btn btn-secondary" onclick="document.getElementById('modalTicketCuadre').style.display='none'" style="flex:1; background:#64748b; color:white;">Cerrar</button>
+      <button type="button" class="btn btn-success" onclick="window.print()" style="flex:1; background:#16a34a; color:white;">🖨️ Imprimir</button>
+    </div>
+  </div>
+</div>
+  
+  
+  
   <div id="modalCerrarDia" class="modal-overlay" style="z-index: 10005;">
     <div class="modal-box" style="max-width: 400px; background: #fdf2f8; border: 1px solid #fbcfe8;">
       <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
@@ -10957,6 +11058,63 @@ function cerrarContrato() {
 
   // Función que arma el ticket y lo manda a imprimir
   
+  // ... (código anterior de tu sistema) ...
+
+
+// 👇 PEGAS LA NUEVA FUNCIÓN AQUÍ 👇
+function generarTicketCuadre(datos) {
+  const contenedor = document.getElementById('ticketCuadreContenido');
+  
+  let htmlDesglose = '';
+  if (datos.desglose && datos.desglose.length > 0) {
+    datos.desglose.forEach(item => {
+      htmlDesglose += `<div style="display:flex; justify-content:space-between; font-size:0.85rem; margin-bottom:4px; font-weight:bold;">
+        <span>${item.billete} x ${item.cantidad}</span>
+        <span>${item.subtotal.toLocaleString('en-US', {minimumFractionDigits:2})}</span>
+      </div>`;
+    });
+  } else {
+    htmlDesglose = `<div style="font-size:0.85rem; font-weight:bold;">No se detalló desglose</div>`;
+  }
+
+  const html = `
+    <div style="text-align: center; border-bottom: 2px dashed #000; padding-bottom: 10px; margin-bottom: 10px;">
+      <h2 style="font-size: 1.1rem; margin: 0; font-weight: 900;">INVERSIONES PERDOMO</h2>
+      <p style="font-size: 0.75rem; margin: 2px 0; font-weight: bold;">REPORTE DE CUADRE</p>
+      <p style="font-size: 0.75rem; margin: 2px 0;">Fecha: ${datos.fecha}</p>
+      <p style="font-size: 0.75rem; margin: 2px 0;">Cobrador: ${datos.cobrador}</p>
+    </div>
+    
+    <div style="display:flex; justify-content:space-between; font-size:0.85rem; margin-bottom:4px; font-weight:bold;"><span>TOTAL COBRADO:</span><span>RD$ ${datos.totalCobrado.toFixed(2)}</span></div>
+    <div style="display:flex; justify-content:space-between; font-size:0.85rem; margin-bottom:4px; font-weight:bold;"><span>PRÉSTAMOS NUEVOS:</span><span>RD$ ${datos.prestamos.toFixed(2)}</span></div>
+    <div style="display:flex; justify-content:space-between; font-size:0.85rem; margin-bottom:4px; font-weight:bold;"><span>GASTOS RUTA:</span><span>RD$ ${datos.gastos.toFixed(2)}</span></div>
+    
+    <div style="border-top: 1px dashed #000; margin: 8px 0;"></div>
+    
+    <div style="display:flex; justify-content:space-between; font-size:0.95rem; font-weight:900;">
+      <span>EFECTIVO A ENTREGAR:</span>
+      <span>RD$ ${datos.efectivoEntregar.toFixed(2)}</span>
+    </div>
+    
+    <div style="border-top: 1px dashed #000; margin: 8px 0;"></div>
+    <div style="text-align:center; font-weight:bold; font-size:0.85rem; margin-bottom:5px;">DESGLOSE EFECTIVO</div>
+    
+    ${htmlDesglose}
+    
+    <div style="border-top: 1px dashed #000; margin: 8px 0;"></div>
+    <div style="font-size: 1rem; font-weight: 900; margin-top: 10px; text-align: right;">TOTAL DECLARADO: RD$ ${datos.efectivoEntregar.toFixed(2)}</div>
+    
+    <div style="margin-top: 20px; text-align: center; font-size: 0.75rem; font-weight: bold;">
+      <div style="border-top: 1px solid #000; width: 80%; margin: 20px auto 5px auto;"></div>
+      Firma del Cobrador
+    </div>
+  `;
+  
+  contenedor.innerHTML = html;
+  document.getElementById('modalTicketCuadre').style.display = 'flex';
+}
+
+
   
   
     async function procesarCierreDia(e) {
@@ -11081,6 +11239,59 @@ function cerrarContrato() {
 // ==========================================
 // FUNCIONES PARA MOSTRAR LOS CUADRES RECIBIDOS
 // ==========================================
+// Función para calcular la diferencia en tiempo real (Admin)
+function calcularDiferenciaAdmin(idCuadre) {
+  const inputRecibido = document.getElementById(`inputEfectivoRecibido_${idCuadre}`);
+  const montoEsperado = parseFloat(document.getElementById(`esperado_${idCuadre}`).value) || 0;
+  const montoRecibido = parseFloat(inputRecibido.value) || 0;
+  
+  const diferencia = montoRecibido - montoEsperado;
+  const displayDif = document.getElementById(`displayDiferencia_${idCuadre}`);
+  
+  if (diferencia === 0) {
+    displayDif.className = 'box-diferencia dif-cuadrado';
+    displayDif.innerHTML = `✅ CUADRADO PERFECTO (RD$ 0.00)`;
+  } else if (diferencia < 0) {
+    displayDif.className = 'box-diferencia dif-falta';
+    displayDif.innerHTML = `🔴 FALTA: RD$ ${Math.abs(diferencia).toFixed(2)}`;
+  } else {
+    displayDif.className = 'box-diferencia dif-sobra';
+    displayDif.innerHTML = `🟡 SOBRA: RD$ ${diferencia.toFixed(2)}`;
+  }
+}
+
+// Función para guardar los ajustes del admin
+async function guardarAjusteCuadre(idCuadre) {
+  const montoRecibido = parseFloat(document.getElementById(`inputEfectivoRecibido_${idCuadre}`).value) || 0;
+  const montoEsperado = parseFloat(document.getElementById(`esperado_${idCuadre}`).value) || 0;
+  const diferencia = montoRecibido - montoEsperado;
+  
+  if (!confirm('¿Estás seguro de guardar este cuadre con el efectivo recibido?')) return;
+  
+  try {
+    // AQUÍ ACTUALIZAS TU BASE DE DATOS EN SUPABASE O LOCALSTORAGE
+    // Ejemplo asumiendo que tienes un array llamado cuadresDB
+    /*
+    const index = cuadresDB.findIndex(c => c.id === idCuadre);
+    if (index !== -1) {
+      cuadresDB[index].efectivoRecibido = montoRecibido;
+      cuadresDB[index].diferencia = diferencia;
+      cuadresDB[index].estado = 'Revisado';
+      guardarDatosEnNube(); // Tu función de guardado
+      alert('Cuadre actualizado correctamente');
+      renderCuadresRecibidos(); // Volver a renderizar
+    }
+    */
+    alert(`Cuadre guardado.\nRecibido: RD$ ${montoRecibido.toFixed(2)}\nDiferencia: RD$ ${diferencia.toFixed(2)}`);
+    
+  } catch (error) {
+    console.error(error);
+    alert('Error al guardar el cuadre.');
+  }
+}
+
+
+
 
 function renderCuadresRecibidos() {
   var cont = document.getElementById('listaCuadresDiv');
@@ -11159,10 +11370,84 @@ function verDetalleCuadre(id) {
       tbody.innerHTML = '<tr><td colspan="4" style="padding:10px; text-align:center; color:#64748b;">No hay cobros detallados.</td></tr>';
     }
   }
+  
 
   // Guardar el ID actual para cuando se marque como revisado
   window._cuadreActualId = id;
 }
+
+
+
+// =========================================================
+// NUEVO: AGREGAR CAJA DE EFECTIVO RECIBIDO Y BOTONES
+// =========================================================
+
+// 1. Ponemos el monto esperado en un input oculto para que las matemáticas funcionen
+var inputOculto = document.getElementById('esperado_' + c.id);
+if (!inputOculto) {
+  // Si no existe, lo creamos y lo escondemos
+  var divOculto = document.createElement('div');
+  divOculto.innerHTML = `<input type="hidden" id="esperado_${c.id}" value="${c.efectivoEntregar || 0}">`;
+  document.body.appendChild(divOculto);
+} else {
+  inputOculto.value = c.efectivoEntregar || 0;
+}
+
+// 2. Buscamos si ya existe la caja visual para no duplicarla
+var cajaRecibido = document.getElementById('cajaEfectivoRecibido_' + c.id);
+if (!cajaRecibido) {
+  // Si no existe, la creamos
+  cajaRecibido = document.createElement('div');
+  cajaRecibido.id = 'cajaEfectivoRecibido_' + c.id;
+  cajaRecibido.className = 'box-efectivo-recibido';
+  
+  // 3. Le inyectamos el HTML con los inputs y botones
+  cajaRecibido.innerHTML = `
+  <label style="font-size:0.85rem; font-weight:700; color:#1e3a8a; display:block; margin-bottom:5px;">
+    💵 Efectivo Físico Recibido por Oficina:
+  </label>
+  <input type="number" 
+         id="inputEfectivoRecibido_${c.id}" 
+         class="form-control" 
+         style="width:100%; padding:8px; border-radius:6px; border:1px solid #ccc; font-size:1rem; font-weight:bold;" 
+         placeholder="Ingrese el monto real..."
+         value="${c.efectivoRecibido !== undefined ? c.efectivoRecibido : ''}"
+         oninput="calcularDiferenciaAdmin('${c.id}')">
+         
+  <div id="displayDiferencia_${c.id}" class="box-diferencia" style="background:#f1f5f9; color:#64748b; border:1px solid #cbd5e1; margin-top:10px; padding:8px; text-align:center; border-radius:6px; font-weight:bold;">
+    ${c.diferencia !== undefined && c.efectivoRecibido !== undefined ? 'Calculando...' : 'Esperando monto recibido...'}
+  </div>
+  
+  <div style="display:flex; gap:10px; margin-top:10px;">
+    <button class="btn btn-warning btn-sm" onclick="abrirModalEditarCuadre('${c.id}')" style="flex:1; color:#000; background:#f59e0b; border:none; padding:10px; border-radius:6px; font-weight:bold;">
+      ✏️ Editar Montos
+    </button>
+    <button class="btn btn-success btn-sm" onclick="guardarAjusteCuadre('${c.id}')" style="flex:1; background:#16a34a; color:white; border:none; padding:10px; border-radius:6px; font-weight:bold;">
+      💾 Guardar y Aprobar
+    </button>
+  </div>
+`;
+  
+  
+  
+  // 4. Lo insertamos en la pantalla (justo antes del botón verde de "Marcar como Revisado")
+  var btnRevisado = document.querySelector('button[onclick*="marcarCuadreRevisado"]'); // Buscamos el botón verde original
+  if (btnRevisado) {
+    btnRevisado.parentNode.insertBefore(cajaRecibido, btnRevisado);
+  } else {
+    // Si no lo encuentra, lo pega al final del contenedor de detalles
+    document.getElementById('vistaDetalleCuadre').appendChild(cajaRecibido);
+  }
+  
+  // Si ya había un monto recibido guardado, calculamos la diferencia al instante
+  if (c.efectivoRecibido !== undefined) {
+    calcularDiferenciaAdmin(id);
+  }
+}
+// =========================================================
+
+
+
 
 function cerrarDetalleCuadre() {
   document.getElementById('vistaDetalleCuadre').style.display = 'none';
@@ -11575,6 +11860,232 @@ function filtrarClientesPrestamo(texto) {
 
 
 
+// Función para calcular la diferencia en tiempo real
+function calcularDiferenciaAdmin(idCuadre) {
+  var inputRecibido = document.getElementById('inputEfectivoRecibido_' + idCuadre);
+  var inputEsperado = document.getElementById('esperado_' + idCuadre);
+  
+  if (!inputRecibido || !inputEsperado) return;
+
+  var montoEsperado = parseFloat(inputEsperado.value) || 0;
+  var montoRecibido = parseFloat(inputRecibido.value) || 0;
+  
+  var diferencia = montoRecibido - montoEsperado;
+  var displayDif = document.getElementById('displayDiferencia_' + idCuadre);
+  
+  if (diferencia === 0) {
+    displayDif.className = 'box-diferencia dif-cuadrado';
+    displayDif.innerHTML = `✅ CUADRADO PERFECTO (RD$ 0.00)`;
+  } else if (diferencia < 0) {
+    displayDif.className = 'box-diferencia dif-falta';
+    displayDif.innerHTML = `🔴 FALTA: RD$ ${Math.abs(diferencia).toFixed(2)}`;
+  } else {
+    displayDif.className = 'box-diferencia dif-sobra';
+    displayDif.innerHTML = `🟡 SOBRA: RD$ ${diferencia.toFixed(2)}`;
+  }
+}
+
+// Función para guardar el efectivo recibido (Usando Prompt básico por ahora)
+function guardarAjusteCuadre(idCuadre) {
+  var inputRecibido = document.getElementById('inputEfectivoRecibido_' + idCuadre);
+  var inputEsperado = document.getElementById('esperado_' + idCuadre);
+  
+  if (!inputRecibido || !inputEsperado) return;
+
+  var montoRecibido = parseFloat(inputRecibido.value) || 0;
+  var montoEsperado = parseFloat(inputEsperado.value) || 0;
+  var diferencia = montoRecibido - montoEsperado;
+  
+  // Buscamos el cuadre en la base de datos
+  var index = cuadresDB.findIndex(function(c) { return c.id == idCuadre; });
+  
+  if (index !== -1) {
+    // Actualizamos los datos
+    cuadresDB[index].efectivoRecibido = montoRecibido;
+    cuadresDB[index].diferencia = diferencia;
+    cuadresDB[index].estado = 'revisado'; // O como manejes tus estados
+    
+    // Guardamos en la nube y actualizamos la pantalla
+    if (typeof guardarDatosEnNube === 'function') guardarDatosEnNube();
+    if (typeof renderCuadresRecibidos === 'function') renderCuadresRecibidos();
+    
+    alert(`✅ Cuadre guardado exitosamente.\n\nRecibido: RD$ ${montoRecibido.toFixed(2)}\nDiferencia: RD$ ${diferencia.toFixed(2)}`);
+    
+    // Recargamos el detalle para que se vea el estado "Revisado" en el botón verde
+    verDetalleCuadre(idCuadre); 
+  }
+}
+
+// Función básica para Editar Montos si el cobrador se equivocó
+function abrirModalEditarCuadre(idCuadre) {
+  var index = cuadresDB.findIndex(function(c) { return c.id == idCuadre; });
+  if (index === -1) return;
+  
+  var c = cuadresDB[index];
+  
+  var nuevoCobro = prompt("Editar Total Cobrado:", c.totalCobrado);
+  if (nuevoCobro === null) return; // Si cancela, se detiene
+  
+  var nuevoGasto = prompt("Editar Gastos de Ruta:", c.gastosRuta || 0);
+  if (nuevoGasto === null) return;
+  
+  var nuevosPrestamos = prompt("Editar Préstamos Nuevos:", c.prestamos || 0);
+  if (nuevosPrestamos === null) return;
+
+  // Actualizamos los montos
+  c.totalCobrado = parseFloat(nuevoCobro) || 0;
+  c.gastosRuta = parseFloat(nuevoGasto) || 0;
+  c.prestamos = parseFloat(nuevosPrestamos) || 0;
+  
+  // Recalculamos el Efectivo a Entregar
+  // Formula: Fondo + Cobros - Préstamos - Gastos (Asumiendo que el fondo está en c.fondo)
+  var fondo = c.fondo || 0; 
+  c.efectivoEntregar = fondo + c.totalCobrado - c.prestamos - c.gastosRuta;
+
+  // Guardamos y recargamos
+  if (typeof guardarDatosEnNube === 'function') guardarDatosEnNube();
+  
+  alert("Montos actualizados. El efectivo a entregar ha sido recalculado.");
+  
+  // Volvemos a dibujar la pantalla de detalle con los nuevos datos
+  verDetalleCuadre(idCuadre);
+}
+
+
+function verPrestamoHistorico(idPrestamo) {
+  // 1. Buscamos el préstamo en la base de datos
+  var prestamo = prestamosDB.find(function(p) { return p.id == idPrestamo; });
+  
+  if (!prestamo) {
+    alert("No se encontró el préstamo.");
+    return;
+  }
+
+  // 2. Calculamos los datos (adaptados a tus variables)
+  var capital = parseFloat(prestamo.monto) || 0;
+  var balance = parseFloat(prestamo.balancePendiente) || 0;
+  var totalPagado = capital - balance; // O usa tu variable real de pagado
+  var estado = balance <= 0 ? 'PAGADO / CERRADO' : 'ACTIVO';
+  var colorEstado = balance <= 0 ? '#16a34a' : '#d97706';
+
+  // 3. Armamos el HTML con los datos
+  var html = `
+    <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:15px; border-radius:8px; display:flex; flex-direction:column; gap:10px; font-size:0.9rem;">
+      
+      <div style="display:flex; justify-content:space-between; border-bottom:1px solid #e2e8f0; padding-bottom:8px;">
+        <span style="font-weight:700; color:#64748b;">ID Préstamo:</span>
+        <span style="font-weight:bold;">#${prestamo.id}</span>
+      </div>
+
+      <div style="display:flex; justify-content:space-between;">
+        <span style="font-weight:700; color:#64748b;">Estado:</span>
+        <span style="color:${colorEstado}; font-weight:800;">${estado}</span>
+      </div>
+
+      <div style="display:flex; justify-content:space-between;">
+        <span style="font-weight:700; color:#64748b;">Fecha Inicio:</span>
+        <span>${prestamo.fechaInicio || prestamo.fecha || 'N/A'}</span>
+      </div>
+
+      <div style="display:flex; justify-content:space-between;">
+        <span style="font-weight:700; color:#64748b;">Modalidad:</span>
+        <span>${prestamo.plazo || prestamo.modalidad || 'N/A'} ${prestamo.frecuencia || ''}</span>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; background:#fff; padding:8px; border-radius:6px; border:1px solid #e2e8f0;">
+        <span style="font-weight:700; color:#1e3a8a;">Capital Prestado:</span>
+        <span style="font-weight:bold; color:#1e3a8a;">RD$ ${capital.toFixed(2)}</span>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; background:#fff; padding:8px; border-radius:6px; border:1px solid #e2e8f0;">
+        <span style="font-weight:700; color:#dc2626;">Balance Pendiente:</span>
+        <span style="font-weight:bold; color:#dc2626;">RD$ ${balance.toFixed(2)}</span>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; background:#fff; padding:8px; border-radius:6px; border:1px solid #e2e8f0;">
+        <span style="font-weight:700; color:#16a34a;">Total Pagado:</span>
+        <span style="font-weight:bold; color:#16a34a;">RD$ ${totalPagado.toFixed(2)}</span>
+      </div>
+
+    </div>
+  `;
+
+  // 4. Inyectamos el HTML y mostramos el modal
+  document.getElementById('contenidoPrestamoHistorico').innerHTML = html;
+  document.getElementById('modalPrestamoHistorico').style.display = 'flex';
+}
+
+
+
+function verDetallePrestamoDesdeHistorial(idPrestamo) {
+  // 1. Buscamos el préstamo en la base de datos
+  var prestamo = prestamosDB.find(function(p) { return p.id == idPrestamo; });
+  
+  if (!prestamo) {
+    alert("No se encontró la información de este préstamo.");
+    return;
+  }
+
+  // 2. Calculamos los datos
+  var capital = parseFloat(prestamo.monto) || 0;
+  var balance = parseFloat(prestamo.balancePendiente) || 0;
+  var totalPagado = capital - balance; // Cálculo aproximado
+  var estado = balance <= 0 ? 'PAGADO / CERRADO' : 'ACTIVO';
+  var colorEstado = balance <= 0 ? '#16a34a' : '#d97706';
+
+  // 3. Armamos el HTML con los datos
+  var html = `
+    <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:15px; border-radius:8px; display:flex; flex-direction:column; gap:10px; font-size:0.9rem;">
+      
+      <div style="display:flex; justify-content:space-between; border-bottom:1px solid #e2e8f0; padding-bottom:8px;">
+        <span style="font-weight:700; color:#64748b;">ID Préstamo:</span>
+        <span style="font-weight:bold;">#${prestamo.id}</span>
+      </div>
+
+      <div style="display:flex; justify-content:space-between;">
+        <span style="font-weight:700; color:#64748b;">Estado:</span>
+        <span style="color:${colorEstado}; font-weight:800;">${estado}</span>
+      </div>
+
+      <div style="display:flex; justify-content:space-between;">
+        <span style="font-weight:700; color:#64748b;">Fecha Inicio:</span>
+        <span>${prestamo.fechaInicio || 'N/A'}</span>
+      </div>
+
+      <div style="display:flex; justify-content:space-between;">
+        <span style="font-weight:700; color:#64748b;">Modalidad:</span>
+        <span>${prestamo.modalidad || 'N/A'}</span>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; background:#fff; padding:8px; border-radius:6px; border:1px solid #e2e8f0;">
+        <span style="font-weight:700; color:#1e3a8a;">Capital Prestado:</span>
+        <span style="font-weight:bold; color:#1e3a8a;">RD$ ${capital.toLocaleString('en-US', {minimumFractionDigits:2})}</span>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; background:#fff; padding:8px; border-radius:6px; border:1px solid #e2e8f0;">
+        <span style="font-weight:700; color:#dc2626;">Balance Pendiente:</span>
+        <span style="font-weight:bold; color:#dc2626;">RD$ ${balance.toLocaleString('en-US', {minimumFractionDigits:2})}</span>
+      </div>
+
+      <div style="display:flex; justify-content:space-between; background:#fff; padding:8px; border-radius:6px; border:1px solid #e2e8f0;">
+        <span style="font-weight:700; color:#16a34a;">Total Pagado:</span>
+        <span style="font-weight:bold; color:#16a34a;">RD$ ${totalPagado.toLocaleString('en-US', {minimumFractionDigits:2})}</span>
+      </div>
+
+    </div>
+  `;
+
+  // 4. Inyectamos el HTML y mostramos el modal
+  document.getElementById('contenidoPrestamoHistorico').innerHTML = html;
+  document.getElementById('modalPrestamoHistorico').style.display = 'flex';
+}
+
+
+
+
+
+
+
 </script>
 
 
@@ -11607,7 +12118,44 @@ function filtrarClientesPrestamo(texto) {
 
 
 
+<!-- MODAL PARA IMPRIMIR TICKET DE CUADRE (COBRADOR) -->
+<div id="modalTicketCuadre">
+  <div style="display:flex; flex-direction:column; align-items:center; width:100%; max-width:350px;">
+    <div id="ticketCuadreContenido" class="ticket-cuadre-termico">
+      <!-- Aquí JavaScript inyectará los datos -->
+    </div>
+    <div class="no-print" style="display:flex; gap:10px; margin-top:15px; width:100%;">
+      <button class="btn btn-secondary" onclick="document.getElementById('modalTicketCuadre').style.display='none'" style="flex:1;">Cerrar</button>
+      <button class="btn btn-success" onclick="window.print()" style="flex:1; background:#16a34a;">🖨️ Imprimir</button>
+    </div>
+  </div>
+</div>
+
+
+
+
+
 Created by Perdomo Sovereign Capital
+
+
+<!-- MODAL PARA VER PRÉSTAMOS HISTÓRICOS (SOLO LECTURA) -->
+<div id="modalPrestamoHistorico" class="modal-overlay" style="display:none; z-index:10005; align-items: flex-start; padding-top: 50px;">
+  <div class="modal-box" style="max-width: 450px; background: #fff; padding: 20px; border-radius: 12px; width: 100%; box-shadow: 0 10px 25px rgba(0,0,0,0.3);">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:1px solid #e2e8f0; padding-bottom:10px;">
+      <h3 style="color:#1e3a8a; margin:0; font-size:1.1rem;">📄 Detalle de Préstamo Anterior</h3>
+      <button onclick="document.getElementById('modalPrestamoHistorico').style.display='none'" style="background:#475569; color:white; border:none; padding:6px 10px; border-radius:6px; font-weight:bold; cursor:pointer;">✕</button>
+    </div>
+    
+    <div id="contenidoPrestamoHistorico">
+      <!-- Los datos se inyectarán aquí con JavaScript -->
+    </div>
+    
+    <button class="btn btn-secondary" onclick="document.getElementById('modalPrestamoHistorico').style.display='none'" style="margin-top:20px; width:100%;">Cerrar Ventana</button>
+  </div>
+</div>
+
+
+
 
 </body>
 </html>
