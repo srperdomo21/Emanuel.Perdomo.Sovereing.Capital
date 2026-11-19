@@ -11416,6 +11416,8 @@ function verDetalleCuadre(id) {
 // =========================================================
 // NUEVO: AGREGAR CAJA DE EFECTIVO RECIBIDO Y BOTONES
 // =========================================================
+(window.listaCobrosPendientes || prestamosDB || []).forEach(function(c) {
+
 
 // 1. Ponemos el monto esperado en un input oculto para que las matemáticas funcionen
 var inputOculto = document.getElementById('esperado_' + c.id);
@@ -11478,7 +11480,7 @@ if (!cajaRecibido) {
   if (c.efectivoRecibido !== undefined) {
     calcularDiferenciaAdmin(id);
   }
-}
+ }
 // =========================================================
 
 
@@ -12134,11 +12136,11 @@ function verDetallePrestamoDesdeHistorial(idPrestamo) {
   // 4. Inyectamos el HTML y mostramos el modal
   document.getElementById('contenidoPrestamoHistorico').innerHTML = html;
   document.getElementById('modalPrestamoHistorico').style.display = 'flex';
+
+
+
 }
-
-
-
-
+});
 
 </script>
 
