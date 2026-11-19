@@ -4279,6 +4279,41 @@ async function guardarDatosEnNube() {
   }
 }
 
+
+
+// ==========================================
+// FUNCIÓN MAESTRA PARA ELIMINAR REGISTROS EN LA NUBE
+// ==========================================
+async function eliminarRegistroNube(tabla, idRegistro) {
+    if (!supabase) {
+        console.warn("Supabase no está inicializado.");
+        return false;
+    }
+    
+    try {
+        // Ejecuta el DELETE en Supabase
+        const { data, error } = await supabase
+            .from(tabla)
+            .delete()
+            .eq('id', idRegistro); // Asumiendo que tu columna ID se llama 'id'
+
+        if (error) {
+            console.error(`Error al borrar en la tabla ${tabla}:`, error);
+            alert(`⚠️ Error de conexión: No se pudo borrar de la nube. Revisa tu internet.`);
+            return false;
+        }
+
+        console.log(`Registro ${idRegistro} eliminado de ${tabla} en Supabase.`);
+        return true;
+
+    } catch (err) {
+        console.error("Error inesperado al borrar:", err);
+        return false;
+    }
+}
+
+
+
 async function sincronizarTablaCompleta(nombreTabla, arrayLocal) {
   if (!arrayLocal || arrayLocal.length === 0) return;
 
@@ -11803,23 +11838,44 @@ function compartirPorWhatsApp() {
 
 
 // Función para deshacer (eliminar un préstamo del historial)
+// Función para deshacer (eliminar un préstamo del historial)
+async function eliminarPrestamoHistorial(prestamoId) {
+    if (!confirm("⚠️ ¿Estás seguro de que deseas ELIMINAR este préstamo? Esta acción servirá para deshacer una renovación y se borrará de la nube.")) return;
 
-function eliminarPrestamoHistorial(prestamoId) {
-    if (!confirm("⚠️ ¿Estás seguro de que deseas ELIMINAR este préstamo? Esta acción servirá para deshacer una renovación.")) return;
+    // 1. Borrar de la NUBE (Supabase) primero
+    if (window.supabase) {
+        try {
+            // IMPORTANTE: Asegúrate de que 'prestamos' sea el nombre exacto de tu tabla en Supabase
+            const { error } = await window.supabase
+                .from('prestamos') 
+                .delete()
+                .eq('id', prestamoId);
 
-    // 1. Filtramos el préstamo asegurándonos de que los IDs coincidan
+            if (error) {
+                console.error('Error al borrar de Supabase:', error);
+                alert('⚠️ Hubo un error al borrar en la nube. Verifica tu conexión.');
+                return; // Si falla en la nube, detenemos el proceso aquí
+            }
+        } catch (err) {
+            console.error('Error de red:', err);
+            return;
+        }
+    }
+
+    // 2. Si la nube lo borró con éxito, lo borramos del celular
     prestamosDB = prestamosDB.filter(p => String(p.id) !== String(prestamoId));
     
-    // 2. Guardamos en local y en la nube
-    if (typeof guardarDatosEnNube === 'function') guardarDatosEnNube();
-    if (typeof guardarEnLocalStorageLocal === 'function') guardarEnLocalStorageLocal();
-    
-    // 3. Avisamos y esperamos 2 segundos antes de recargar
-    alert("Préstamo eliminado. Guardando cambios en la nube, por favor espera...");
+    // 3. Guardamos en local
+    if (typeof guardarEnLocalStorageLocal === 'function') {
+        guardarEnLocalStorageLocal();
+    }
+
+    // 4. Avisamos y recargamos
+    alert("✅ Préstamo eliminado de la nube y del sistema local.");
     
     setTimeout(function() {
-        location.reload(); 
-    }, 2000); // 2000 milisegundos = 2 segundos de espera
+        location.reload();
+    }, 1500); 
 }
 
 // Función para abrir el perfil al tocar una fila del historial
@@ -12079,8 +12135,6 @@ function verDetallePrestamoDesdeHistorial(idPrestamo) {
   document.getElementById('contenidoPrestamoHistorico').innerHTML = html;
   document.getElementById('modalPrestamoHistorico').style.display = 'flex';
 }
-
-
 
 
 
