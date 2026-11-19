@@ -11608,7 +11608,9 @@ function verDetalleCuadre(id) {
   window._cuadreActualId = id;
 }
 
-(window.listaCobrosPendientes || prestamosDB).forEach(function(c) {
+function renderizarCajasEfectivoAdmin() {
+ 
+(window.listaCobrosPendientes  prestamosDB).forEach(function(c) {
 
 // =========================================================
 // NUEVO: AGREGAR CAJA DE EFECTIVO RECIBIDO Y BOTONES
@@ -11675,8 +11677,9 @@ if (!cajaRecibido) {
   if (c.efectivoRecibido !== undefined) {
     calcularDiferenciaAdmin(id);
   }
-});
-// =========================================================
+}
+//
+} =========================================================
 
 
 
