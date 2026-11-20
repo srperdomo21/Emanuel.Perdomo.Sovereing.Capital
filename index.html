@@ -11417,6 +11417,9 @@ function verDetalleCuadre(id) {
 // NUEVO: AGREGAR CAJA DE EFECTIVO RECIBIDO Y BOTONES
 // =========================================================
 
+
+(window.clientesDB || []).forEach(function(c) {
+
 // 1. Ponemos el monto esperado en un input oculto para que las matemáticas funcionen
 var inputOculto = document.getElementById('esperado_' + c.id);
 if (!inputOculto) {
@@ -11463,6 +11466,9 @@ if (!cajaRecibido) {
   </div>
 `;
   
+  }
+  
+  
   
   
   // 4. Lo insertamos en la pantalla (justo antes del botón verde de "Marcar como Revisado")
@@ -11474,11 +11480,12 @@ if (!cajaRecibido) {
     document.getElementById('vistaDetalleCuadre').appendChild(cajaRecibido);
   }
   
+  
   // Si ya había un monto recibido guardado, calculamos la diferencia al instante
   if (c.efectivoRecibido !== undefined) {
-    calcularDiferenciaAdmin(id);
+    calcularDiferenciaAdmin(c.id);
   }
-}
+});
 // =========================================================
 
 
@@ -11726,44 +11733,49 @@ function verHistorialPrestamosCliente(clienteId) {
 
 
 // Variable global temporal para el texto de WhatsApp
+
+
+// ========== MINI CONTRATO LEGAL (NUEVO + RENOVO) CON BLUETOOTH ==========
 let textoContratoWhatsApp = "";
+let textoTicketBluetooth = "";
 
 function generarMiniContrato(prestamoId, esRenovacion = false, saldoAnterior = 0) {
-  // 1. Buscar los datos
   const prestamo = (prestamosDB || []).find(p => p.id == prestamoId);
-  if (!prestamo) { alert("No se encontró el préstamo."); return; }
+  if (!prestamo) { 
+    alert("No se encontró el préstamo."); 
+    return; 
+  }
   
   const cliente = (clientesDB || []).find(c => c.id == prestamo.clienteId);
   if (!cliente) return;
 
-  // 2. Datos de la empresa y cobrador (Ajusta estos nombres según tus variables globales)
-  const nombreEmpresa = document.getElementById('headerNombreEmpresa') ? document.getElementById('headerNombreEmpresa').innerText : "PERDOMO CAPITAL";
-  // Si tienes una variable con los datos de la empresa, úsala aquí. Ej: configuracionEmpresa.telefono
-  const telefonoEmpresa = "809-000-0000"; 
+  const nombreEmpresa = document.getElementById('headerNombreEmpresa') 
+    ? document.getElementById('headerNombreEmpresa').innerText 
+    : "PERDOMO CAPITAL";
   
-  const nombreCobrador = usuarioActual ? usuarioActual.nombre : "Oficina";
+  const telefonoEmpresa = "809-000-0000";
+  const nombreCobrador = (typeof nombreUsuarioActual !== 'undefined' ? nombreUsuarioActual : (typeof usuarioActual !== 'undefined' && usuarioActual ? usuarioActual.nombre : "Oficina"));
   const zonaCobrador = cliente.zona || "General";
   
-  // 3. Formatear fechas y montos
   const fechaHoy = new Date().toLocaleDateString('es-DO');
   const fechaInicio = prestamo.fechaInicio || fechaHoy;
   const fechaTermino = prestamo.fechaTermino || "Por definir";
   
   const montoPrestado = (prestamo.monto || 0).toLocaleString('en-US', {minimumFractionDigits: 2});
-  const montoCuota = (prestamo.montoCuota || 0).toLocaleString('en-US', {minimumFractionDigits: 2});
-  const totalPagar = (prestamo.totalPagar || (prestamo.montoCuota * prestamo.cuotas) || 0).toLocaleString('en-US', {minimumFractionDigits: 2});
-  const cantidadCuotas = prestamo.cuotas || 13;
+  const montoCuota = (prestamo.montoCuota || prestamo.valorCuota || 0).toLocaleString('en-US', {minimumFractionDigits: 2});
+  const totalPagar = (prestamo.totalPagar || ((prestamo.montoCuota || prestamo.valorCuota || 0) * (prestamo.cuotas || prestamo.plazo || 13)) || 0).toLocaleString('en-US', {minimumFractionDigits: 2});
+  const cantidadCuotas = prestamo.cuotas || prestamo.plazo || 13;
   
-  // Calcular monto entregado si es renovación
   let montoEntregado = montoPrestado;
+  let saldoAntStr = "0.00";
   if (esRenovacion) {
-    montoEntregado = (prestamo.monto - saldoAnterior).toLocaleString('en-US', {minimumFractionDigits: 2});
-    saldoAnterior = saldoAnterior.toLocaleString('en-US', {minimumFractionDigits: 2});
+    montoEntregado = ((prestamo.monto || 0) - (saldoAnterior || 0)).toLocaleString('en-US', {minimumFractionDigits: 2});
+    saldoAntStr = (saldoAnterior || 0).toLocaleString('en-US', {minimumFractionDigits: 2});
   }
 
-  // 4. Armar el HTML del ticket
-  const titulo = esRenovacion ? "RENOVO DE PRÉSTAMO" : "CONTRATO DE PRÉSTAMO";
-  
+  const titulo = esRenovacion ? "RENOVO DE PRESTAMO" : "CONTRATO DE PRESTAMO";
+
+  // HTML visual
   let html = `
     <div class="ticket-header">
       <h2>${titulo}</h2>
@@ -11773,7 +11785,7 @@ function generarMiniContrato(prestamoId, esRenovacion = false, saldoAnterior = 0
     </div>
     
     <div class="ticket-row"><span>CLIENTE:</span> <span>${cliente.nombre.toUpperCase()}</span></div>
-    <div class="ticket-row"><span>CÉDULA:</span> <span>${cliente.cedula || 'N/A'}</span></div>
+    <div class="ticket-row"><span>CEDULA:</span> <span>${cliente.cedula || 'N/A'}</span></div>
     <div class="ticket-row"><span>COBRADOR:</span> <span>${nombreCobrador.toUpperCase()}</span></div>
     <div class="ticket-row"><span>ZONA/RUTA:</span> <span>${zonaCobrador.toUpperCase()}</span></div>
     
@@ -11782,27 +11794,27 @@ function generarMiniContrato(prestamoId, esRenovacion = false, saldoAnterior = 0
 
   if (esRenovacion) {
     html += `
-      <div class="ticket-row"><span>SALDO ANTERIOR:</span> <span>$${saldoAnterior}</span></div>
-      <div class="ticket-row"><span>PRÉSTAMO NUEVO:</span> <span>$${montoPrestado}</span></div>
-      <div class="ticket-row"><span>MONTO ENTREGADO:</span> <span>$${montoEntregado}</span></div>
+      <div class="ticket-row"><span>SALDO ANTERIOR:</span> <span>\[ {saldoAntStr}</span></div>
+      <div class="ticket-row"><span>PRESTAMO NUEVO:</span> <span> \]{montoPrestado}</span></div>
+      <div class="ticket-row"><span>MONTO ENTREGADO:</span> <span>\[ {montoEntregado}</span></div>
     `;
   } else {
     html += `
-      <div class="ticket-row"><span>MONTO PRESTADO:</span> <span>$${montoPrestado}</span></div>
+      <div class="ticket-row"><span>MONTO PRESTADO:</span> <span> \]{montoPrestado}</span></div>
     `;
   }
 
   html += `
     <div class="ticket-row"><span>PLAZO:</span> <span>${cantidadCuotas} SEMANAS</span></div>
-    <div class="ticket-row"><span>CUOTA SEMANAL:</span> <span>$${montoCuota}</span></div>
-    <div class="ticket-row"><span>TOTAL A PAGAR:</span> <span>$${totalPagar}</span></div>
+    <div class="ticket-row"><span>CUOTA SEMANAL:</span> <span>\[ {montoCuota}</span></div>
+    <div class="ticket-row"><span>TOTAL A PAGAR:</span> <span> \]{totalPagar}</span></div>
     <div class="ticket-row"><span>F. INICIO:</span> <span>${fechaInicio}</span></div>
-    <div class="ticket-row"><span>F. TÉRMINO:</span> <span>${fechaTermino}</span></div>
+    <div class="ticket-row"><span>F. TERMINO:</span> <span>${fechaTermino}</span></div>
     
     <div class="ticket-divider"></div>
     
     <div class="ticket-text">
-      POR ESTE MEDIO ME COMPROMETO A PAGAR LA CANTIDAD TOTAL DEL PRÉSTAMO EN ${cantidadCuotas} CUOTAS SEMANALES CONSECUTIVAS. EL INCUMPLIMIENTO GENERARÁ LA MORA CORRESPONDIENTE.
+      POR ESTE MEDIO ME COMPROMETO A PAGAR LA CANTIDAD TOTAL DEL PRESTAMO EN ${cantidadCuotas} CUOTAS SEMANALES CONSECUTIVAS. EL INCUMPLIMIENTO GENERARA LA MORA CORRESPONDIENTE.
     </div>
     
     <div class="ticket-firma">
@@ -11811,23 +11823,93 @@ function generarMiniContrato(prestamoId, esRenovacion = false, saldoAnterior = 0
     </div>
   `;
 
-  // 5. Insertar en el HTML y mostrar
   document.getElementById('ticketContenido').innerHTML = html;
   document.getElementById('modalMiniContrato').style.display = 'flex';
 
-  // 6. Guardar texto para WhatsApp
-  textoContratoWhatsApp = `*${nombreEmpresa}*\n*${titulo}*\n\n` +
+  // Texto WhatsApp
+  textoContratoWhatsApp = `*\( {nombreEmpresa}*\n* \){titulo}*\n\n` +
     `Hola *${cliente.nombre}*, aquí está el detalle de su contrato:\n\n` +
     `📅 *Fecha:* ${fechaHoy}\n` +
-    `👤 *Cobrador:* ${nombreCobrador} (${zonaCobrador})\n` +
-    (esRenovacion ? `💵 *Saldo Anterior:* $${saldoAnterior}\n💵 *Monto Entregado:* $${montoEntregado}\n` : `💵 *Monto Prestado:* $${montoPrestado}\n`) +
+    `👤 *Cobrador:* \( {nombreCobrador} ( \){zonaCobrador})\n` +
+    (esRenovacion 
+      ? `💵 *Saldo Anterior:* \[ {saldoAntStr}\n💵 *Monto Entregado:* \]{montoEntregado}\n` 
+      : `💵 *Monto Prestado:* \[ {montoPrestado}\n`) +
     `⏳ *Plazo:* ${cantidadCuotas} semanas\n` +
-    `💰 *Cuota Semanal:* $${montoCuota}\n` +
-    `💳 *Total a Pagar:* $${totalPagar}\n` +
+    `💰 *Cuota Semanal:* \]{montoCuota}\n` +
+    `💳 *Total a Pagar:* \[ {totalPagar}\n` +
     `📆 *Inicio:* ${fechaInicio}\n` +
     `📆 *Término:* ${fechaTermino}\n\n` +
     `_Me comprometo a pagar en las fechas establecidas._`;
+
+  // Texto plano para Bluetooth
+  textoTicketBluetooth = 
+`${nombreEmpresa.toUpperCase()}
+${titulo}
+--------------------------------
+Fecha: ${fechaHoy}
+Cliente: ${cliente.nombre.toUpperCase()}
+Cedula: ${cliente.cedula || 'N/A'}
+Cobrador: ${nombreCobrador.toUpperCase()}
+Zona: ${zonaCobrador.toUpperCase()}
+--------------------------------
+`;
+
+  if (esRenovacion) {
+    textoTicketBluetooth += 
+`Saldo Anterior: \]{saldoAntStr}
+Prestamo Nuevo: \[ {montoPrestado}
+Monto Entregado: \]{montoEntregado}
+`;
+  } else {
+    textoTicketBluetooth += 
+`Monto Prestado: \[ {montoPrestado}
+`;
+  }
+
+  textoTicketBluetooth += 
+`Plazo: ${cantidadCuotas} semanas
+Cuota Semanal: \]{montoCuota}
+Total a Pagar: $${totalPagar}
+F. Inicio: ${fechaInicio}
+F. Termino: ${fechaTermino}
+--------------------------------
+POR ESTE MEDIO ME COMPROMETO A PAGAR LA CANTIDAD TOTAL DEL PRESTAMO EN ${cantidadCuotas} CUOTAS SEMANALES.
+EL INCUMPLIMIENTO GENERARA LA MORA CORRESPONDIENTE.
+--------------------------------
+Firma del Cliente:
+
+________________________
+
+`;
 }
+
+async function imprimirMiniContratoBluetooth() {
+  if (!textoTicketBluetooth) {
+    alert("Primero genera el contrato.");
+    return;
+  }
+
+  if (typeof enviarComandosBluetooth === 'function' && 
+      typeof bluetoothCharacteristic !== 'undefined' && 
+      bluetoothCharacteristic) {
+    
+    try {
+      await enviarComandosBluetooth(textoTicketBluetooth + "\n\n\n");
+      alert("✅ Contrato enviado a la impresora Bluetooth");
+    } catch (err) {
+      console.error(err);
+      alert("Error al enviar por Bluetooth. Revisa la conexión.");
+    }
+  } else {
+    alert("No hay impresora Bluetooth conectada.\nSe abrirá la impresión normal.");
+    window.print();
+  }
+}
+
+
+
+
+
 
 function compartirPorWhatsApp() {
   if (!textoContratoWhatsApp) return;
@@ -12156,20 +12238,35 @@ function verDetallePrestamoDesdeHistorial(idPrestamo) {
   </div>
 </div>
 
+
 <!-- MODAL MINI CONTRATO -->
 <div id="modalMiniContrato">
   <div class="ticket-termico" id="ticketContenido">
-    <!-- Los datos se inyectarán con JavaScript aquí -->
+    <!-- Los datos se inyectan aquí -->
   </div>
   
-  <!-- BOTONES DE ACCIÓN (No se imprimen) -->
-  <div class="no-print" style="position: fixed; bottom: 20px; width: 100%; left: 0; display: flex; justify-content: center; gap: 10px; padding: 0 15px;">
-    <button onclick="document.getElementById('modalMiniContrato').style.display='none'" style="padding: 10px 15px; background: #64748b; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">Cerrar</button>
-    <button onclick="window.print()" style="padding: 10px 15px; background: #1e3a8a; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">🖨️ Imprimir</button>
-    <button onclick="compartirPorWhatsApp()" style="padding: 10px 15px; background: #25d366; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">📲 WhatsApp</button>
+  <div class="no-print" style="position: fixed; bottom: 20px; width: 100%; left: 0; display: flex; justify-content: center; gap: 8px; padding: 0 12px; flex-wrap: wrap;">
+    <button onclick="document.getElementById('modalMiniContrato').style.display='none'" 
+            style="padding: 10px 14px; background: #64748b; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">
+      Cerrar
+    </button>
+    
+    <button onclick="window.print()" 
+            style="padding: 10px 14px; background: #1e3a8a; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">
+      🖨️ Normal
+    </button>
+    
+    <button onclick="imprimirMiniContratoBluetooth()" 
+            style="padding: 10px 14px; background: #0f766e; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">
+      📡 Bluetooth
+    </button>
+    
+    <button onclick="compartirPorWhatsApp()" 
+            style="padding: 10px 14px; background: #25d366; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">
+      📲 WhatsApp
+    </button>
   </div>
 </div>
-
 
 
 <!-- MODAL PARA IMPRIMIR TICKET DE CUADRE (COBRADOR) -->
@@ -12213,5 +12310,3 @@ Created by Perdomo Sovereign Capital
 
 </body>
 </html>
-
-
