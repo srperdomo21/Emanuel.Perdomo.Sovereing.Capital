@@ -12025,82 +12025,98 @@ function verPrestamoHistorico(idPrestamo) {
   document.getElementById('modalPrestamoHistorico').style.display = 'flex';
 }
 
-function verDetallePrestamoDesdeHistorial(idPrestamo) {
-    // 1. Ocultamos el historial para que no estorbe
-    document.getElementById('modalHistorialPrestamos').style.display = 'none';
 
-    // 2. Buscamos el préstamo
+});
+
+function verDetallePrestamoDesdeHistorial(idPrestamo) {
+    document.getElementById('modalHistorialPrestamos').style.display = 'none';
     var prestamo = prestamosDB.find(function(p) { return String(p.id) === String(idPrestamo); });
     if (!prestamo) {
         alert("No se encontró la información de este préstamo.");
         return;
     }
 
-    // 3. Calculamos el atraso (si está activo)
-    var atrasoHtml = '<span style="color:var(--success); font-weight:bold;">Al día / Sin atraso</span>';
-    
+    var atrasoHtml = '<span style="color:var(--success); font-weight:bold;">Al día / Pagado a tiempo</span>';
     if (prestamo.balancePendiente > 0) {
         var fechaTermino = new Date(prestamo.fechaTermino || prestamo.fechaInicio);
-        if (isNaN(fechaTermino.getTime())) {
-            fechaTermino = new Date(); // Por si no hay fecha válida
-        }
-        
+        if (isNaN(fechaTermino.getTime())) fechaTermino = new Date();
         var hoy = new Date();
         var diffDias = Math.ceil((hoy - fechaTermino) / (1000 * 60 * 60 * 24));
-        
         if (diffDias > 0) {
             atrasoHtml = '<span style="color:var(--danger); font-weight:bold;">' + diffDias + ' días de atraso (Vencido)</span>';
         } else {
-            atrasoHtml = '<span style="color:var(--primary); font-weight:bold;">Activo (Faltan ' + Math.abs(diffDias) + ' días para vencer)</span>';
+            atrasoHtml = '<span style="color:var(--primary); font-weight:bold;">Activo (Faltan ' + Math.abs(diffDias) + ' días)</span>';
         }
     }
 
-    // 4. Formateamos las fechas y datos
+    var pagos = (typeof cobrosDB !== 'undefined') ? cobrosDB.filter(function(c) { return String(c.prestamoId) === String(idPrestamo); }) : [];
+    var totalPagado = pagos.reduce(function(sum, p) { return sum + (p.monto || 0); }, 0);
+
+    var pagosHtml = '';
+    if (pagos.length === 0) {
+        pagosHtml = '<div style="text-align:center; color:#64748b; font-size:0.8rem; padding:10px;">Aún no hay pagos registrados.</div>';
+    } else {
+        pagosHtml = '<table style="width:100%; font-size:0.75rem; text-align:left; border-collapse:collapse; margin-top:5px;">';
+        pagosHtml += '<tr style="border-bottom:1px solid #ccc; color:#64748b;"><th style="padding:4px;">Fecha</th><th style="padding:4px;">Monto</th></tr>';
+        pagos.sort((a, b) => new Date(b.timestamp || b.fecha || 0) - new Date(a.timestamp || a.fecha || 0));
+        
+        pagos.forEach(function(p) {
+            var fechaPago = p.fecha || (p.timestamp ? new Date(p.timestamp).toLocaleDateString('es-DO') : 'N/A');
+            pagosHtml += '<tr style="border-bottom:1px dotted #eee;">';
+            pagosHtml += '<td style="padding:4px;">📅 ' + fechaPago + '</td>';
+            pagosHtml += '<td style="padding:4px; font-weight:bold; color:var(--success);">RD$ ' + (p.monto || 0).toFixed(2) + '</td>';
+            pagosHtml += '</tr>';
+        });
+        pagosHtml += '</table>';
+    }
+
     var fInicio = prestamo.fechaInicio || 'N/A';
     var fTermino = prestamo.fechaTermino || 'N/A';
     var monto = (prestamo.monto || 0).toLocaleString('en-US', {minimumFractionDigits:2});
     var balance = (prestamo.balancePendiente || 0).toLocaleString('en-US', {minimumFractionDigits:2});
 
-    // 5. Armamos el HTML
     var html = `
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:15px;">
-            <div style="background:#f8fafc; padding:10px; border-radius:6px; border:1px solid #e2e8f0;">
-                <span style="font-size:0.75rem; color:#64748b;">Monto Original:</span><br>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-bottom:12px;">
+            <div style="background:#f8fafc; padding:8px; border-radius:6px; border:1px solid #e2e8f0;">
+                <span style="font-size:0.7rem; color:#64748b;">Monto Original:</span><br>
                 <strong>RD$ ${monto}</strong>
             </div>
-            <div style="background:#f8fafc; padding:10px; border-radius:6px; border:1px solid #e2e8f0;">
-                <span style="font-size:0.75rem; color:#64748b;">Balance Pendiente:</span><br>
+            <div style="background:#f8fafc; padding:8px; border-radius:6px; border:1px solid #e2e8f0;">
+                <span style="font-size:0.7rem; color:#64748b;">Balance Pendiente:</span><br>
                 <strong style="color:${prestamo.balancePendiente > 0 ? 'var(--danger)' : 'var(--success)'};">RD$ ${balance}</strong>
+            </div>
+            <div style="background:#f8fafc; padding:8px; border-radius:6px; border:1px solid #e2e8f0;">
+                <span style="font-size:0.7rem; color:#64748b;">F. Inicio:</span><br>
+                <strong>📅 ${fInicio}</strong>
+            </div>
+            <div style="background:#f8fafc; padding:8px; border-radius:6px; border:1px solid #e2e8f0;">
+                <span style="font-size:0.7rem; color:#64748b;">F. Término:</span><br>
+                <strong>🏁 ${fTermino}</strong>
             </div>
         </div>
 
-        <div style="margin-bottom:10px;">
-            <span style="color:#64748b; font-size:0.8rem;">Fecha de Inicio:</span><br>
-            <strong>📅 ${fInicio}</strong>
-        </div>
-        
-        <div style="margin-bottom:10px;">
-            <span style="color:#64748b; font-size:0.8rem;">Fecha de Término:</span><br>
-            <strong>🏁 ${fTermino}</strong>
-        </div>
-
-        <div style="margin-bottom:15px;">
-            <span style="color:#64748b; font-size:0.8rem;">Estado de Atraso:</span><br>
+        <div style="margin-bottom:12px; background:#fff; padding:8px; border-radius:6px; border:1px solid #e2e8f0;">
+            <span style="color:#64748b; font-size:0.75rem;">Estado de Atraso:</span><br>
             ${atrasoHtml}
         </div>
 
-        <div style="background:#f1f5f9; padding:10px; border-radius:6px; font-size:0.85rem; border-left: 3px solid var(--primary);">
-            <strong>Nota:</strong> ${prestamo.balancePendiente > 0 ? 'Este préstamo aún está en curso.' : 'Este préstamo fue saldado en su totalidad.'}
+        <div style="background:#f8fafc; padding:10px; border-radius:6px; border:1px solid #e2e8f0; margin-bottom:10px;">
+            <div style="display:flex; justify-content:space-between; border-bottom:1px solid #cbd5e1; padding-bottom:5px; margin-bottom:5px;">
+                <strong style="font-size:0.8rem; color:var(--primary);">Historial de Pagos</strong>
+                <strong style="font-size:0.8rem; color:var(--success);">Total: RD$ ${totalPagado.toFixed(2)}</strong>
+            </div>
+            <div style="max-height: 150px; overflow-y: auto;">
+                ${pagosHtml}
+            </div>
         </div>
     `;
 
-    // 6. Inyectamos y mostramos la ventana
     document.getElementById('contenidoDetallePrestamo').innerHTML = html;
     document.getElementById('modalDetallePrestamo').style.display = 'flex';
-     
 }
 
- });
+
+
 
 function verHistorialPrestamosCliente(clienteId) {
     var cliente = clientesDB.find(function(c) { return String(c.id) === String(clienteId); });
@@ -12143,6 +12159,63 @@ function verHistorialPrestamosCliente(clienteId) {
     document.getElementById('contenidoHistorialPrestamos').innerHTML = html;
     document.getElementById('modalHistorialPrestamos').style.display = 'flex';
 }
+// Función para abrir y cerrar el menú de ajustes (la tuerca)
+function toggleSettingsMenu() {
+    var dropdown = document.getElementById('settingsDropdown');
+    if (!dropdown) return;
+
+    // Si está oculto, lo mostramos. Si está visible, lo ocultamos.
+    if (dropdown.style.display === 'none' || dropdown.style.display === '') {
+        dropdown.style.display = 'flex';
+    } else {
+        dropdown.style.display = 'none';
+    }
+}
+
+// Cerrar el menú si el usuario hace clic fuera de él
+window.addEventListener('click', function(e) {
+    var dropdown = document.getElementById('settingsDropdown');
+    var btnSettings = document.querySelector('button[onclick="toggleSettingsMenu()"]');
+    
+    // Si el menú está abierto y el clic no fue en el botón ni dentro del menú, lo cerramos
+    if (dropdown && dropdown.style.display === 'flex') {
+        if (btnSettings && !btnSettings.contains(e.target) && !dropdown.contains(e.target)) {
+            dropdown.style.display = 'none';
+        }
+    }
+});
+
+
+
+
+// Función para abrir y cerrar el menú de ajustes (la tuerca)
+function toggleSettingsMenu() {
+    var dropdown = document.getElementById('settingsDropdown');
+    if (!dropdown) return;
+
+    // Si está oculto, lo mostramos. Si está visible, lo ocultamos.
+    if (dropdown.style.display === 'none' || dropdown.style.display === '') {
+        dropdown.style.display = 'flex';
+    } else {
+        dropdown.style.display = 'none';
+    }
+}
+
+// Cerrar el menú si el usuario hace clic fuera de él
+window.addEventListener('click', function(e) {
+    var dropdown = document.getElementById('settingsDropdown');
+    var btnSettings = document.querySelector('button[onclick="toggleSettingsMenu()"]');
+    
+    if (dropdown && dropdown.style.display === 'flex') {
+        if (btnSettings && !btnSettings.contains(e.target) && !dropdown.contains(e.target)) {
+            dropdown.style.display = 'none';
+        }
+    }
+});
+
+
+
+
 
  
 </script>
