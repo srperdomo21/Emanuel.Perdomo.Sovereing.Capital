@@ -228,14 +228,23 @@ function generarTicketImpresion(tipo, datos) {
 
   const titulo = esRenovo ? "RENOVO DE PRÉSTAMO" : "CONTRATO DE PRÉSTAMO";
   
-  // El logo de la foto
-  const logoHtml = `
-    <div class="logo-ticket">
-      <div style="border:1px solid #000; display:inline-block; padding:2px 10px; border-radius:10px; font-size:0.75rem; font-weight:bold;">
-        FAST LOANS RÁPIDOS<br><span style="font-size:0.6rem;">- PRÉSTAMOS -</span>
-      </div>
-    </div>`;
+  
+ // Logo y Nombre de la Empresa
+let nombreEmpresa = "PERDOMO SOVEREIGN CAPITAL";
+const headerEmp = document.getElementById('headerNombreEmpresa');
+if (headerEmp && headerEmp.innerText) {
+    nombreEmpresa = headerEmp.innerText;
+}
 
+const logoHtml = `
+  <div class="logo-ticket" style="text-align: center; margin-bottom: 10px;">
+    <img src="Logosv.png" alt="Logo" style="max-height: 50px; margin-bottom: 5px; filter: grayscale(100%);"><br>
+    <div style="font-size: 0.85rem; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;">
+      ${nombreEmpresa}
+    </div>
+    <div style="font-size: 0.6rem; margin-top: 2px;">- PRÉSTAMOS -</div>
+  </div>
+`;
   let html = `
     ${logoHtml}
     <div class="titulo-ticket">${titulo}</div>
