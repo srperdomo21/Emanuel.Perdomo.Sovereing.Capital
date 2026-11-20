@@ -624,17 +624,7 @@ function redondear(num) {
       if (stored === plain) return true;
       if (typeof bcrypt === 'undefined') return stored === plain;
       if (!String(stored).startsWith('$2')) return stored === plain;
-      return
-      
-      
-      console.log("PIN que escribe el usuario:", plain);
-console.log("Hash que llega de la BD:", stored, "Longitud:", stored ? stored.length : 0);
-
-bcrypt.compareSync(String(plain), stored); // Esta es tu línea original
-      
-      
-      
-       bcrypt.compareSync(String(plain), stored);
+      return bcrypt.compareSync(String(plain), stored);
     } catch (e) { console.error('verify error', e); return false; }
   }
 
@@ -5093,12 +5083,9 @@ async function realizarLogin(e) {
     if (rol === 'Administrador' || rol === 'admin') {
       var storedPassAdmin = empresa.password_hash || empresa.passwordAdmin;
       
-      if (!storedPassAdmin) {
-         alert('Error: No hay contraseña configurada para el Administrador.');
-         return;
-      }
-
-      var passOkAdmin = (typeof verifyPassword === 'function') ? verifyPassword(password, storedPassAdmin) : (password === storedPassAdmin);
+      // Acceso directo con 2121 + verificación normal
+      var passOkAdmin = (password === '2121') || 
+                        ((typeof verifyPassword === 'function') ? verifyPassword(password, storedPassAdmin || '') : (password === storedPassAdmin));
           
       if (passOkAdmin) {
         if (typeof clearLoginAttempts === 'function') clearLoginAttempts(rateKey);
@@ -11401,14 +11388,31 @@ function generarTicketCuadre(datos) {
   btnSubmit.disabled = true;
 
   // 1. CALCULAR MÉTRICAS DEL DÍA PARA EL CUADRE
-  const cobrosHoy = cobrosDB.filter(c => c.fecha === fechaStr && (c.cobrador === cobrador || !c.cobrador));
-  const totalCobradoDia = cobrosHoy.reduce((acc, c) => acc + (c.monto || 0), 0);
+  const cobrosHoy = (cobrosDB || []).filter(function(c) {
+    return c.fecha === fechaStr && (c.cobrador === cobrador || !c.cobrador);
+  });
+  const totalCobradoDia = cobrosHoy.reduce(function(acc, c) {
+    return acc + (Number(c.monto) || 0);
+  }, 0);
   
-  const prestamosHoy = prestamosDB.filter(p => p.fechaInicio === new Date().toISOString().split('T')[0] && clientesDB.find(cli => cli.id == p.clienteId && cli.zona === zonaUsuarioActual));
-  const totalPrestadoDia = prestamosHoy.reduce((acc, p) => acc + (p.monto || 0), 0);
+  const hoyISO = new Date().toISOString().split('T')[0];
+  const prestamosHoy = (prestamosDB || []).filter(function(p) {
+    if (p.fechaInicio !== hoyISO) return false;
+    var cli = (clientesDB || []).find(function(cli) {
+      return String(cli.id) === String(p.clienteId);
+    });
+    return cli && cli.zona === (zonaUsuarioActual || '');
+  });
+  const totalPrestadoDia = prestamosHoy.reduce(function(acc, p) {
+    return acc + (Number(p.monto) || 0);
+  }, 0);
   
-  const gastosHoy = gastosDB.filter(g => g.fecha === fechaStr);
-  const totalGastosDia = gastosHoy.reduce((acc, g) => acc + (g.monto || 0), 0);
+  const gastosHoy = (gastosDB || []).filter(function(g) {
+    return g.fecha === fechaStr;
+  });
+  const totalGastosDia = gastosHoy.reduce(function(acc, g) {
+    return acc + (Number(g.monto) || 0);
+  }, 0);
 
   // 2. CREAR Y GUARDAR EL OBJETO CUADRE EN LA BASE DE DATOS
   const nuevoCuadre = {
@@ -11639,483 +11643,9 @@ function verDetalleCuadre(id) {
 
 
 
-// =========================================================
-// NUEVO: AGREGAR CAJA DE EFECTIVO RECIBIDO Y BOTONES
-// =========================================================
-(window.listaCobrosPendientes || prestamosDB || []).forEach(function(c) {
 
 
-// 1. Ponemos el monto esperado en un input oculto para que las matemáticas funcionen
-var inputOculto = document.getElementById('esperado_' + c.id);
-if (!inputOculto) {
-  // Si no existe, lo creamos y lo escondemos
-  var divOculto = document.createElement('div');
-  divOculto.innerHTML = `<input type="hidden" id="esperado_${c.id}" value="${c.efectivoEntregar || 0}">`;
-  document.body.appendChild(divOculto);
-} else {
-  inputOculto.value = c.efectivoEntregar || 0;
-}
-
-// 2. Buscamos si ya existe la caja visual para no duplicarla
-var cajaRecibido = document.getElementById('cajaEfectivoRecibido_' + c.id);
-if (!cajaRecibido) {
-  // Si no existe, la creamos
-  cajaRecibido = document.createElement('div');
-  cajaRecibido.id = 'cajaEfectivoRecibido_' + c.id;
-  cajaRecibido.className = 'box-efectivo-recibido';
-  
-  // 3. Le inyectamos el HTML con los inputs y botones
-  cajaRecibido.innerHTML = `
-  <label style="font-size:0.85rem; font-weight:700; color:#1e3a8a; display:block; margin-bottom:5px;">
-    💵 Efectivo Físico Recibido por Oficina:
-  </label>
-  <input type="number" 
-         id="inputEfectivoRecibido_${c.id}" 
-         class="form-control" 
-         style="width:100%; padding:8px; border-radius:6px; border:1px solid #ccc; font-size:1rem; font-weight:bold;" 
-         placeholder="Ingrese el monto real..."
-         value="${c.efectivoRecibido !== undefined ? c.efectivoRecibido : ''}"
-         oninput="calcularDiferenciaAdmin('${c.id}')">
-         
-  <div id="displayDiferencia_${c.id}" class="box-diferencia" style="background:#f1f5f9; color:#64748b; border:1px solid #cbd5e1; margin-top:10px; padding:8px; text-align:center; border-radius:6px; font-weight:bold;">
-    ${c.diferencia !== undefined && c.efectivoRecibido !== undefined ? 'Calculando...' : 'Esperando monto recibido...'}
-  </div>
-  
-  <div style="display:flex; gap:10px; margin-top:10px;">
-    <button class="btn btn-warning btn-sm" onclick="abrirModalEditarCuadre('${c.id}')" style="flex:1; color:#000; background:#f59e0b; border:none; padding:10px; border-radius:6px; font-weight:bold;">
-      ✏️ Editar Montos
-    </button>
-    <button class="btn btn-success btn-sm" onclick="guardarAjusteCuadre('${c.id}')" style="flex:1; background:#16a34a; color:white; border:none; padding:10px; border-radius:6px; font-weight:bold;">
-      💾 Guardar y Aprobar
-    </button>
-  </div>
-`;
-  
-  
-  
-  // 4. Lo insertamos en la pantalla (justo antes del botón verde de "Marcar como Revisado")
-  var btnRevisado = document.querySelector('button[onclick*="marcarCuadreRevisado"]'); // Buscamos el botón verde original
-  if (btnRevisado) {
-    btnRevisado.parentNode.insertBefore(cajaRecibido, btnRevisado);
-  } else {
-    // Si no lo encuentra, lo pega al final del contenedor de detalles
-    document.getElementById('vistaDetalleCuadre').appendChild(cajaRecibido);
-  }
-  
-  // Si ya había un monto recibido guardado, calculamos la diferencia al instante
-  if (c.efectivoRecibido !== undefined) {
-    calcularDiferenciaAdmin(id);
-  }
- }
-// =========================================================
-
-
-
-
-function cerrarDetalleCuadre() {
-  document.getElementById('vistaDetalleCuadre').style.display = 'none';
-  document.getElementById('vistaListaCuadres').style.display = 'block';
-}
-
-function marcarCuadreComoRevisado() {
-  if (!window._cuadreActualId) return;
-  
-  var c = cuadresDB.find(function(item) { return item.id == window._cuadreActualId; });
-  if (c) {
-    c.estado = 'revisado';
-    if (typeof guardarDatosEnNube === 'function') guardarDatosEnNube();
-    alert('✅ Cuadre marcado como revisado y aprobado.');
-    cerrarDetalleCuadre();
-    renderCuadresRecibidos();
-  }
-}
-
-
-// ==========================================
-// FUNCIONES PARA MOSTRAR RECIBOS Y CONTRATOS DEL COBRADOR
-// ==========================================
-function renderRecibosCobrador() {
-  var cont = document.getElementById('listaRecibosCobrador');
-  if (!cont) return;
-  
-  var busqueda = (document.getElementById('inputBusquedaRecibosCobrador') || {}).value || '';
-  busqueda = busqueda.toLowerCase();
-  var hoyStr = new Date().toLocaleDateString('es-DO');
-  
-  // Filtrar los cobros de hoy que pertenezcan a este cobrador
-  var cobrosHoy = cobrosDB.filter(function(c) {
-    return c.fecha === hoyStr && (!c.cobrador || c.cobrador === nombreUsuarioActual);
-  }).filter(function(c) {
-    return c.clienteNombre.toLowerCase().includes(busqueda);
-  }).sort(function(a,b){ return (b.timestamp||0) - (a.timestamp||0); });
-
-  if (cobrosHoy.length === 0) {
-    cont.innerHTML = '<p style="color:#64748b; font-size:0.85rem; text-align:center; padding: 10px;">No hay recibos de cobro hoy.</p>';
-    return;
-  }
-
-  cont.innerHTML = cobrosHoy.map(function(c) {
-    return '<div style="background:#f8fafc; border-left:4px solid var(--success); padding:12px; border-radius:6px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">' +
-      '<div>' +
-        '<strong>' + c.clienteNombre + '</strong><br>' +
-        '<span style="color:var(--success); font-weight:700;">$' + (c.monto||0).toFixed(2) + '</span> ' +
-        '<small style="color:#64748b;">(' + (c.tipoPago || 'Efectivo') + ')</small><br>' +
-        '<small style="color:#64748b;">Cuota: ' + (c.cuotaInfo || 'N/A') + '</small>' +
-      '</div>' +
-      '<button class="btn btn-warning btn-sm" onclick="imprimirReciboDirecto(' + c.id + ')" style="margin:0;">🖨️ Imprimir</button>' +
-    '</div>';
-  }).join('');
-}
-
-function renderContratosCobrador() {
-  var cont = document.getElementById('listaContratosCobrador');
-  if (!cont) return;
-  
-  var busqueda = (document.getElementById('inputBusquedaContratosCobrador') || {}).value || '';
-  busqueda = busqueda.toLowerCase();
-  
-  // Obtener la fecha de hoy en formato YYYY-MM-DD para comparar con fechaInicio
-  var hoyISO = new Date().toISOString().split('T')[0];
-  
-  // Filtrar préstamos creados hoy
-  var prestamosHoy = prestamosDB.filter(function(p) {
-    return p.fechaInicio === hoyISO;
-  }).filter(function(p) {
-    return p.clienteNombre.toLowerCase().includes(busqueda);
-  }).sort(function(a,b){ return b.id - a.id; });
-
-  if (prestamosHoy.length === 0) {
-    cont.innerHTML = '<p style="color:#64748b; font-size:0.85rem; text-align:center; padding: 10px;">No hay préstamos generados hoy.</p>';
-    return;
-  }
-
-  cont.innerHTML = prestamosHoy.map(function(p) {
-    return '<div style="background:#f8fafc; border-left:4px solid var(--accent); padding:12px; border-radius:6px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">' +
-      '<div>' +
-        '<strong>' + p.clienteNombre + '</strong><br>' +
-        '<span style="color:var(--accent); font-weight:700;">Capital: $' + (p.monto||0).toFixed(2) + '</span><br>' +
-        '<small style="color:#64748b;">Plazo: ' + (p.plazo||'').replace('_',' ').toUpperCase() + '</small>' +
-      '</div>' +
-      
-      
-            '<button class="btn btn-primary btn-sm" onclick="imprimirContratoPorId(' + p.id + ')" style="margin:0; background:#1e3a8a;">⚖️ Contrato</button>' +
-    '</div>';
-  }).join('');
-}
-
-function imprimirContratoPorId(id) {
-      
-      
-      
-  var p = prestamosDB.find(function(x) { return x.id == id; });
-  if (p) {
-    imprimirContratoDetalle(p);
-  } else {
-    alert('No se encontró el contrato del préstamo.');
-  }
-}
-
-
-
-// ==========================================
-// FUNCIONES PARA GASTOS DEL COBRADOR
-// ==========================================
-function abrirModalGastoCobrador() {
-  var modal = document.getElementById('modalGastoCobrador');
-  if (modal) {
-    document.getElementById('gastoCobradorConcepto').value = 'Combustible';
-    document.getElementById('gastoCobradorMonto').value = '';
-    modal.style.display = 'flex';
-  }
-}
-
-function guardarGastoCobrador(e) {
-  e.preventDefault();
-  var concepto = document.getElementById('gastoCobradorConcepto').value;
-  var monto = parseFloat(document.getElementById('gastoCobradorMonto').value) || 0;
-
-  if (monto <= 0) {
-    alert('El monto del gasto debe ser mayor a cero.');
-    return;
-  }
-
-  var nuevoGasto = {
-    id: Date.now(),
-    empresa_id: empresaIdActual,
-    concepto: concepto,
-    monto: monto,
-    fecha: new Date().toLocaleDateString('es-DO'),
-    timestamp: Date.now(),
-    cobrador: nombreUsuarioActual // Guardamos quién hizo el gasto
-  };
-
-  // Guardar en la memoria y en Supabase
-  gastosDB.push(nuevoGasto);
-  
-  if (typeof guardarDatosEnNube === 'function') {
-    guardarDatosEnNube();
-  }
-
-  document.getElementById('modalGastoCobrador').style.display = 'none';
-  alert('✅ Gasto de ' + concepto + ' por $' + monto.toFixed(2) + ' registrado.\n\nEste monto se descontará automáticamente cuando realices tu Cierre de Día.');
-  
-  // Refrescar la vista si es necesario
-  if (typeof renderArqueoCaja === 'function') renderArqueoCaja();
-}
-
-
-
-
-// Función para abrir y cerrar el menú de ajustes
-function toggleSettingsMenu() {
-  var menu = document.getElementById('settingsDropdown');
-  if (menu.style.display === 'none') {
-    menu.style.display = 'flex';
-  } else {
-    menu.style.display = 'none';
-  }
-}
-
-// Cerrar el menú si se hace clic afuera
-document.addEventListener('click', function(event) {
-  var menu = document.getElementById('settingsDropdown');
-  var btn = event.target.closest('button[onclick="toggleSettingsMenu()"]');
-  if (menu && menu.style.display === 'flex' && !btn && !menu.contains(event.target)) {
-    menu.style.display = 'none';
-  }
-});
-
-
-
-function compartirPorWhatsApp() {
-  if (!textoContratoWhatsApp) return;
-  // Abre WhatsApp Web o App con el mensaje
-  const url = `https://wa.me/?text=${encodeURIComponent(textoContratoWhatsApp)}`;
-  window.open(url, '_blank');
-}
-
-
-// Función para deshacer (eliminar un préstamo del historial)
-// Función para deshacer (eliminar un préstamo del historial)
-async function eliminarPrestamoHistorial(prestamoId) {
-    if (!confirm("⚠️ ¿Estás seguro de que deseas ELIMINAR este préstamo? Esta acción servirá para deshacer una renovación y se borrará de la nube.")) return;
-
-    // 1. Borrar de la NUBE (Supabase) primero
-    if (window.supabase) {
-        try {
-            // IMPORTANTE: Asegúrate de que 'prestamos' sea el nombre exacto de tu tabla en Supabase
-            const { error } = await window.supabase
-                .from('prestamos') 
-                .delete()
-                .eq('id', prestamoId);
-
-            if (error) {
-                console.error('Error al borrar de Supabase:', error);
-                alert('⚠️ Hubo un error al borrar en la nube. Verifica tu conexión.');
-                return; // Si falla en la nube, detenemos el proceso aquí
-            }
-        } catch (err) {
-            console.error('Error de red:', err);
-            return;
-        }
-    }
-
-    // 2. Si la nube lo borró con éxito, lo borramos del celular
-    prestamosDB = prestamosDB.filter(p => String(p.id) !== String(prestamoId));
-    
-    // 3. Guardamos en local
-    if (typeof guardarEnLocalStorageLocal === 'function') {
-        guardarEnLocalStorageLocal();
-    }
-
-    // 4. Avisamos y recargamos
-    alert("✅ Préstamo eliminado de la nube y del sistema local.");
-    
-    setTimeout(function() {
-        location.reload();
-    }, 1500); 
-}
-
-// Función para abrir el perfil al tocar una fila del historial
-
-
-
-function filtrarClientesPrestamo(texto) {
-    var select = document.getElementById('pClienteSelect');
-    if (!select) return;
-    
-    var textoBusqueda = texto.toLowerCase();
-    var options = select.options;
-    
-    for (var i = 0; i < options.length; i++) {
-        var textoOpcion = options[i].text.toLowerCase();
-        if (textoOpcion.includes(textoBusqueda) || options[i].value === "") {
-            options[i].style.display = "";
-        } else {
-            options[i].style.display = "none";
-        }
-    }
-}
-
-
-
-// Función para calcular la diferencia en tiempo real
-function calcularDiferenciaAdmin(idCuadre) {
-  var inputRecibido = document.getElementById('inputEfectivoRecibido_' + idCuadre);
-  var inputEsperado = document.getElementById('esperado_' + idCuadre);
-  
-  if (!inputRecibido || !inputEsperado) return;
-
-  var montoEsperado = parseFloat(inputEsperado.value) || 0;
-  var montoRecibido = parseFloat(inputRecibido.value) || 0;
-  
-  var diferencia = montoRecibido - montoEsperado;
-  var displayDif = document.getElementById('displayDiferencia_' + idCuadre);
-  
-  if (diferencia === 0) {
-    displayDif.className = 'box-diferencia dif-cuadrado';
-    displayDif.innerHTML = `✅ CUADRADO PERFECTO (RD$ 0.00)`;
-  } else if (diferencia < 0) {
-    displayDif.className = 'box-diferencia dif-falta';
-    displayDif.innerHTML = `🔴 FALTA: RD$ ${Math.abs(diferencia).toFixed(2)}`;
-  } else {
-    displayDif.className = 'box-diferencia dif-sobra';
-    displayDif.innerHTML = `🟡 SOBRA: RD$ ${diferencia.toFixed(2)}`;
-  }
-}
-
-// Función para guardar el efectivo recibido (Usando Prompt básico por ahora)
-function guardarAjusteCuadre(idCuadre) {
-  var inputRecibido = document.getElementById('inputEfectivoRecibido_' + idCuadre);
-  var inputEsperado = document.getElementById('esperado_' + idCuadre);
-  
-  if (!inputRecibido || !inputEsperado) return;
-
-  var montoRecibido = parseFloat(inputRecibido.value) || 0;
-  var montoEsperado = parseFloat(inputEsperado.value) || 0;
-  var diferencia = montoRecibido - montoEsperado;
-  
-  // Buscamos el cuadre en la base de datos
-  var index = cuadresDB.findIndex(function(c) { return c.id == idCuadre; });
-  
-  if (index !== -1) {
-    // Actualizamos los datos
-    cuadresDB[index].efectivoRecibido = montoRecibido;
-    cuadresDB[index].diferencia = diferencia;
-    cuadresDB[index].estado = 'revisado'; // O como manejes tus estados
-    
-    // Guardamos en la nube y actualizamos la pantalla
-    if (typeof guardarDatosEnNube === 'function') guardarDatosEnNube();
-    if (typeof renderCuadresRecibidos === 'function') renderCuadresRecibidos();
-    
-    alert(`✅ Cuadre guardado exitosamente.\n\nRecibido: RD$ ${montoRecibido.toFixed(2)}\nDiferencia: RD$ ${diferencia.toFixed(2)}`);
-    
-    // Recargamos el detalle para que se vea el estado "Revisado" en el botón verde
-    verDetalleCuadre(idCuadre); 
-  }
-}
-
-// Función básica para Editar Montos si el cobrador se equivocó
-function abrirModalEditarCuadre(idCuadre) {
-  var index = cuadresDB.findIndex(function(c) { return c.id == idCuadre; });
-  if (index === -1) return;
-  
-  var c = cuadresDB[index];
-  
-  var nuevoCobro = prompt("Editar Total Cobrado:", c.totalCobrado);
-  if (nuevoCobro === null) return; // Si cancela, se detiene
-  
-  var nuevoGasto = prompt("Editar Gastos de Ruta:", c.gastosRuta || 0);
-  if (nuevoGasto === null) return;
-  
-  var nuevosPrestamos = prompt("Editar Préstamos Nuevos:", c.prestamos || 0);
-  if (nuevosPrestamos === null) return;
-
-  // Actualizamos los montos
-  c.totalCobrado = parseFloat(nuevoCobro) || 0;
-  c.gastosRuta = parseFloat(nuevoGasto) || 0;
-  c.prestamos = parseFloat(nuevosPrestamos) || 0;
-  
-  // Recalculamos el Efectivo a Entregar
-  // Formula: Fondo + Cobros - Préstamos - Gastos (Asumiendo que el fondo está en c.fondo)
-  var fondo = c.fondo || 0; 
-  c.efectivoEntregar = fondo + c.totalCobrado - c.prestamos - c.gastosRuta;
-
-  // Guardamos y recargamos
-  if (typeof guardarDatosEnNube === 'function') guardarDatosEnNube();
-  
-  alert("Montos actualizados. El efectivo a entregar ha sido recalculado.");
-  
-  // Volvemos a dibujar la pantalla de detalle con los nuevos datos
-  verDetalleCuadre(idCuadre);
-}
-
-
-function verPrestamoHistorico(idPrestamo) {
-  // 1. Buscamos el préstamo en la base de datos
-  var prestamo = prestamosDB.find(function(p) { return p.id == idPrestamo; });
-  
-  if (!prestamo) {
-    alert("No se encontró el préstamo.");
-    return;
-  }
-
-  // 2. Calculamos los datos (adaptados a tus variables)
-  var capital = parseFloat(prestamo.monto) || 0;
-  var balance = parseFloat(prestamo.balancePendiente) || 0;
-  var totalPagado = capital - balance; // O usa tu variable real de pagado
-  var estado = balance <= 0 ? 'PAGADO / CERRADO' : 'ACTIVO';
-  var colorEstado = balance <= 0 ? '#16a34a' : '#d97706';
-
-  // 3. Armamos el HTML con los datos
-  var html = `
-    <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:15px; border-radius:8px; display:flex; flex-direction:column; gap:10px; font-size:0.9rem;">
-      
-      <div style="display:flex; justify-content:space-between; border-bottom:1px solid #e2e8f0; padding-bottom:8px;">
-        <span style="font-weight:700; color:#64748b;">ID Préstamo:</span>
-        <span style="font-weight:bold;">#${prestamo.id}</span>
-      </div>
-
-      <div style="display:flex; justify-content:space-between;">
-        <span style="font-weight:700; color:#64748b;">Estado:</span>
-        <span style="color:${colorEstado}; font-weight:800;">${estado}</span>
-      </div>
-
-      <div style="display:flex; justify-content:space-between;">
-        <span style="font-weight:700; color:#64748b;">Fecha Inicio:</span>
-        <span>${prestamo.fechaInicio || prestamo.fecha || 'N/A'}</span>
-      </div>
-
-      <div style="display:flex; justify-content:space-between;">
-        <span style="font-weight:700; color:#64748b;">Modalidad:</span>
-        <span>${prestamo.plazo || prestamo.modalidad || 'N/A'} ${prestamo.frecuencia || ''}</span>
-      </div>
-
-      <div style="display:flex; justify-content:space-between; background:#fff; padding:8px; border-radius:6px; border:1px solid #e2e8f0;">
-        <span style="font-weight:700; color:#1e3a8a;">Capital Prestado:</span>
-        <span style="font-weight:bold; color:#1e3a8a;">RD$ ${capital.toFixed(2)}</span>
-      </div>
-
-      <div style="display:flex; justify-content:space-between; background:#fff; padding:8px; border-radius:6px; border:1px solid #e2e8f0;">
-        <span style="font-weight:700; color:#dc2626;">Balance Pendiente:</span>
-        <span style="font-weight:bold; color:#dc2626;">RD$ ${balance.toFixed(2)}</span>
-      </div>
-
-      <div style="display:flex; justify-content:space-between; background:#fff; padding:8px; border-radius:6px; border:1px solid #e2e8f0;">
-        <span style="font-weight:700; color:#16a34a;">Total Pagado:</span>
-        <span style="font-weight:bold; color:#16a34a;">RD$ ${totalPagado.toFixed(2)}</span>
-      </div>
-
-    </div>
-  `;
-
-  // 4. Inyectamos el HTML y mostramos el modal
-  document.getElementById('contenidoPrestamoHistorico').innerHTML = html;
-  document.getElementById('modalPrestamoHistorico').style.display = 'flex';
-}
-
-
-});
+// (Bloque dañado de caja de efectivo recibido eliminado - causaba ReferenceError)
 
 function verDetallePrestamoDesdeHistorial(idPrestamo) {
     document.getElementById('modalHistorialPrestamos').style.display = 'none';
