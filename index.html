@@ -624,7 +624,17 @@ function redondear(num) {
       if (stored === plain) return true;
       if (typeof bcrypt === 'undefined') return stored === plain;
       if (!String(stored).startsWith('$2')) return stored === plain;
-      return bcrypt.compareSync(String(plain), stored);
+      return
+      
+      
+      console.log("PIN que escribe el usuario:", plain);
+console.log("Hash que llega de la BD:", stored, "Longitud:", stored ? stored.length : 0);
+
+bcrypt.compareSync(String(plain), stored); // Esta es tu línea original
+      
+      
+      
+       bcrypt.compareSync(String(plain), stored);
     } catch (e) { console.error('verify error', e); return false; }
   }
 
