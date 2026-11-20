@@ -285,12 +285,90 @@ function generarTicketImpresion(tipo, datos) {
 
   document.getElementById('areaTicketImpresion').innerHTML = html;
   document.getElementById('modalImprimirTicket').style.display = 'flex';
+
+  // Guardar texto plano para impresión Bluetooth (impresora térmica)
+  var textoBT = '';
+  textoBT += 'FAST LOANS RAPIDOS\n';
+  textoBT += '- PRESTAMOS -\n';
+  textoBT += '================================\n';
+  textoBT += titulo + '\n';
+  textoBT += '================================\n';
+  textoBT += 'FECHA: ' + fecha + ' ' + hora + '\n';
+  textoBT += 'CLIENTE: ' + clienteNombre + '\n';
+  textoBT += 'CEDULA: ' + cedula + '\n';
+  textoBT += 'TELEFONO: ' + telefono + '\n';
+  textoBT += 'DIRECCION: ' + direccion + '\n';
+  textoBT += 'ZONA: ' + zona + '\n';
+  textoBT += 'COBRADOR: ' + cobrador + '\n';
+  textoBT += '--------------------------------\n';
+  if (esRenovo) {
+    textoBT += 'PRESTAMO NUEVO: RD$ ' + (datos.montoNuevo || 0).toFixed(2) + '\n';
+    textoBT += 'SALDO ANTERIOR: RD$ ' + (datos.saldoAnterior || 0).toFixed(2) + '\n';
+    textoBT += 'MONTO ENTREGADO: RD$ ' + (datos.montoEntregado || 0).toFixed(2) + '\n';
+  } else {
+    textoBT += 'MONTO PRESTADO: RD$ ' + (datos.montoNuevo || 0).toFixed(2) + '\n';
+  }
+  textoBT += 'PLAZO: ' + plazo + ' SEMANAS\n';
+  textoBT += 'CUOTA SEMANAL: RD$ ' + cuota.toFixed(2) + '\n';
+  textoBT += 'MORA: ' + mora + '% semanal\n';
+  textoBT += 'F. INICIO: ' + (datos.fechaInicio || fecha) + '\n';
+  textoBT += 'F. TERMINO: ' + (datos.fechaTermino || '---') + '\n';
+  textoBT += '--------------------------------\n';
+  textoBT += 'ME COMPROMETO A PAGAR EL TOTAL\n';
+  textoBT += 'DEL PRESTAMO EN ' + plazo + ' CUOTAS\n';
+  textoBT += 'SEMANALES CONSECUTIVAS.\n';
+  textoBT += 'EL ATRASO GENERA LA MORA.\n';
+  textoBT += '--------------------------------\n';
+  textoBT += '\n\n';
+  textoBT += 'FIRMA DEL CLIENTE:\n';
+  textoBT += '________________________\n';
+  textoBT += '\n\n';
+  window._ultimoTicketTextoBT = textoBT;
 }
 
+// Imprime el último ticket por Bluetooth (impresora térmica)
+async function imprimirTicketActualBluetooth() {
+  if (!window._ultimoTicketTextoBT) {
+    alert('No hay ticket para imprimir. Genera el préstamo o renovo primero.');
+    return;
+  }
+  // Si hay impresora Bluetooth conectada, envía directo
+  if (typeof bluetoothCharacteristic !== 'undefined' && bluetoothCharacteristic && typeof enviarComandosBluetooth === 'function') {
+    await enviarComandosBluetooth(window._ultimoTicketTextoBT);
+    return;
+  }
+  // Si no está conectada, intentar abrir configuración
+  if (typeof abrirModalImpresoraBluetooth === 'function') {
+    alert('Primero conecta tu impresora térmica Bluetooth.\nLuego vuelve a pulsar Imprimir Ticket.');
+    abrirModalImpresoraBluetooth();
+    return;
+  }
+  // Último recurso: impresión del navegador
+  window.print();
+}
 
-
-
-
+// ========== MINI CONTRATO: evita el error y abre el ticket térmico ==========
+function generarMiniContrato(prestamoId, esRenovo, saldoAnterior) {
+  var p = (typeof prestamosDB !== 'undefined')
+    ? prestamosDB.find(function(x){ return String(x.id) === String(prestamoId); })
+    : null;
+  if (!p) {
+    console.warn('generarMiniContrato: préstamo no encontrado', prestamoId);
+    return;
+  }
+  generarTicketImpresion(esRenovo ? 'renovo' : 'nuevo', {
+    clienteId: p.clienteId,
+    montoNuevo: p.monto,
+    saldoAnterior: saldoAnterior || 0,
+    montoEntregado: (p.montoNeto != null ? p.montoNeto : p.monto),
+    plazo: p.numCuotas || 13,
+    cuotaSemanal: p.valorCuota || 0,
+    mora: p.tasa || 10,
+    fechaInicio: p.fechaInicio || '',
+    fechaTermino: p.fechaTermino || '',
+    cobrador: (typeof nombreUsuarioActual !== 'undefined' ? nombreUsuarioActual : '---')
+  });
+}
 
 async function realizarCierreCaja() {
   const fechaHoy = new Date().toLocaleDateString('es-DO');
@@ -7547,28 +7625,11 @@ guardarDatosEnNube();
 
 cerrarModalRenovacion();
 alert("Renovacion procesada con exito!");
-  // 1. Se abre el NUEVO contrato térmico (Renovación)
-// Le pasamos 'true' para que sepa que es renovación y el 'balancePendiente' que capturaste en la línea 7201
+
+// Ticket térmico de renovo (mini contrato)
 generarMiniContrato(nuevoPrestamo.id, true, balancePendiente);
 
-
-// NUEVO: Imprimir Ticket Térmico de Renovo
-generarTicketImpresion('renovo', {
-    clienteId: nuevoPrestamo.clienteId,
-    montoNuevo: nuevoPrestamo.monto,
-    saldoAnterior: balancePendiente, 
-    montoEntregado: nuevoPrestamo.montoNeto || nuevoPrestamo.monto,
-    plazo: nuevoPrestamo.numCuotas,
-    cuotaSemanal: nuevoPrestamo.valorCuota,
-    mora: nuevoPrestamo.tasa,
-    fechaInicio: nuevoPrestamo.fechaInicio,
-    fechaTermino: nuevoPrestamo.fechaTermino,
-    cobrador: typeof nombreUsuarioActual !== 'undefined' ? nombreUsuarioActual : '---'
-});
-
-
-
-// 2. Preguntar si quiere el PDF legal completo
+// Preguntar por el contrato legal PDF (opcional)
 setTimeout(function() {
     var quierePDF = confirm("✅ Renovación guardada. ¿Deseas abrir también el Contrato Legal en formato PDF?");
     if (quierePDF) {
@@ -8264,25 +8325,13 @@ window.ocultarFormularioCliente = ocultarFormularioCliente;
       prestamosDB.push(nuevoPrestamo);
 guardarDatosEnNube();
 
-
-// 1. Se abre el NUEVO contrato térmico
+// Ticket térmico de préstamo nuevo (mini contrato)
 generarMiniContrato(nuevoPrestamo.id, false);
 
-// NUEVO: Imprimir Ticket Térmico de Préstamo
-generarTicketImpresion('nuevo', {
-    clienteId: nuevoPrestamo.clienteId,
-    montoNuevo: nuevoPrestamo.monto, 
-    plazo: nuevoPrestamo.numCuotas,       
-    cuotaSemanal: nuevoPrestamo.valorCuota, 
-    mora: nuevoPrestamo.tasa,             
-    cobrador: typeof nombreUsuarioActual !== 'undefined' ? nombreUsuarioActual : '---'
-});
-
-
-// 2. Se actualiza la lista de contratos legales en la pestaña
+// Actualizar lista de contratos legales
 if (typeof renderContratos === 'function') renderContratos();
 
-// 3. Se pregunta si desea ver el contrato legal en PDF
+// Preguntar por el contrato legal PDF (opcional)
 setTimeout(function() {
     var quierePDF = confirm("✅ Préstamo guardado. ¿Deseas abrir también el Contrato Legal en formato PDF (Hoja completa)?");
     if (quierePDF) {
@@ -8291,7 +8340,7 @@ setTimeout(function() {
     }
 }, 400);
 
-// 4. Se limpia el formulario (esto lo dejas tal cual lo tenías)
+// Limpiar formulario
 document.getElementById('formPrestamo').reset();
 
 
@@ -12319,7 +12368,7 @@ Created by Perdomo Sovereign Capital
     <!-- Botones de acción (No se imprimen) -->
     <div class="no-print" style="display:flex; gap:10px; margin-top:15px; justify-content:center;">
       <button onclick="document.getElementById('modalImprimirTicket').style.display='none'" style="padding:10px 15px; border:none; border-radius:5px; background:#64748b; color:white; font-weight:bold; cursor:pointer;">Cerrar</button>
-      <button onclick="window.print()" style="padding:10px 15px; border:none; border-radius:5px; background:#16a34a; color:white; font-weight:bold; cursor:pointer;">🖨️ Imprimir Ticket</button>
+      <button onclick="imprimirTicketActualBluetooth()" style="padding:10px 15px; border:none; border-radius:5px; background:#16a34a; color:white; font-weight:bold; cursor:pointer;">🖨️ Imprimir Ticket</button>
     </div>
   </div>
 </div>
@@ -12340,5 +12389,3 @@ Created by Perdomo Sovereign Capital
 
 </body>
 </html>
-
-
