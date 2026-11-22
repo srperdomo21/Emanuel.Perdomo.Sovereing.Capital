@@ -13,7 +13,7 @@
   
   <link rel="manifest" href='data:application/json,{"name":"Perdomo Capital","short_name":"Perdomo","start_url":"./","display":"standalone","background_color":"#0f172a","theme_color":"#1e3a8a","description":"Sistema de gestion de cobros y prestamos","icons":[{"src":"Logosv.png","sizes":"192x192","type":"image/png"},{"src":"Logosv.png","sizes":"512x512","type":"image/png"}]}'>
 
-  <title>Perdomo Sovereign Capital - Sistema Maestro Empresarial v2 Secure</title>
+  <title>Perdomo Sovereign Capital - Sistema Maestro Empresarial v2 Comercial + Seguridad</title>
 
   
   
@@ -23,6 +23,11 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <!-- BCRYPT para hash seguro de contraseñas -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/bcryptjs/2.4.3/bcrypt.min.js"></script>
+  <script>
+    if (typeof window.bcrypt === 'undefined' && window.dcodeIO && window.dcodeIO.bcrypt) {
+      window.bcrypt = window.dcodeIO.bcrypt;
+    }
+  </script>
   <!-- CHART.JS para gráficos profesionales -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <!-- SUPABASE -->
@@ -245,15 +250,139 @@ async function realizarCierreCaja() {
 <script>
     
   
-  var SUPABASE_URL = 'https://quspjrizkyhowquonyum.supabase.co';
-var SUPABASE_ANON_KEY = 'sb_publishable_2CFYvUocRvSErAAmRfDSMw_NbI_Gejt';
-  
-  
-  
+  // === CONFIGURACIÓN DE CONEXIÓN (fase comercial) ===
+  // IMPORTANTE: la anon key del cliente SOLO es segura si en Supabase tienes
+  // Row Level Security (RLS) + policies por empresa_id en TODAS las tablas.
+  // Nunca pongas service_role key aquí. Rota la clave si este archivo se compartió.
+  // Puedes sobrescribir sin editar el archivo: window.PSC_SUPABASE_URL / window.PSC_SUPABASE_ANON_KEY
+  var SUPABASE_URL = (typeof window !== 'undefined' && window.PSC_SUPABASE_URL) || 'https://quspjrizkyhowquonyum.supabase.co';
+  var SUPABASE_ANON_KEY = (typeof window !== 'undefined' && window.PSC_SUPABASE_ANON_KEY) || 'sb_publishable_5MaNKrJoOhBCYu8I5cY0qw_ThxCOtAQ'  ;
 
-var supabase = (window.supabase && window.supabase.createClient)
-  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
-  : null;
+  var supabase = (window.supabase && window.supabase.createClient)
+    ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        auth: { persistSession: false, autoRefreshToken: false },
+        global: { headers: { 'x-client-info': 'perdomo-trebedit-comercial' } }
+      })
+    : null;
+
+  // Auditoría local de acciones sensibles (complementa, no sustituye, logs de servidor)
+  function pscAudit(accion, detalle) {
+    try {
+      var key = 'psc_audit_log_v1';
+      var arr = [];
+      try { arr = JSON.parse(localStorage.getItem(key) || '[]'); } catch (e) { arr = []; }
+      var row = {
+        id: Date.now(),
+        cuando: new Date().toISOString(),
+        empresa: (typeof empresaActual !== 'undefined' ? empresaActual : ''),
+        empresa_id: (typeof empresaIdActual !== 'undefined' ? empresaIdActual : null),
+        usuario: (typeof nombreUsuarioActual !== 'undefined' ? nombreUsuarioActual : ''),
+        rol: (typeof rolUsuarioActual !== 'undefined' ? rolUsuarioActual : ''),
+        accion: String(accion || ''),
+        detalle: String(detalle || '')
+      };
+      arr.unshift(row);
+      if (arr.length > 300) arr = arr.slice(0, 300);
+      localStorage.setItem(key, JSON.stringify(arr));
+      // Servidor (RPC) — requiere ejecutar supabase-seguridad-rls.sql
+      if (supabase) {
+        try {
+          supabase.rpc('psc_audit_log', {
+            p_empresa_id: row.empresa_id ? Number(row.empresa_id) : null,
+            p_usuario: row.usuario || '',
+            p_rol: row.rol || '',
+            p_accion: row.accion,
+            p_detalle: row.detalle || null
+          }).then(function(){}).catch(function(){});
+        } catch (eRpc) {}
+      }
+    } catch (e) { console.warn('audit', e); }
+  }
+  window.pscAudit = pscAudit;
+
+  // === SESIÓN REAL (expira) + rate-limit en servidor ===
+  var PSC_SESSION_HOURS = 12;
+  function pscSaveSession(payload) {
+    var exp = Date.now() + PSC_SESSION_HOURS * 3600 * 1000;
+    var ses = Object.assign({}, payload, { exp: exp, token: 'psc_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 10) });
+    localStorage.setItem('psc_sesion_segura', JSON.stringify(ses));
+    localStorage.setItem('psc_sesion_activa', '1');
+    return ses;
+  }
+  function pscLoadSession() {
+    try {
+      var raw = localStorage.getItem('psc_sesion_segura');
+      if (!raw) return null;
+      var ses = JSON.parse(raw);
+      if (!ses || !ses.exp || Date.now() > ses.exp) {
+        localStorage.removeItem('psc_sesion_segura');
+        return null;
+      }
+      return ses;
+    } catch (e) { return null; }
+  }
+  function pscClearSession() {
+    localStorage.removeItem('psc_sesion_segura');
+    localStorage.removeItem('psc_sesion_activa');
+    localStorage.removeItem('psc_rol_activo');
+    localStorage.removeItem('psc_nombre_usuario');
+    localStorage.removeItem('psc_zona_usuario');
+  }
+  window.pscSaveSession = pscSaveSession;
+  window.pscLoadSession = pscLoadSession;
+  window.pscClearSession = pscClearSession;
+
+  async function pscServerCheckLogin(rateKey) {
+    if (!supabase) return { ok: true };
+    try {
+      var res = await supabase.rpc('psc_check_login_allowed', { p_key: String(rateKey) });
+      if (res.error) return { ok: true };
+      return res.data || { ok: true };
+    } catch (e) { return { ok: true }; }
+  }
+  async function pscServerFailLogin(rateKey) {
+    if (!supabase) return;
+    try { await supabase.rpc('psc_register_failed_login', { p_key: String(rateKey) }); } catch (e) {}
+  }
+  async function pscServerClearLogin(rateKey) {
+    if (!supabase) return;
+    try { await supabase.rpc('psc_clear_login_attempts', { p_key: String(rateKey) }); } catch (e) {}
+  }
+  window.pscServerCheckLogin = pscServerCheckLogin;
+  window.pscServerFailLogin = pscServerFailLogin;
+  window.pscServerClearLogin = pscServerClearLogin;
+
+  // Edge Function opcional (si está desplegada)
+  async function pscInvokeEdge(name, body) {
+    if (!supabase || !SUPABASE_URL || !SUPABASE_ANON_KEY) return { ok: false, skipped: true };
+    try {
+      var url = SUPABASE_URL.replace(/\/$/, '') + '/functions/v1/' + name;
+      var resp = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+        },
+        body: JSON.stringify(body || {})
+      });
+      var data = await resp.json().catch(function(){ return {}; });
+      if (!resp.ok) return { ok: false, status: resp.status, data: data };
+      return Object.assign({ ok: true }, data);
+    } catch (e) {
+      return { ok: false, skipped: true, error: String(e) };
+    }
+  }
+  window.pscInvokeEdge = pscInvokeEdge;
+
+  // Garantiza empresa_id en cualquier objeto antes de subir
+  function pscForceEmpresaId(obj) {
+    if (!obj || typeof obj !== 'object') return obj;
+    if (!empresaIdActual) return obj;
+    obj.empresa_id = empresaIdActual;
+    return obj;
+  }
+  window.pscForceEmpresaId = pscForceEmpresaId;
 
 
 
@@ -755,47 +884,85 @@ function aplicarTemaGuardado() {
 
     #loginScreen {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background-color: #0a1628;
-      background-image:
-        radial-gradient(ellipse at 15% 20%, rgba(37,99,235,0.25) 0%, transparent 50%),
-        radial-gradient(ellipse at 85% 80%, rgba(30,58,138,0.3) 0%, transparent 50%),
-        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'%3E%3Ctext x='8' y='28' font-family='Arial,sans-serif' font-size='22' font-weight='bold' fill='rgba(37,99,235,0.18)'%3E$%3C/text%3E%3Ctext x='70' y='45' font-family='Arial,sans-serif' font-size='16' fill='rgba(255,255,255,0.07)'%3E$%3C/text%3E%3Ctext x='25' y='85' font-family='Arial,sans-serif' font-size='18' fill='rgba(37,99,235,0.12)'%3E$%3C/text%3E%3Ctext x='85' y='100' font-family='Arial,sans-serif' font-size='14' fill='rgba(255,255,255,0.09)'%3E$%3C/text%3E%3C/svg%3E");
-      background-size: auto, auto, 120px 120px;
-      background-repeat: no-repeat, no-repeat, repeat;
-      z-index: 9999; display: flex; justify-content: center; align-items: center; padding: 20px;
+      background:
+        radial-gradient(ellipse 80% 60% at 20% 10%, rgba(212,175,55,0.18), transparent 55%),
+        radial-gradient(ellipse 70% 50% at 90% 90%, rgba(37,99,235,0.22), transparent 50%),
+        linear-gradient(165deg, #07111f 0%, #0f1f3a 45%, #0a1628 100%);
+      z-index: 9999; display: flex; justify-content: center; align-items: center; padding: 16px;
       overflow-y: auto;
     }
     #loginScreen::before {
       content: ''; position: absolute; inset: 0;
-      background: linear-gradient(160deg, rgba(10,22,40,0.85) 0%, rgba(30,58,138,0.75) 45%, rgba(10,22,40,0.9) 100%);
-      z-index: 0;
-      pointer-events: none;
+      background-image:
+        radial-gradient(circle at 1px 1px, rgba(255,255,255,0.04) 1px, transparent 0);
+      background-size: 28px 28px;
+      z-index: 0; pointer-events: none;
     }
-    #loginScreen .login-bg-decor {
-      position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
+    #loginScreen .login-bg-decor { display: none !important; }
+    .login-shell {
+      position: relative; z-index: 1; width: 100%; max-width: 420px;
     }
-    #loginScreen .login-bg-decor img {
-      position: absolute; opacity: 0.08; object-fit: contain; filter: brightness(1.2);
+    .login-brand-strip {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 14px; padding: 0 4px;
     }
-    #loginScreen .login-bg-decor .bill {
-      position: absolute; font-size: 2rem; opacity: 0.32; transform: rotate(var(--r, 0deg));
-      user-select: none; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.35));
-      pointer-events: none;
+    .login-brand-strip .pill {
+      font-size: 0.68rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+      color: #e8d3a2; background: rgba(232,211,162,0.12); border: 1px solid rgba(232,211,162,0.28);
+      padding: 5px 10px; border-radius: 999px;
     }
-    #loginScreen .login-bg-decor .bill.big { font-size: 2.8rem; opacity: 0.38; }
-    #loginScreen .login-bg-decor .bill.sm { font-size: 1.35rem; opacity: 0.26; }
     .login-card {
       position: relative; z-index: 1;
-      background: rgba(255,255,255,0.98);
-      padding: 28px 24px; border-radius: 16px; width: 100%; max-width: 420px;
+      background: rgba(255,253,248,0.97);
+      padding: 28px 22px 24px; border-radius: 20px; width: 100%;
       max-height: 92vh; overflow-y: auto;
-      box-shadow: 0 25px 50px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.1);
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,0.12),
+        0 25px 50px rgba(0,0,0,0.45),
+        0 8px 24px rgba(16,36,63,0.25);
       text-align: center;
-      backdrop-filter: blur(8px);
+      backdrop-filter: blur(12px);
     }
-    .login-logo { width: 70px; height: 70px; object-fit: contain; margin: 0 auto 10px auto; display: block; }
-    .login-card h2 { color: var(--primary); margin-bottom: 8px; font-size: 1.3rem; }
-    .login-subtitle { font-size: 0.8rem; color: #475569; margin-bottom: 20px; }
+    .login-logo-wrap {
+      width: 76px; height: 76px; margin: 0 auto 12px; border-radius: 18px;
+      background: linear-gradient(145deg, #10243f, #1e3a8a);
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 8px 20px rgba(30,58,138,0.35);
+      border: 1px solid rgba(232,211,162,0.35);
+    }
+    .login-logo { width: 52px; height: 52px; object-fit: contain; margin: 0; display: block; border-radius: 8px; }
+    .login-card h2 {
+      color: #10243f; margin-bottom: 4px; font-size: 1.22rem; font-weight: 800;
+      letter-spacing: -0.02em; line-height: 1.25;
+    }
+    .login-subtitle { font-size: 0.78rem; color: #64748b; margin-bottom: 18px; line-height: 1.4; }
+    .login-card .form-group label {
+      font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+      color: #475569; margin-bottom: 6px;
+    }
+    .login-card .form-group input,
+    .login-card .form-group select {
+      border-radius: 12px; border: 1.5px solid #e2e8f0; padding: 12px 14px;
+      font-size: 0.92rem; background: #f8fafc; transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .login-card .form-group input:focus,
+    .login-card .form-group select:focus {
+      border-color: #1e3a8a; box-shadow: 0 0 0 3px rgba(30,58,138,0.12); background: #fff;
+    }
+    .login-card #btnEntrarLogin {
+      margin-top: 8px; border-radius: 12px; padding: 14px 16px;
+      background: linear-gradient(135deg, #1e3a8a 0%, #10243f 100%);
+      font-size: 0.95rem; letter-spacing: 0.01em;
+      box-shadow: 0 8px 22px rgba(16,36,63,0.35);
+    }
+    .login-card #btnEntrarLogin:active { transform: scale(0.98); }
+    .login-footer-note {
+      margin-top: 14px; font-size: 0.7rem; color: #94a3b8; line-height: 1.35;
+    }
+    .login-secure-badge {
+      display: inline-flex; align-items: center; gap: 6px; margin-bottom: 14px;
+      font-size: 0.72rem; font-weight: 600; color: #166534;
+      background: #ecfdf5; border: 1px solid #a7f3d0; padding: 5px 10px; border-radius: 999px;
+    }
 
     #bloqueoRutaPantalla { display: none; background: #fff; border: 2px solid var(--primary); padding: 20px; border-radius: 10px; text-align: center; margin-top: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
 
@@ -1055,91 +1222,103 @@ function aplicarTemaGuardado() {
 
   <!-- PANTALLA DE LOGIN CON MULTI-TENANT Y SEGURIDAD -->
   <div id="loginScreen">
-    <!-- Decoración de fondo: logos + billetes de dólar -->
-    <div class="login-bg-decor" aria-hidden="true">
-      <img src="Logosv.png" style="width:90px; top:6%; left:4%; transform:rotate(-12deg);" alt="">
-      <img src="Logosv.png" style="width:70px; top:12%; right:6%; transform:rotate(18deg);" alt="">
-      <img src="Logosv.png" style="width:110px; bottom:18%; left:8%; transform:rotate(8deg);" alt="">
-      <img src="Logosv.png" style="width:80px; bottom:8%; right:10%; transform:rotate(-20deg);" alt="">
-      <img src="Logosv.png" style="width:60px; top:45%; left:2%; transform:rotate(25deg);" alt="">
-      <img src="Logosv.png" style="width:75px; top:55%; right:3%; transform:rotate(-8deg);" alt="">
-      <!-- Billetes de dólar esparcidos por todo el fondo -->
-      <span class="bill big" style="top:4%; left:18%; --r:-18deg;">💵</span>
-      <span class="bill" style="top:7%; left:48%; --r:12deg;">💵</span>
-      <span class="bill big" style="top:5%; right:12%; --r:22deg;">💵</span>
-      <span class="bill sm" style="top:12%; left:8%; --r:-8deg;">💵</span>
-      <span class="bill" style="top:14%; left:72%; --r:15deg;">💵</span>
-      <span class="bill big" style="top:20%; left:28%; --r:-25deg;">💵</span>
-      <span class="bill" style="top:22%; right:22%; --r:8deg;">💵</span>
-      <span class="bill sm" style="top:28%; left:5%; --r:30deg;">💵</span>
-      <span class="bill" style="top:30%; left:55%; --r:-12deg;">💵</span>
-      <span class="bill big" style="top:35%; right:8%; --r:18deg;">💵</span>
-      <span class="bill" style="top:38%; left:15%; --r:-20deg;">💵</span>
-      <span class="bill sm" style="top:42%; left:42%; --r:5deg;">💵</span>
-      <span class="bill" style="top:45%; right:30%; --r:-15deg;">💵</span>
-      <span class="bill big" style="top:50%; left:8%; --r:25deg;">💵</span>
-      <span class="bill" style="top:52%; left:65%; --r:-8deg;">💵</span>
-      <span class="bill sm" style="top:58%; right:5%; --r:12deg;">💵</span>
-      <span class="bill" style="top:60%; left:35%; --r:-22deg;">💵</span>
-      <span class="bill big" style="top:65%; right:18%; --r:10deg;">💵</span>
-      <span class="bill" style="top:68%; left:12%; --r:28deg;">💵</span>
-      <span class="bill sm" style="top:72%; left:50%; --r:-5deg;">💵</span>
-      <span class="bill" style="top:75%; right:25%; --r:16deg;">💵</span>
-      <span class="bill big" style="top:78%; left:3%; --r:-14deg;">💵</span>
-      <span class="bill" style="top:82%; left:40%; --r:20deg;">💵</span>
-      <span class="bill sm" style="top:85%; right:8%; --r:-18deg;">💵</span>
-      <span class="bill" style="top:88%; left:22%; --r:7deg;">💵</span>
-      <span class="bill big" style="bottom:6%; right:35%; --r:-28deg;">💵</span>
-      <span class="bill" style="bottom:4%; left:60%; --r:14deg;">💵</span>
-      <span class="bill sm" style="bottom:10%; left:75%; --r:-10deg;">💵</span>
-      <span class="bill" style="bottom:12%; left:30%; --r:22deg;">💵</span>
-      <span class="bill" style="top:18%; left:85%; --r:-30deg;">💵</span>
-      <span class="bill sm" style="top:48%; left:78%; --r:9deg;">💵</span>
-    </div>
-    <div class="login-card">
-      <img src="Logosv.png" id="imgLoginLogo" class="login-logo" alt="Logo">
-      <h2>PERDOMO SOVEREIGN CAPITAL</h2>
-      <p class="login-subtitle">Sistema Maestro v2 · Seguridad con Hash + Multi-Empresa</p>
-      <form onsubmit="realizarLogin(event)" style="text-align:left;">
-        <div class="form-group">
-          <label>Financiera / Empresa (Multi-tenant)</label>
-         <select id="loginEmpresaSelect" required onchange="actualizarListasLoginEmpresa(this.value)">
-    <option value="">⏳ Cargando empresas desde la nube...</option>
-</select>
+    <div class="login-shell">
+      <div class="login-brand-strip">
+        <span class="pill">Cartera · Rutas · Caja</span>
+        <span class="pill">Multi-empresa</span>
+      </div>
+      <div class="login-card">
+        <div class="login-logo-wrap">
+          <img src="Logosv.png" id="imgLoginLogo" class="login-logo" alt="Logo" onerror="this.style.display='none'; this.parentElement.innerHTML='<span style=color:#e8d3a2;font-weight:800;font-size:1.4rem;>PC</span>';">
         </div>
-
-        <div class="form-group">
-          <label>Tipo de Usuario (RBAC)</label>
-          <select id="loginRolSelect" required onchange="cambiarTipoLogin(this.value)">
-            <option value="">-- Seleccionar Rol --</option>
-            <option value="SuperAdmin">👑 Super Admin (Dueño del Sistema)</option>
-            <option value="Administrador">👑 Administrador (Dueño de Empresa)</option>
-            <option value="empleado">👥 Empleado (Servicio al Cliente / Asistente)</option>
-            <option value="cobrador">🏍️ Cobrador de Calle</option>
-          </select>
-        </div>
-
-        <div class="form-group" id="divNombrePersona" style="display:none;">
-          <label id="lblNombrePersona">Nombre</label>
-          <select id="loginNombreSelect" onchange="actualizarZonasLogin(this.value)"></select>
-        </div>
-
-        <div class="form-group" id="divZonaLogin" style="display:none;">
-          <label>Zona / Ruta para Hoy (Geolocalizada)</label>
-          <select id="loginZonaSelect"></select>
-        </div>
-
-        <div class="form-group">
-          <label>Contraseña Encriptada / PIN</label>
-          <div style="display:flex; gap:8px; align-items:center;">
-            <input type="password" id="loginPassword" required placeholder="••••••••" style="flex:1; margin:0; padding:11px 14px; border:1.5px solid #cbd5e1; border-radius:10px; font-size:0.95rem; background:#fff; color:#000;">
-            <button type="button" id="btnTogglePassword" onclick="toggleLoginPassword(event)" style="margin:0; padding:0; width:48px; height:44px; font-size:1.2rem; background:#1e3a8a; color:#fff; border:none; border-radius:10px; cursor:pointer; flex-shrink:0; display:flex; align-items:center; justify-content:center;" title="Ver / ocultar contraseña">👁️</button>
+        <div class="login-secure-badge">Acceso cifrado · Roles por empresa</div>
+        <h2>PERDOMO SOVEREIGN CAPITAL</h2>
+        <p class="login-subtitle">Sistema Maestro Empresarial · Inicia sesión con tu empresa y rol</p>
+        <form onsubmit="realizarLogin(event)" style="text-align:left;">
+          <div class="form-group">
+            <label>Financiera / Empresa</label>
+            <select id="loginEmpresaSelect" required onchange="actualizarListasLoginEmpresa(this.value)">
+              <option value="">Cargando empresas…</option>
+            </select>
           </div>
-        </div>
-        <button type="submit" id="btnEntrarLogin" style="display:block; width:100%; margin-top:18px; padding:14px 16px; border:none; border-radius:10px; font-weight:700; font-size:1rem; cursor:pointer; background:#1e3a8a; color:#ffffff; box-shadow:0 4px 14px rgba(30,58,138,0.4);">Entrar al Sistema Seguro</button>
-      </form>
+
+          <div class="form-group">
+            <label>Tipo de usuario</label>
+            <select id="loginRolSelect" required onchange="cambiarTipoLogin(this.value)">
+              <option value="">Seleccionar rol</option>
+              <option value="SuperAdmin">Super Admin (dueño del sistema)</option>
+              <option value="Administrador">Administrador (dueño de empresa)</option>
+              <option value="empleado">Empleado (oficina)</option>
+              <option value="cobrador">Cobrador de calle</option>
+            </select>
+          </div>
+
+          <div class="form-group" id="divNombrePersona" style="display:none;">
+            <label id="lblNombrePersona">Nombre</label>
+            <select id="loginNombreSelect" onchange="actualizarZonasLogin(this.value)"></select>
+          </div>
+
+          <div class="form-group" id="divZonaLogin" style="display:none;">
+            <label>Zona / ruta de hoy</label>
+            <select id="loginZonaSelect"></select>
+          </div>
+
+          <div class="form-group">
+            <label>Contraseña / PIN</label>
+            <div style="display:flex; gap:8px; align-items:center;">
+              <input type="password" id="loginPassword" required placeholder="Tu clave segura" autocomplete="current-password" style="flex:1; margin:0; padding:12px 14px; border:1.5px solid #e2e8f0; border-radius:12px; font-size:0.95rem; background:#f8fafc; color:#0f172a;">
+              <button type="button" id="btnTogglePassword" onclick="toggleLoginPassword(event)" style="margin:0; padding:0; width:48px; height:48px; font-size:1.15rem; background:#10243f; color:#fff; border:none; border-radius:12px; cursor:pointer; flex-shrink:0; display:flex; align-items:center; justify-content:center;" title="Ver / ocultar">👁</button>
+            </div>
+          </div>
+
+          <div class="form-group" style="margin-top:10px; text-align:left;">
+            <label style="display:flex; gap:10px; align-items:flex-start; font-size:0.8rem; font-weight:500; text-transform:none; letter-spacing:0; color:#475569; cursor:pointer;">
+              <input type="checkbox" id="loginAceptaLegal" style="margin-top:3px; width:18px; height:18px; flex-shrink:0;">
+              <span>Acepto los <a href="#" onclick="event.preventDefault(); abrirModalLegal('terminos');" style="color:#1e3a8a; font-weight:700;">Términos</a> y el <a href="#" onclick="event.preventDefault(); abrirModalLegal('privacidad');" style="color:#1e3a8a; font-weight:700;">Aviso de Privacidad</a>.</span>
+            </label>
+          </div>
+
+          <button type="submit" id="btnEntrarLogin" style="display:block; width:100%; margin-top:10px; padding:14px 16px; border:none; border-radius:12px; font-weight:700; font-size:0.95rem; cursor:pointer; background:linear-gradient(135deg,#1e3a8a,#10243f); color:#ffffff; box-shadow:0 8px 22px rgba(16,36,63,0.35);">Entrar al sistema</button>
+          <p class="login-footer-note">Sesión 12 h · auditoría local/servidor · borra solo con empresa_id. Ejecuta supabase-seguridad-rls.sql en Supabase.</p>
+        </form>
+      </div>
     </div>
   </div>
+
+  <!-- MODAL LEGAL (plantillas comerciales) -->
+  <div id="modalLegalPSC" class="modal-overlay" style="display:none; z-index:10050;">
+    <div class="modal-box" style="max-width:520px; max-height:85vh; overflow:auto;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <h3 id="tituloModalLegal" style="margin:0; color:#1e3a8a;">Documento</h3>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('modalLegalPSC').style.display='none'" style="margin:0;">✕</button>
+      </div>
+      <div id="cuerpoModalLegal" style="font-size:0.88rem; color:#334155; line-height:1.55;"></div>
+      <button type="button" class="btn" style="margin-top:16px;" onclick="document.getElementById('modalLegalPSC').style.display='none'">Cerrar</button>
+    </div>
+  </div>
+  <script>
+  function abrirModalLegal(tipo) {
+    var t = document.getElementById('tituloModalLegal');
+    var c = document.getElementById('cuerpoModalLegal');
+    var m = document.getElementById('modalLegalPSC');
+    if (!t || !c || !m) return;
+    if (tipo === 'privacidad') {
+      t.textContent = 'Aviso de Privacidad (plantilla)';
+      c.innerHTML = '<p><strong>Esto es una plantilla orientativa</strong> para microfinancieras en República Dominicana. Debe revisarla un abogado antes de usarla en producción (Ley 172-13 y normas sectoriales).</p>' +
+        '<p>Se tratan datos de identificación, contacto, ubicación de cobro, montos de préstamo y pagos para originar crédito, cobrar y llevar control interno de cartera.</p>' +
+        '<p>La base del tratamiento es el contrato y el consentimiento del cliente. No se venden listados de clientes a terceros ajenos a la operación.</p>' +
+        '<p>El titular puede solicitar acceso o corrección de sus datos ante la oficina de la empresa.</p>';
+    } else {
+      t.textContent = 'Términos de Uso del Software (plantilla)';
+      c.innerHTML = '<p><strong>Plantilla orientativa</strong>, no un contrato firmado con asesoría legal.</p>' +
+        '<p>El software se licencia a la empresa según el plan contratado. La empresa cliente es responsable de su cartera, de sus cobradores y del cumplimiento legal de sus préstamos.</p>' +
+        '<p>El proveedor del software no es el prestamista ni garantiza el cobro de la cartera.</p>' +
+        '<p>El acceso puede suspenderse por impago de licencia. Los usuarios no deben compartir claves ni intentar eludir controles de rol.</p>';
+    }
+    m.style.display = 'flex';
+  }
+  window.abrirModalLegal = abrirModalLegal;
+  </script>
 
   <!-- MENÚ LATERAL DESPLEGABLE -->
   <div id="sidebarOverlay" onclick="toggleSidebar()"></div>
@@ -1150,6 +1329,9 @@ function aplicarTemaGuardado() {
     </div>
     <div class="sidebar-content">
 <button class="sidebar-btn solo-admin-emp" onclick="abrirModal2FAConfig()" style="background:#7c3aed; color:white; font-weight:700;">🔐 Configurar 2FA (WhatsApp Oficina)</button>
+<button class="sidebar-btn" onclick="abrirModalLegal('terminos')">📜 Términos de Uso</button>
+<button class="sidebar-btn" onclick="abrirModalLegal('privacidad')">🛡️ Aviso de Privacidad</button>
+<button class="sidebar-btn solo-admin-emp" onclick="abrirModalAuditoriaLocal()">📋 Auditoría local (dispositivo)</button>
 
 <button class="sidebar-btn" onclick="showTabFromMenu('reportes')">📊 Reportes y Gráficos</button>
       <button class="sidebar-btn solo-super-admin" onclick="showTabFromMenu('crearEmpresaTab')" style="background:#eff6ff; color:var(--primary); font-weight:700; display:none;">🏢 Crear Nuevas Empresas</button>
@@ -3598,7 +3780,7 @@ const resultados = resultadosRaw.map(r => {
   
   if (!emp) return;
 
-  var color = emp.colorPrimario || '#1e3a8a';
+  var color = colorCssEmpresa(emp.colorPrimario || emp.color_primario);
   document.documentElement.style.setProperty('--primary', color);
   document.documentElement.style.setProperty('--primary-dark', color);
   document.documentElement.style.setProperty('--accent', color);
@@ -4292,10 +4474,12 @@ async function eliminarRegistroNube(tabla, idRegistro) {
     
     try {
         // Ejecuta el DELETE en Supabase
-        const { data, error } = await supabase
-            .from(tabla)
-            .delete()
-            .eq('id', idRegistro); // Asumiendo que tu columna ID se llama 'id'
+        var q = supabase.from(tabla).delete().eq('id', idRegistro);
+        if (typeof empresaIdActual !== 'undefined' && empresaIdActual) {
+          q = q.eq('empresa_id', empresaIdActual);
+        }
+        const { data, error } = await q;
+        if (typeof pscAudit === 'function') pscAudit('delete_' + tabla, 'id=' + idRegistro);
 
         if (error) {
             console.error(`Error al borrar en la tabla ${tabla}:`, error);
@@ -4613,7 +4797,7 @@ function refrescarUIRealtime() {
           logoEl.src = emp.logo || 'Logosv.png';
         }
         // Color de fondo del login según la compañía (mantiene el patrón de $ del CSS)
-        var color = emp.colorPrimario || '#1e3a8a';
+        var color = colorCssEmpresa(emp.colorPrimario || emp.color_primario);
         if (loginScreen) {
           loginScreen.style.backgroundColor = color;
           // No borrar background-image del CSS (billetes SVG + degradados); solo el color base
@@ -4762,11 +4946,101 @@ function actualizarZonasLogin(nombreCobrador) {
   }
 }
                                                  
+function colorCssEmpresa(raw) {
+  var c = String(raw || '').trim();
+  var nombres = {
+    azul: '#1e3a8a',
+    'azul oscuro': '#1e3a8a',
+    rojo: '#dc2626',
+    verde: '#16a34a',
+    dorado: '#d4af37',
+    oro: '#d4af37',
+    negro: '#0f172a',
+    blanco: '#f8fafc'
+  };
+  if (!c) return '#1e3a8a';
+  if (nombres[c.toLowerCase()]) return nombres[c.toLowerCase()];
+  return c;
+}
+
+function normalizarClavesEmpresa(empresa) {
+  if (!empresa) return empresa;
+  if (!empresa.passwordAdmin && empresa.password_admin) empresa.passwordAdmin = empresa.password_admin;
+  if (!empresa.usuarioAdmin && empresa.usuario_admin) empresa.usuarioAdmin = empresa.usuario_admin;
+  if (!empresa.colorPrimario && empresa.color_primario) empresa.colorPrimario = empresa.color_primario;
+  if (!empresa.fechaPago && empresa.fecha_pago) empresa.fechaPago = empresa.fecha_pago;
+  return empresa;
+}
+
+function passwordCoincideConAlguna(plain, lista) {
+  if (!plain || !lista) return false;
+  for (var i = 0; i < lista.length; i++) {
+    var stored = lista[i];
+    if (stored == null || stored === '') continue;
+    try {
+      if (typeof verifyPassword === 'function') {
+        if (verifyPassword(String(plain), String(stored))) return true;
+      } else if (String(stored) === String(plain)) {
+        return true;
+      }
+    } catch (e) {}
+  }
+  return false;
+}
+
+async function clavesGuardadasParaRol(empresa, rol) {
+  var claves = [];
+  function add(v) {
+    if (v != null && String(v) !== '' && claves.indexOf(v) === -1) claves.push(v);
+  }
+  if (empresa) {
+    add(empresa.passwordAdmin);
+    add(empresa.password_admin);
+    add(empresa.password_hash);
+    if (rol === 'SuperAdmin') {
+      add(empresa.passwordSuperAdmin);
+      add(empresa.password_super_admin);
+    }
+  }
+  var locales = (typeof empresasGlobalesDB !== 'undefined') ? empresasGlobalesDB : [];
+  var local = locales.find(function(e) {
+    return e && empresa && (String(e.id) === String(empresa.id) || e.nombre === empresa.nombre);
+  });
+  if (local) {
+    add(local.passwordAdmin);
+    add(local.password_hash);
+    if (rol === 'SuperAdmin') add(local.passwordSuperAdmin);
+  }
+  if (typeof supabase !== 'undefined' && supabase) {
+    try {
+      var resUsers = await supabase.from('usuarios').select('rol, password_hash');
+      (resUsers.data || []).forEach(function(r) {
+        var rr = String(r.rol || '').toLowerCase();
+        var quiere = String(rol || '').toLowerCase();
+        var esAdmin = (quiere === 'administrador' || quiere === 'admin');
+        var filaAdmin = (rr === 'administrador' || rr === 'admin');
+        var esSuper = quiere === 'superadmin';
+        var filaSuper = rr === 'superadmin';
+        if ((esAdmin && filaAdmin) || (esSuper && filaSuper)) add(r.password_hash);
+      });
+    } catch (e) {
+      console.warn('No se pudieron leer usuarios:', e);
+    }
+  }
+  return claves;
+}
+
 // ========== LOGIN REAL CONTRA SUPABASE (ESTRICTO Y SEGURO) ==========
 async function realizarLogin(e) {
   if (e) {
     e.preventDefault();
     e.stopPropagation();
+  }
+
+  var aceptaLegal = document.getElementById('loginAceptaLegal');
+  if (aceptaLegal && !aceptaLegal.checked) {
+    alert('Debes aceptar los Términos de Uso y el Aviso de Privacidad para continuar.');
+    return;
   }
 
   var empresaNombre = document.getElementById('loginEmpresaSelect').value;
@@ -4802,6 +5076,13 @@ async function realizarLogin(e) {
     alert('Demasiados intentos fallidos. Espera 15 minutos.');
     return;
   }
+  if (typeof pscServerCheckLogin === 'function') {
+    var srv = await pscServerCheckLogin(rateKey);
+    if (srv && srv.ok === false) {
+      alert('Acceso temporalmente bloqueado por intentos fallidos (servidor). Espera unos minutos.');
+      return;
+    }
+  }
 
   try {
     // 1. PRIMERO DESCARGAMOS LA EMPRESA DE SUPABASE
@@ -4813,67 +5094,64 @@ async function realizarLogin(e) {
 
     if (errEmp || !empresa) {
       if (typeof registerFailedLogin === 'function') registerFailedLogin(rateKey);
+      if (typeof pscServerFailLogin === 'function') await pscServerFailLogin(rateKey);
       alert('Empresa no encontrada en la base de datos.');
       return;
     }
+
+    empresa = normalizarClavesEmpresa(empresa);
 
     if (empresa.estado === 'bloqueada') {
       alert('Esta empresa está bloqueada por impago. Contacta al administrador.');
       return;
     }
 
-    // 2. VALIDAR SUPERADMIN
+    // 2. VALIDAR SUPERADMIN (usuarios.rol puede venir como SuperAdmin o superadmin)
     if (rol === 'SuperAdmin') {
-      var storedPass = null;
-      
-      if (supabase) {
-          var { data: userData } = await supabase.from('usuarios').select('password_hash').eq('rol', 'superadmin').single();
-          if (userData && userData.password_hash) storedPass = userData.password_hash;
-      }
-      
-      if (!storedPass) storedPass = empresa.password_hash || empresa.passwordAdmin;
+      var clavesSuper = await clavesGuardadasParaRol(empresa, 'SuperAdmin');
 
-      if (!storedPass) {
+      if (!clavesSuper.length) {
         alert('Error: No hay contraseña configurada para el Super Admin.');
         return;
       }
 
-      var passOk = (typeof verifyPassword === 'function') 
-        ? verifyPassword(password, storedPass) 
-        : (password === storedPass);
-
-      if (passOk) {
+      if (passwordCoincideConAlguna(password, clavesSuper)) {
+        if (typeof clearLoginAttempts === 'function') clearLoginAttempts(rateKey);
         empresaActual = empresaNombre;
         var empObjSuper = empresasGlobalesDB.find(function(e) { return e.nombre === empresaNombre; });
         empresaIdActual = empObjSuper ? empObjSuper.id : empresa.id;
-        
+
         rolUsuarioActual = 'SuperAdmin';
         nombreUsuarioActual = 'Super Administrador';
         zonaUsuarioActual = 'Todas las Zonas (Global)';
-        
-        document.getElementById('loginScreen').style.display = 'none';
+
         localStorage.setItem('psc_empresa_activa', empresaActual);
         localStorage.setItem('psc_sesion_activa', 'true');
-        
+
         if (typeof guardarSesionLocal === 'function') guardarSesionLocal();
+        else {
+          var lsSuper = document.getElementById('loginScreen');
+          if (lsSuper) lsSuper.style.display = 'none';
+        }
         return;
       }
+      if (typeof registerFailedLogin === 'function') registerFailedLogin(rateKey);
       alert('Contraseña de Super Admin incorrecta.');
       return;
     }
 
     // 3. VALIDAR ADMINISTRADOR
+    // Acepta la clave de la tabla usuarios (rol Administrador), passwordAdmin y password_hash.
+    // Antes solo se miraba password_hash y, aunque coincidiera, la pantalla de login no se cerraba.
     if (rol === 'Administrador' || rol === 'admin') {
-      var storedPassAdmin = empresa.password_hash || empresa.passwordAdmin;
-      
-      if (!storedPassAdmin) {
+      var clavesAdmin = await clavesGuardadasParaRol(empresa, 'Administrador');
+
+      if (!clavesAdmin.length) {
          alert('Error: No hay contraseña configurada para el Administrador.');
          return;
       }
 
-      var passOkAdmin = (typeof verifyPassword === 'function') ? verifyPassword(password, storedPassAdmin) : (password === storedPassAdmin);
-          
-      if (passOkAdmin) {
+      if (passwordCoincideConAlguna(password, clavesAdmin)) {
         if (typeof clearLoginAttempts === 'function') clearLoginAttempts(rateKey);
 
         var sesion = {
@@ -4881,7 +5159,7 @@ async function realizarLogin(e) {
           empresa_nombre: empresa.nombre,
           usuario: empresa.usuarioAdmin || 'admin',
           rol: 'admin',
-          color: empresa.color_primario || '#1e3a8a',
+          color: empresa.colorPrimario || empresa.color_primario || '#1e3a8a',
           plan: empresa.plan || 'premium'
         };
         localStorage.setItem('psc_sesion', JSON.stringify(sesion));
@@ -4899,7 +5177,14 @@ async function realizarLogin(e) {
         }
         if (typeof aplicarTemaEmpresa === 'function') aplicarTemaEmpresa(empresa);
 
-        if (typeof sincronizarConNube === 'function') sincronizarConNube();
+        if (typeof guardarSesionLocal === 'function') {
+          guardarSesionLocal();
+        } else {
+          var lsAdmin = document.getElementById('loginScreen');
+          if (lsAdmin) lsAdmin.style.display = 'none';
+          if (typeof actualizarInterfazPorRol === 'function') actualizarInterfazPorRol();
+          if (typeof sincronizarConNube === 'function') sincronizarConNube();
+        }
         return;
       }
       if (typeof registerFailedLogin === 'function') registerFailedLogin(rateKey);
@@ -4948,6 +5233,16 @@ async function realizarLogin(e) {
     }
 
     if (typeof clearLoginAttempts === 'function') clearLoginAttempts(rateKey);
+    if (typeof pscServerClearLogin === 'function') await pscServerClearLogin(rateKey);
+    if (typeof pscAudit === 'function') pscAudit('login_ok', 'Rol ' + rol + ' · ' + (nombrePersona || empresaNombre || ''));
+    if (typeof pscSaveSession === 'function') {
+      pscSaveSession({
+        empresa: empresaNombre,
+        empresa_id: empresa.id,
+        rol: rol,
+        nombre: nombrePersona || (rol === 'SuperAdmin' ? 'SuperAdmin' : (rol === 'Administrador' ? 'Administrador' : nombrePersona))
+      });
+    }
 
     // FLUJO 2FA PARA COBRADOR
     if (rol === 'cobrador') {
@@ -12307,6 +12602,33 @@ Created by Perdomo Sovereign Capital
 
 
 
+
+
+<script>
+function abrirModalAuditoriaLocal() {
+  var key = 'psc_audit_log_v1';
+  var arr = [];
+  try { arr = JSON.parse(localStorage.getItem(key) || '[]'); } catch (e) { arr = []; }
+  var html = arr.length ? arr.slice(0, 50).map(function(r) {
+    return '<div style="border-bottom:1px solid #e2e8f0; padding:8px 0; font-size:0.85rem;">' +
+      '<strong>' + (r.accion || '') + '</strong><br>' +
+      '<span style="color:#64748b;">' + (r.cuando || '') + ' · ' + (r.usuario || '') + ' · ' + (r.rol || '') + '</span>' +
+      (r.detalle ? '<br>' + r.detalle : '') + '</div>';
+  }).join('') : '<p style="color:#64748b;">Sin eventos todavía. Las acciones sensibles se irán registrando en este dispositivo.</p>';
+  var existing = document.getElementById('modalAuditLocal');
+  if (!existing) {
+    existing = document.createElement('div');
+    existing.id = 'modalAuditLocal';
+    existing.className = 'modal-overlay';
+    existing.style.cssText = 'display:none;z-index:10050;';
+    existing.innerHTML = '<div class="modal-box" style="max-width:520px;max-height:85vh;overflow:auto;"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><h3 style="margin:0;color:#1e3a8a;">Auditoría local</h3><button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById(\'modalAuditLocal\').style.display=\'none\'" style="margin:0;">✕</button></div><div id="cuerpoAuditLocal"></div><p style="font-size:0.75rem;color:#64748b;margin-top:12px;">Esto no sustituye auditoría en el servidor ni RLS de Supabase.</p></div>';
+    document.body.appendChild(existing);
+  }
+  document.getElementById('cuerpoAuditLocal').innerHTML = html;
+  existing.style.display = 'flex';
+}
+window.abrirModalAuditoriaLocal = abrirModalAuditoriaLocal;
+</script>
 
 </body>
 </html>
