@@ -1840,22 +1840,7 @@ function aplicarTemaGuardado() {
   </div>
 </div>
         
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
+             
 
         <!-- GRÁFICOS -->
         <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap:16px; margin-bottom:16px;">
@@ -8436,8 +8421,6 @@ document.getElementById('formPrestamo').reset();
 
 
 
-
-
       document.getElementById('pFechaInicio').valueAsDate = new Date();
       document.getElementById('previewFotoConfirmacion').style.display = 'none';
       fotoConfirmacionTemporal = "";
@@ -12089,20 +12072,20 @@ function generarMiniContrato(prestamoId, esRenovacion = false, saldoAnterior = 0
 
   if (esRenovacion) {
     html += `
-      <div class="ticket-row"><span>SALDO ANTERIOR:</span> <span>\[ {saldoAntStr}</span></div>
-      <div class="ticket-row"><span>PRESTAMO NUEVO:</span> <span> \]{montoPrestado}</span></div>
-      <div class="ticket-row"><span>MONTO ENTREGADO:</span> <span>\[ {montoEntregado}</span></div>
+       <span>${saldoAntStr}</span>
+       <span>${montoPrestado}</span>
+      <span>${montoEntregado}</span>
     `;
   } else {
     html += `
-      <div class="ticket-row"><span>MONTO PRESTADO:</span> <span> \]{montoPrestado}</span></div>
+      <span>${montoPrestado}</span>
     `;
   }
 
   html += `
     <div class="ticket-row"><span>PLAZO:</span> <span>${cantidadCuotas} SEMANAS</span></div>
-    <div class="ticket-row"><span>CUOTA SEMANAL:</span> <span>\[ {montoCuota}</span></div>
-    <div class="ticket-row"><span>TOTAL A PAGAR:</span> <span> \]{totalPagar}</span></div>
+    <div class="ticket-row"><span>CUOTA SEMANAL:</span> <span>${montoCuota}</span></div>
+    <div class="ticket-row"><span>TOTAL A PAGAR:</span> <span>${totalPagar}</span></div>
     <div class="ticket-row"><span>F. INICIO:</span> <span>${fechaInicio}</span></div>
     <div class="ticket-row"><span>F. TERMINO:</span> <span>${fechaTermino}</span></div>
     
@@ -12122,58 +12105,58 @@ function generarMiniContrato(prestamoId, esRenovacion = false, saldoAnterior = 0
   document.getElementById('modalMiniContrato').style.display = 'flex';
 
   // Texto WhatsApp
-  textoContratoWhatsApp = `*\( {nombreEmpresa}*\n* \){titulo}*\n\n` +
+  textoContratoWhatsApp = `*${nombreEmpresa}*\n*${titulo}*\n\n` +
     `Hola *${cliente.nombre}*, aquí está el detalle de su contrato:\n\n` +
     `📅 *Fecha:* ${fechaHoy}\n` +
-    `👤 *Cobrador:* \( {nombreCobrador} ( \){zonaCobrador})\n` +
+    `👤 *Cobrador:* ${nombreCobrador} (${zonaCobrador})\n` +
     (esRenovacion 
-      ? `💵 *Saldo Anterior:* \[ {saldoAntStr}\n💵 *Monto Entregado:* \]{montoEntregado}\n` 
-      : `💵 *Monto Prestado:* \[ {montoPrestado}\n`) +
+        ? `💵 *Saldo Anterior:* ${saldoAntStr}\n💵 *Monto Entregado:* ${montoEntregado}\n` 
+        : `💵 *Monto Prestado:* ${montoPrestado}\n`) +
     `⏳ *Plazo:* ${cantidadCuotas} semanas\n` +
-    `💰 *Cuota Semanal:* \]{montoCuota}\n` +
-    `💳 *Total a Pagar:* \[ {totalPagar}\n` +
-    `📆 *Inicio:* ${fechaInicio}\n` +
-    `📆 *Término:* ${fechaTermino}\n\n` +
+    `💰 *Cuota Semanal:* ${montoCuota}\n` +
+    `💳 *Total a Pagar:* ${totalPagar}\n` +
+    `📅 *Inicio:* ${fechaInicio}\n` +
+    `📅 *Término:* ${fechaTermino}\n\n` +
     `_Me comprometo a pagar en las fechas establecidas._`;
 
-  // Texto plano para Bluetooth
-  textoTicketBluetooth = 
-`${nombreEmpresa.toUpperCase()}
+
+      // Texto plano para Bluetooth
+    textoTicketBluetooth = `
+${nombreEmpresa.toUpperCase()}
 ${titulo}
---------------------------------
+--------------------------------------------------
 Fecha: ${fechaHoy}
 Cliente: ${cliente.nombre.toUpperCase()}
 Cedula: ${cliente.cedula || 'N/A'}
 Cobrador: ${nombreCobrador.toUpperCase()}
 Zona: ${zonaCobrador.toUpperCase()}
---------------------------------
+--------------------------------------------------
 `;
 
-  if (esRenovacion) {
-    textoTicketBluetooth += 
-`Saldo Anterior: \]{saldoAntStr}
-Prestamo Nuevo: \[ {montoPrestado}
-Monto Entregado: \]{montoEntregado}
+    if (esRenovacion) {
+        textoTicketBluetooth += `
+Saldo Anterior: ${saldoAntStr}
+Prestamo Nuevo: ${montoPrestado}
+Monto Entregado: ${montoEntregado}
 `;
-  } else {
-    textoTicketBluetooth += 
-`Monto Prestado: \[ {montoPrestado}
+    } else {
+        textoTicketBluetooth += `
+Monto Prestado: ${montoPrestado}
 `;
-  }
+    }
 
-  textoTicketBluetooth += 
-`Plazo: ${cantidadCuotas} semanas
-Cuota Semanal: \]{montoCuota}
-Total a Pagar: $${totalPagar}
+    textoTicketBluetooth += `
+Plazo: ${cantidadCuotas.replace('_semanas', '')} semanas
+Cuota Semanal: ${montoCuota}
+Total a Pagar: ${totalPagar}
 F. Inicio: ${fechaInicio}
 F. Termino: ${fechaTermino}
---------------------------------
+--------------------------------------------------
 POR ESTE MEDIO ME COMPROMETO A PAGAR LA CANTIDAD TOTAL DEL PRESTAMO EN ${cantidadCuotas} CUOTAS SEMANALES.
 EL INCUMPLIMIENTO GENERARA LA MORA CORRESPONDIENTE.
---------------------------------
+--------------------------------------------------
 Firma del Cliente:
 
-________________________
 
 `;
 }
