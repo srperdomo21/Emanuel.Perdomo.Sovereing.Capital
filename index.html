@@ -8395,7 +8395,28 @@ window.ocultarFormularioCliente = ocultarFormularioCliente;
       } catch(eGps) { console.warn('GPS préstamo:', eGps); }
 
       prestamosDB.push(nuevoPrestamo);
-guardarDatosEnNube();
+
+// --- LÓGICA OFFLINE FIRST ---
+if (navigator.onLine) {
+    try {
+        // Intentar guardar en Supabase (usando tu función existente)
+        await guardarDatosEnNube(); 
+        
+        // (Si quieres, puedes poner un alert aquí, pero para no molestar al usuario, mejor lo dejamos así)
+        
+    } catch (error) {
+        console.error("Error al subir a la nube:", error);
+        // Si falla a pesar de tener internet, lo guardamos en la cola
+        guardarEnColaLocal('prestamos', 'insert', nuevoPrestamo);
+        alert("⚠️ Problema de red. Guardado localmente, se enviará luego.");
+    }
+} else {
+    // Si NO hay internet, lo guardamos en la cola directamente
+    guardarEnColaLocal('prestamos', 'insert', nuevoPrestamo);
+    alert("📴 Sin internet. Guardado localmente. Se enviará al volver la conexión.");
+}
+// -----------------------------
+
 
 
 // 1. Se abre el NUEVO contrato térmico
@@ -8415,11 +8436,6 @@ setTimeout(function() {
 
 // 4. Se limpia el formulario (esto lo dejas tal cual lo tenías)
 document.getElementById('formPrestamo').reset();
-
-
-
-
-
 
       document.getElementById('pFechaInicio').valueAsDate = new Date();
       document.getElementById('previewFotoConfirmacion').style.display = 'none';
@@ -12611,6 +12627,82 @@ function abrirModalAuditoriaLocal() {
   existing.style.display = 'flex';
 }
 window.abrirModalAuditoriaLocal = abrirModalAuditoriaLocal;
+
+
+// ==========================================
+// SISTEMA DE SINCRONIZACIÓN OFFLINE (SUPABASE)
+// ==========================================
+
+// Función para guardar en la cola local si no hay internet
+function guardarEnColaLocal(tabla, accion, datos) {
+    let cola = JSON.parse(localStorage.getItem('cola_supabase') || '[]');
+    cola.push({
+        id_temporal: Date.now().toString(), // ID único para evitar duplicados
+        tabla: tabla,
+        accion: accion, // 'insert', 'update', 'delete'
+        datos: datos,
+        fecha: new Date().toISOString()
+    });
+    localStorage.setItem('cola_supabase', JSON.stringify(cola));
+    console.log("⚠️ Sin internet. Guardado en cola local.");
+}
+
+// Función que se ejecuta cuando vuelve el internet
+async function sincronizarConSupabase() {
+    if (!navigator.onLine) return; // Si sigue sin internet, no hace nada
+
+    let cola = JSON.parse(localStorage.getItem('cola_supabase') || '[]');
+    if (cola.length === 0) return; // Si no hay nada pendiente, termina
+
+    console.log(`🔄 Sincronizando ${cola.length} operaciones pendientes...`);
+    
+    let operacionesFallidas = []; // Aquí guardaremos las que fallen para reintentar luego
+
+    for (const operacion of cola) {
+        try {
+            // Ejecuta la operación en Supabase según corresponda
+            if (operacion.accion === 'insert') {
+                const { error } = await supabase.from(operacion.tabla).insert(operacion.datos);
+                if (error) throw error;
+            } 
+            else if (operacion.accion === 'update') {
+                const { error } = await supabase.from(operacion.tabla).update(operacion.datos.datos_nuevos).eq('id', operacion.datos.id);
+                if (error) throw error;
+            }
+            else if (operacion.accion === 'delete') {
+                const { error } = await supabase.from(operacion.tabla).delete().eq('id', operacion.datos.id);
+                if (error) throw error;
+            }
+        } catch (error) {
+            console.error("Error sincronizando operación:", error);
+            operacionesFallidas.push(operacion); // Si falla, la guardamos para el próximo intento
+        }
+    }
+
+    // Actualizamos la cola en el celular con las que no se pudieron enviar
+    localStorage.setItem('cola_supabase', JSON.stringify(operacionesFallidas));
+    
+    if (operacionesFallidas.length === 0) {
+        console.log("✅ Sincronización completada con éxito.");
+    } else {
+        console.log(`⚠️ Quedan ${operacionesFallidas.length} operaciones pendientes.`);
+    }
+}
+
+// Detectar cuando el celular recupera la conexión a internet
+window.addEventListener('online', () => {
+    console.log("🌐 Internet restaurado. Iniciando sincronización...");
+    sincronizarConSupabase();
+});
+
+// Intentar sincronizar al abrir la página
+document.addEventListener('DOMContentLoaded', () => {
+    sincronizarConSupabase();
+});
+
+
+
+
 </script>
 
 </body>
