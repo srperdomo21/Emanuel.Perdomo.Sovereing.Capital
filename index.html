@@ -7711,88 +7711,6 @@ setTimeout(function() {
 }, 400);
     }
 
-function formatoMonedaTicket(valor) {
-  var num = parseFloat(valor) || 0;
-  return 'RD$ ' + num.toLocaleString('en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  });
-}
-
-function generarMiniContrato(prestamoId, esRenovacion, balanceAnterior) {
-  var p = (prestamosDB || []).find(function(item) { return item.id == prestamoId; });
-  if (!p) {
-    alert('No se encontró el préstamo para generar el ticket.');
-    return;
-  }
-
-  var cli = (clientesDB || []).find(function(c) { return c.id == p.clienteId; }) || {};
-  var montoPrestado = parseFloat(p.monto) || 0;
-  var montoCuota = parseFloat(p.valorCuota) || 0;
-  var totalPagar = parseFloat(p.totalPagar) || (montoPrestado + (montoPrestado * ((parseFloat(p.tasa) || 0) / 100)));
-
-  document.getElementById('mcEmpresa').textContent = (typeof empresaActual !== 'undefined' && empresaActual) ? empresaActual.toUpperCase() : 'PERDOMO CAPITAL';
-  document.getElementById('mcSubtitulo').textContent = esRenovacion ? 'TICKET DE RENOVACIÓN' : 'TICKET DE PRÉSTAMO';
-  document.getElementById('mcFechaEmision').textContent = new Date().toLocaleString('es-DO');
-
-  document.getElementById('mcCliente').textContent = (p.clienteNombre || cli.nombre || 'N/A').toUpperCase();
-  document.getElementById('mcCedula').textContent = p.cedula || cli.cedula || 'N/A';
-  document.getElementById('mcTelefono').textContent = p.telefono || cli.telefono || 'N/A';
-
-  document.getElementById('mcMontoPrestado').textContent = formatoMonedaTicket(montoPrestado);
-  document.getElementById('mcMontoCuota').textContent = formatoMonedaTicket(montoCuota);
-  document.getElementById('mcTotalPagar').textContent = formatoMonedaTicket(totalPagar);
-
-  document.getElementById('mcPlazo').textContent = (p.numCuotas || 1) + ' cuotas (' + String(p.plazo || '').replace(/_/g, ' ') + ')';
-  document.getElementById('mcFechaInicio').textContent = p.fechaInicio || 'N/A';
-  document.getElementById('mcFechaTermino').textContent = p.fechaTermino || 'N/A';
-
-  var modal = document.getElementById('modalMiniContrato');
-  if (modal) modal.style.display = 'flex';
-}
-
-function cerrarMiniContrato() {
-  var modal = document.getElementById('modalMiniContrato');
-  if (modal) modal.style.display = 'none';
-}
-
-function imprimirMiniContratoBluetooth() {
-  var montoPrestado = document.getElementById('mcMontoPrestado').textContent;
-  var montoCuota = document.getElementById('mcMontoCuota').textContent;
-  var totalPagar = document.getElementById('mcTotalPagar').textContent;
-  var cliente = document.getElementById('mcCliente').textContent;
-  var plazo = document.getElementById('mcPlazo').textContent;
-  var inicio = document.getElementById('mcFechaInicio').textContent;
-  var termino = document.getElementById('mcFechaTermino').textContent;
-
-  var texto =
-    document.getElementById('mcEmpresa').textContent + "\n" +
-    document.getElementById('mcSubtitulo').textContent + "\n" +
-    "--------------------------------\n" +
-    "Cliente: " + cliente + "\n" +
-    "Monto Prestado: " + montoPrestado + "\n" +
-    "Monto Cuota: " + montoCuota + "\n" +
-    "Total a Pagar: " + totalPagar + "\n" +
-    "Plazo: " + plazo + "\n" +
-    "Inicio: " + inicio + "\n" +
-    "Termino: " + termino + "\n" +
-    "--------------------------------\n\n" +
-    "Firma: _________________________\n";
-
-  if (typeof enviarComandosBluetooth === 'function') {
-    enviarComandosBluetooth(texto);
-  } else {
-    window.print();
-  }
-}
-
-
-
-
-
-
-
-
     function abrirModalCobro(prestamoId, sugeridoMonto, sugeridoMora, cuotaActual, cuotasTotales) {
   // 1. VERIFICACIÓN NUEVA: Evitar cobros a préstamos saldados
   var prestamoCheck = prestamosDB.find(function(p) { return p.id == prestamoId; });
@@ -8477,28 +8395,7 @@ window.ocultarFormularioCliente = ocultarFormularioCliente;
       } catch(eGps) { console.warn('GPS préstamo:', eGps); }
 
       prestamosDB.push(nuevoPrestamo);
-
-// --- LÓGICA OFFLINE FIRST ---
-if (navigator.onLine) {
-    try {
-        // Intentar guardar en Supabase (usando tu función existente)
-        await guardarDatosEnNube(); 
-        
-        // (Si quieres, puedes poner un alert aquí, pero para no molestar al usuario, mejor lo dejamos así)
-        
-    } catch (error) {
-        console.error("Error al subir a la nube:", error);
-        // Si falla a pesar de tener internet, lo guardamos en la cola
-        guardarEnColaLocal('prestamos', 'insert', nuevoPrestamo);
-        alert("⚠️ Problema de red. Guardado localmente, se enviará luego.");
-    }
-} else {
-    // Si NO hay internet, lo guardamos en la cola directamente
-    guardarEnColaLocal('prestamos', 'insert', nuevoPrestamo);
-    alert("📴 Sin internet. Guardado localmente. Se enviará al volver la conexión.");
-}
-// -----------------------------
-
+guardarDatosEnNube();
 
 
 // 1. Se abre el NUEVO contrato térmico
@@ -8518,6 +8415,11 @@ setTimeout(function() {
 
 // 4. Se limpia el formulario (esto lo dejas tal cual lo tenías)
 document.getElementById('formPrestamo').reset();
+
+
+
+
+
 
       document.getElementById('pFechaInicio').valueAsDate = new Date();
       document.getElementById('previewFotoConfirmacion').style.display = 'none';
@@ -12615,7 +12517,34 @@ function verDetallePrestamoDesdeHistorial(idPrestamo) {
 </div>
 
 
-
+<!-- MODAL MINI CONTRATO -->
+<div id="modalMiniContrato">
+  <div class="ticket-termico" id="ticketContenido">
+    <!-- Los datos se inyectan aquí -->
+  </div>
+  
+  <div class="no-print" style="position: fixed; bottom: 20px; width: 100%; left: 0; display: flex; justify-content: center; gap: 8px; padding: 0 12px; flex-wrap: wrap;">
+    <button onclick="document.getElementById('modalMiniContrato').style.display='none'" 
+            style="padding: 10px 14px; background: #64748b; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">
+      Cerrar
+    </button>
+    
+    <button onclick="window.print()" 
+            style="padding: 10px 14px; background: #1e3a8a; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">
+      🖨️ Normal
+    </button>
+    
+    <button onclick="imprimirMiniContratoBluetooth()" 
+            style="padding: 10px 14px; background: #0f766e; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">
+      📡 Bluetooth
+    </button>
+    
+    <button onclick="compartirPorWhatsApp()" 
+            style="padding: 10px 14px; background: #25d366; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">
+      📲 WhatsApp
+    </button>
+  </div>
+</div>
 
 
 <!-- MODAL PARA IMPRIMIR TICKET DE CUADRE (COBRADOR) -->
@@ -12654,74 +12583,6 @@ Created by Perdomo Sovereign Capital
   </div>
 </div>
 
-<!-- MODAL MINI CONTRATO (TICKET TÉRMICO) -->
-<div id="modalMiniContrato" class="no-print" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.75); z-index:99999; justify-content:center; align-items:center; padding:15px; overflow-y:auto;">
-  <div style="display:flex; flex-direction:column; align-items:center; width:100%; max-width:340px;">
-    
-    <div id="ticketContratoBox" class="ticket-termico">
-      <div class="ticket-header">
-        <h2 id="mcEmpresa">PERDOMO CAPITAL</h2>
-        <p id="mcSubtitulo">COMPROBANTE DE PRÉSTAMO</p>
-        <p id="mcFechaEmision"></p>
-      </div>
-
-      <div class="ticket-row">
-        <span>CLIENTE:</span>
-        <span id="mcCliente"></span>
-      </div>
-      <div class="ticket-row">
-        <span>CÉDULA:</span>
-        <span id="mcCedula"></span>
-      </div>
-      <div class="ticket-row">
-        <span>TELÉFONO:</span>
-        <span id="mcTelefono"></span>
-      </div>
-
-      <div class="ticket-divider"></div>
-
-      <div class="ticket-row">
-        <span>MONTO PRESTADO:</span>
-        <span id="mcMontoPrestado"></span>
-      </div>
-      <div class="ticket-row">
-        <span>MONTO CUOTA:</span>
-        <span id="mcMontoCuota"></span>
-      </div>
-      <div class="ticket-row">
-        <span>TOTAL A PAGAR:</span>
-        <span id="mcTotalPagar"></span>
-      </div>
-
-      <div class="ticket-divider"></div>
-
-      <div class="ticket-row">
-        <span>PLAZO / CUOTAS:</span>
-        <span id="mcPlazo"></span>
-      </div>
-      <div class="ticket-row">
-        <span>INICIO:</span>
-        <span id="mcFechaInicio"></span>
-      </div>
-      <div class="ticket-row">
-        <span>TÉRMINO:</span>
-        <span id="mcFechaTermino"></span>
-      </div>
-
-      <div class="ticket-firma">
-        <div class="ticket-firma-linea"></div>
-        <span>FIRMA DEL CLIENTE</span>
-      </div>
-    </div>
-
-    <div class="no-print" style="display:flex; flex-direction:column; gap:8px; width:100%; max-width:320px; margin-top:12px;">
-      <button type="button" class="btn btn-success" onclick="window.print()">🖨️ Imprimir Ticket</button>
-      <button type="button" class="btn btn-warning" style="color:#000;" onclick="imprimirMiniContratoBluetooth()">📶 Imprimir por Bluetooth</button>
-      <button type="button" class="btn btn-secondary" onclick="cerrarMiniContrato()">Cerrar</button>
-    </div>
-
-  </div>
-</div>
 
 
 
@@ -12750,82 +12611,6 @@ function abrirModalAuditoriaLocal() {
   existing.style.display = 'flex';
 }
 window.abrirModalAuditoriaLocal = abrirModalAuditoriaLocal;
-
-
-// ==========================================
-// SISTEMA DE SINCRONIZACIÓN OFFLINE (SUPABASE)
-// ==========================================
-
-// Función para guardar en la cola local si no hay internet
-function guardarEnColaLocal(tabla, accion, datos) {
-    let cola = JSON.parse(localStorage.getItem('cola_supabase') || '[]');
-    cola.push({
-        id_temporal: Date.now().toString(), // ID único para evitar duplicados
-        tabla: tabla,
-        accion: accion, // 'insert', 'update', 'delete'
-        datos: datos,
-        fecha: new Date().toISOString()
-    });
-    localStorage.setItem('cola_supabase', JSON.stringify(cola));
-    console.log("⚠️ Sin internet. Guardado en cola local.");
-}
-
-// Función que se ejecuta cuando vuelve el internet
-async function sincronizarConSupabase() {
-    if (!navigator.onLine) return; // Si sigue sin internet, no hace nada
-
-    let cola = JSON.parse(localStorage.getItem('cola_supabase') || '[]');
-    if (cola.length === 0) return; // Si no hay nada pendiente, termina
-
-    console.log(`🔄 Sincronizando ${cola.length} operaciones pendientes...`);
-    
-    let operacionesFallidas = []; // Aquí guardaremos las que fallen para reintentar luego
-
-    for (const operacion of cola) {
-        try {
-            // Ejecuta la operación en Supabase según corresponda
-            if (operacion.accion === 'insert') {
-                const { error } = await supabase.from(operacion.tabla).insert(operacion.datos);
-                if (error) throw error;
-            } 
-            else if (operacion.accion === 'update') {
-                const { error } = await supabase.from(operacion.tabla).update(operacion.datos.datos_nuevos).eq('id', operacion.datos.id);
-                if (error) throw error;
-            }
-            else if (operacion.accion === 'delete') {
-                const { error } = await supabase.from(operacion.tabla).delete().eq('id', operacion.datos.id);
-                if (error) throw error;
-            }
-        } catch (error) {
-            console.error("Error sincronizando operación:", error);
-            operacionesFallidas.push(operacion); // Si falla, la guardamos para el próximo intento
-        }
-    }
-
-    // Actualizamos la cola en el celular con las que no se pudieron enviar
-    localStorage.setItem('cola_supabase', JSON.stringify(operacionesFallidas));
-    
-    if (operacionesFallidas.length === 0) {
-        console.log("✅ Sincronización completada con éxito.");
-    } else {
-        console.log(`⚠️ Quedan ${operacionesFallidas.length} operaciones pendientes.`);
-    }
-}
-
-// Detectar cuando el celular recupera la conexión a internet
-window.addEventListener('online', () => {
-    console.log("🌐 Internet restaurado. Iniciando sincronización...");
-    sincronizarConSupabase();
-});
-
-// Intentar sincronizar al abrir la página
-document.addEventListener('DOMContentLoaded', () => {
-    sincronizarConSupabase();
-});
-
-
-
-
 </script>
 
 </body>
